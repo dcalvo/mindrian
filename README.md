@@ -36,7 +36,61 @@ By raising the quality of ideation through AI-driven deep research that asks the
 
 ## Getting Started
 
-*(Coming soon)*
+### Frontend Sandbox
+
+The `frontend/` directory serves as a sandbox for developing and testing Mindrian components. It's built with Next.js, React, TypeScript, and BlockNote editor.
+
+#### Prerequisites
+
+- Node.js 18+ or Bun
+- npm, yarn, pnpm, or bun package manager
+
+#### Setup Instructions
+
+1. **Navigate to the frontend directory:**
+   ```bash
+   cd frontend
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   npm install
+   # or
+   yarn install
+   # or
+   pnpm install
+   # or
+   bun install
+   ```
+
+3. **Run the development server:**
+   ```bash
+   npm run dev
+   # or
+   yarn dev
+   # or
+   pnpm dev
+   # or
+   bun run dev
+   ```
+
+4. **Open your browser:**
+   Navigate to [http://localhost:3000](http://localhost:3000) to see the application.
+
+#### Available Scripts
+
+- `npm run dev` - Start the development server
+- `npm run build` - Build the application for production
+- `npm run start` - Start the production server
+- `npm run lint` - Run ESLint to check code quality
+
+#### Tech Stack
+
+- **Framework**: Next.js 16
+- **UI Library**: React 19
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS 4
+- **Editor**: BlockNote (@blocknote/core, @blocknote/react, @blocknote/mantine)
 
 ## Architecture
 
