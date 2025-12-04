@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import AIContextDisplay from "@/components/AIContextDisplay";
 
 const Editor = dynamic(() => import("@/components/Editor"), {
   ssr: false,
@@ -24,6 +25,7 @@ export default function Home() {
 
         <div className="bg-white rounded-lg shadow-xl overflow-hidden border border-slate-200">
           <Editor />
+          <AIContextDisplay />
         </div>
       </div>
     </div>

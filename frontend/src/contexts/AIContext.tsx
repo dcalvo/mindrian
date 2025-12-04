@@ -14,7 +14,7 @@ interface AIProviderProps {
 }
 
 export function AIProvider({ children }: AIProviderProps) {
-  const [context, setContext] = useState<string[]>([]);
+  const [context, setContext] = useState<string[]>(["some initial context!"]);
 
   const addToContext = (contextItem: string) => {
     setContext((prev) => [...prev, contextItem]);
