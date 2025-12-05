@@ -13,3 +13,7 @@ class Agent:
     # returns the agent description
     def get_description(self):
         return self.agent_goal.description
+    
+    # returns the agents that this agent relies on
+    def get_dependencies(self):
+        return self.agent_goal.dependencies

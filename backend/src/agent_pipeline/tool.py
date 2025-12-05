@@ -17,6 +17,7 @@ class ToolDefinition:
 class AgentGoal:
     agent_name: str
     tools: List[ToolDefinition]
+    dependencies: List[str]
     description: str
     starter_prompt: str
     example_conversation_history: str
