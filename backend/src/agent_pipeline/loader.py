@@ -28,22 +28,22 @@ def load_tools_from_directory(tools_dir: str) -> Dict[str, Callable]:
             file_path = os.path.join(tools_dir, filename)
             module_name = filename[:-3]
             
-            try:
-                # Create a module spec
-                spec = importlib.util.spec_from_file_location(module_name, file_path)
-                if spec and spec.loader:
-                    # Create and execute the module
-                    module = importlib.util.module_from_spec(spec)
-                    spec.loader.exec_module(module)
-                    
-                    # Extract functions from the module
-                    for name, obj in inspect.getmembers(module):
-                        # We only want functions defined in this module, not imported ones
-                        if inspect.isfunction(obj) and obj.__module__ == module_name:
-                            # You might want to add additional filtering here (e.g. decorators)
-                            tools[name] = obj
-            except Exception as e:
-                print(f"Error loading module {module_name}: {e}")
+            
+            # Create a module spec
+            spec = importlib.util.spec_from_file_location(module_name, file_path)
+            if spec and spec.loader:
+                # Create and execute the module
+                module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(module)
+                
+                # Extract functions from the module
+                for name, obj in inspect.getmembers(module):
+                    # We only want functions defined in this module, not imported ones
+                    if inspect.isfunction(obj) and obj.__module__ == module_name:
+                        # throwing an error if there are two instances of the same function name
+                        if name in tools:
+                            raise ValueError(f"Duplicate function name: {name}")
+                        tools[name] = obj
                 
     return tools
 
