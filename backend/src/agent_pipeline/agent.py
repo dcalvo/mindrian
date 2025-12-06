@@ -1,8 +1,8 @@
-from typing import List, Dict
-from tool import ToolDefinition, ToolArgument, AgentGoal
+from typing import List, Dict, Callable
+from .tool import ToolDefinition, ToolArgument, AgentGoal
 
 class Agent:
-    def __init__(self, agent_goal: AgentGoal, tool_definitions: List[ToolDefinition], tool_directory: Dict[str, function]):
+    def __init__(self, agent_goal: AgentGoal, tool_definitions: List[ToolDefinition], tool_directory: Dict[str, Callable]):
         """
         Initialize the Agent with its goal, tool definitions, and executable tools.
 
