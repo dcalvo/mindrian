@@ -2,7 +2,18 @@
     "name": "biologist_agent",
     "version": "1.0.0",
     "timeout": 60,
-    "dependencies": [
-        "biopython"
+    "dependencies": [],
+    "tools": [
+        {
+            "name": "analyze_dna",
+            "description": "Analyzes a DNA sequence to calculate basic properties.",
+            "arguments": [
+                {
+                    "name": "sequence",
+                    "type": "string",
+                    "description": "The DNA sequence to analyze (e.g., 'ATCGGCTA')."
+                }
+            ]
+        }
     ]
 }

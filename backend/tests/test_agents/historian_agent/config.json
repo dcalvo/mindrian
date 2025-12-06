@@ -2,5 +2,18 @@
     "name": "historian_agent",
     "version": "1.0.0",
     "timeout": 60,
-    "dependencies": []
+    "dependencies": [],
+    "tools": [
+        {
+            "name": "generate_timeline",
+            "description": "Generates a timeline for a given historical event.",
+            "arguments": [
+                {
+                    "name": "event_name",
+                    "type": "string",
+                    "description": "The name of the event to generate a timeline for (e.g., 'World War II')."
+                }
+            ]
+        }
+    ]
 }

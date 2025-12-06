@@ -2,8 +2,18 @@
     "name": "physicist_agent",
     "version": "1.0.0",
     "timeout": 60,
-    "dependencies": [
-        "numpy",
-        "scipy"
+    "dependencies": [],
+    "tools": [
+        {
+            "name": "solve_equation",
+            "description": "Solves a simple linear equation.",
+            "arguments": [
+                {
+                    "name": "equation_str",
+                    "type": "string",
+                    "description": "The equation to solve, e.g., '2x + 4 = 10'."
+                }
+            ]
+        }
     ]
 }
