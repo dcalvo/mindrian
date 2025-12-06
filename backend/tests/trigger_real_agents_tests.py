@@ -1,6 +1,8 @@
 import sys
 import os
 import unittest
+import requests
+import time
 
 # Add src to python path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))

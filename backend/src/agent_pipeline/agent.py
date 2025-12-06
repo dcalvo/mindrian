@@ -1,8 +1,9 @@
 from typing import List, Dict, Callable
 from .tool import ToolDefinition, ToolArgument, AgentGoal
+from .context import Context
 
 class Agent:
-    def __init__(self, agent_goal: AgentGoal, tool_definitions: List[ToolDefinition], tool_directory: Dict[str, Callable]):
+    def __init__(self, agent_goal: AgentGoal, tool_definitions: List[ToolDefinition], tool_directory: Dict[str, Callable], context: Context=Context()):
         """
         Initialize the Agent with its goal, tool definitions, and executable tools.
 
@@ -15,7 +16,7 @@ class Agent:
         self.agent_goal = agent_goal
         self.tool_definitions = tool_definitions
         self.tools = tool_directory
-
+        self.context = context
         # TODO: initialize the LLM
     
     def get_description(self):
@@ -35,3 +36,21 @@ class Agent:
             List[str]: A list of dependency agent names.
         """
         return self.agent_goal.dependencies
+    
+    def get_context(self):
+        """
+        Get the context of the agent.
+
+        Returns:
+            Context: The context of the agent.
+        """
+        return self.context
+    
+    def set_context(self, context: Context):
+        """
+        Set the context of the agent.
+
+        Args:
+            context: The context to set.
+        """
+        self.context = context
