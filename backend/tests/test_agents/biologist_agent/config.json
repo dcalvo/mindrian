@@ -1,0 +1,8 @@
+{
+    "name": "biologist_agent",
+    "version": "1.0.0",
+    "timeout": 60,
+    "dependencies": [
+        "biopython"
+    ]
+}

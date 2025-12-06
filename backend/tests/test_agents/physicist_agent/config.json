@@ -1,0 +1,9 @@
+{
+    "name": "physicist_agent",
+    "version": "1.0.0",
+    "timeout": 60,
+    "dependencies": [
+        "numpy",
+        "scipy"
+    ]
+}
