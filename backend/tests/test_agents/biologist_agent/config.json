@@ -2,6 +2,8 @@
     "name": "biologist_agent",
     "version": "1.0.0",
     "timeout": 60,
+    "description": "An agent specialized in biology, genetics, and organic processes.",
+    "example_conversation_history": "User: What is the function of mitochondria?\nAgent: Mitochondria are the powerhouse of the cell, generating most of the cell's supply of adenosine triphosphate (ATP).",
     "dependencies": [],
     "tools": [
         {

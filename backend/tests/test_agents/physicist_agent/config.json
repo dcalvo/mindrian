@@ -2,6 +2,8 @@
     "name": "physicist_agent",
     "version": "1.0.0",
     "timeout": 60,
+    "description": "An agent capable of solving physics equations and explaining physical concepts.",
+    "example_conversation_history": "User: Calculate the force of a 10kg object accelerating at 5m/s^2.\nAgent: The force is 50 Newtons (F=ma).",
     "dependencies": [],
     "tools": [
         {

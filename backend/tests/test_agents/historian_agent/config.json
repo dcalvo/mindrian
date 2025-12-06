@@ -2,6 +2,8 @@
     "name": "historian_agent",
     "version": "1.0.0",
     "timeout": 60,
+    "description": "An agent that provides historical context, dates, and timelines.",
+    "example_conversation_history": "User: When did the French Revolution start?\nAgent: The French Revolution began on May 5, 1789.",
     "dependencies": [],
     "tools": [
         {
