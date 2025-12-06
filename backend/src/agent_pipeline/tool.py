@@ -22,3 +22,4 @@ class AgentGoal:
     starter_prompt: str
     timeout_seconds: int
     example_conversation_history: str
+    trigger: str
