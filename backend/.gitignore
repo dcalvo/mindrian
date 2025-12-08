@@ -140,3 +140,6 @@ cython_debug/
 *.swp
 *.swo
 .DS_Store
+
+# Test data
+tests/test_data/images/

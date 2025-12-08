@@ -30,72 +30,17 @@ class TriggerEvaluator:
         with open(image_path, "rb") as image_file:
             return base64.b64encode(image_file.read()).decode('utf-8')
 
-    def describe_image(self, image_path: str, context: Context) -> str:
+    def evaluate(self, agent: Agent, context: Context) -> TriggerDecision:
         """
-        Generates a description of an image and appends it to the context.
-
-        Args:
-            image_path: Path to the image file.
-            context: The current context.
-
-        Returns:
-            The generated description.
-        """
-        base64_image = self._encode_image(image_path)
-        
-        # Determine media type based on extension (simple check)
-        # Claude supports jpeg, png, gif, webp.
-        ext = os.path.splitext(image_path)[1].lower().replace('.', '')
-        if ext == 'jpg': ext = 'jpeg'
-        media_type = f"image/{ext}"
-
-        prompt = f"Describe this image in detail, focusing on elements relevant to: {context.conversation_summary}"
-        
-        response = self.client.messages.create(
-            model=self.model,
-            max_tokens=1024,
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "image",
-                            "source": {
-                                "type": "base64",
-                                "media_type": media_type,
-                                "data": base64_image,
-                            },
-                        },
-                        {
-                            "type": "text",
-                            "text": prompt
-                        }
-                    ],
-                }
-            ],
-        )
-        description = response.content[0].text.strip()
-            
-        context.context_window_snapshot += f"\n[Image Description]: {description}"
-        return description
-
-    def evaluate(self, agent: Agent, context: Context, Image_paths: List[str]=None) -> TriggerDecision:
-        """
-        Determines if the agent should be run based on the context window.
+        Determines if the agent should be run based on the context window and images.
         
         Args:
             agent: The agent to evaluate.
             context: The conversation history or context.
-            Image_paths: List of image paths to include in the context.
             
         Returns:
             TriggerDecision object containing should_run, confidence, and reasoning.
         """
-        if Image_paths:
-            for image_path in Image_paths:
-                # We update context with descriptions before evaluating trigger
-                context.context_window_snapshot += self.describe_image(image_path, context)
-            
         system_prompt = (
             "You are an orchestration manager. Your job is to decide if a specific agent "
             "should be activated based on the conversation history. "
@@ -105,13 +50,41 @@ class TriggerEvaluator:
             "- \"reasoning\": string (explanation of your decision)"
         )
             
-        user_prompt = (
+        user_prompt_text = (
             f"Agent Name: {agent.agent_goal.agent_name}\n"
             f"Agent Description: {agent.get_description()}\n"
             f"Trigger Condition: {agent.agent_goal.trigger}\n\n"
             f"Context Window:\n{context.context_window_snapshot}\n\n"
             f"Should this agent be activated? Respond in JSON."
         )
+
+        content = []
+        
+        # Add images from context
+        if context.images:
+            for image_path in context.images:
+                try:
+                    base64_image = self._encode_image(image_path)
+                    ext = os.path.splitext(image_path)[1].lower().replace('.', '')
+                    if ext == 'jpg': ext = 'jpeg'
+                    media_type = f"image/{ext}"
+                    
+                    content.append({
+                        "type": "image",
+                        "source": {
+                            "type": "base64",
+                            "media_type": media_type,
+                            "data": base64_image,
+                        },
+                    })
+                except Exception as e:
+                    print(f"Error loading image {image_path}: {e}")
+
+        # Add text content
+        content.append({
+            "type": "text",
+            "text": user_prompt_text
+        })
         
         try:
             response = self.client.messages.create(
@@ -119,7 +92,7 @@ class TriggerEvaluator:
                 max_tokens=1024,
                 system=system_prompt,
                 messages=[
-                    {"role": "user", "content": user_prompt}
+                    {"role": "user", "content": content}
                 ]
             )
             
