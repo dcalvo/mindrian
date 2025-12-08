@@ -9,6 +9,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../src"
 
 from agent_pipeline.loader import AgentLoader
 from agent_pipeline.trigger import TriggerEvaluator
+from agent_pipeline.context import Context
 
 class TestTriggerRealAgents(unittest.TestCase):
     @classmethod
@@ -21,7 +22,7 @@ class TestTriggerRealAgents(unittest.TestCase):
 
     def test_physicist_trigger(self):
         evaluator = TriggerEvaluator()
-        context = "User: Calculate the velocity of a falling object."
+        context = Context(context_window_snapshot="User: Calculate the velocity of a falling object.")
         
         decision = evaluator.evaluate(self.physicist, context)
         
@@ -31,7 +32,7 @@ class TestTriggerRealAgents(unittest.TestCase):
 
     def test_biologist_trigger(self):
         evaluator = TriggerEvaluator()
-        context = "User: Analyze this DNA sequence: ATCG."
+        context = Context(context_window_snapshot="User: Analyze this DNA sequence: ATCG.")
         
         decision = evaluator.evaluate(self.biologist, context)
         
@@ -40,7 +41,7 @@ class TestTriggerRealAgents(unittest.TestCase):
 
     def test_historian_trigger_negative(self):
         evaluator = TriggerEvaluator()
-        context = "User: What is 2 + 2?"
+        context = Context(context_window_snapshot="User: What is 2 + 2?")
         
         decision = evaluator.evaluate(self.historian, context)
         

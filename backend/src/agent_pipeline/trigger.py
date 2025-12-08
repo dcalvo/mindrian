@@ -1,12 +1,15 @@
 import os
 import json
+import base64
 from typing import Optional, List
 from dataclasses import dataclass
-import google.generativeai as genai
+import anthropic
 from dotenv import load_dotenv
 from PIL import Image
+from io import BytesIO
 from .agent import Agent
 from .context import Context
+
 load_dotenv()
 
 @dataclass
@@ -16,13 +19,16 @@ class TriggerDecision:
     reasoning: str
 
 class TriggerEvaluator:
-    API_KEY = os.environ.get("GOOGLE_API_KEY")
     def __init__(self):
         """
-        Initializes the TriggerEvaluator with a Gemini client.
+        Initializes the TriggerEvaluator with a Claude client.
         """
-        genai.configure(api_key=self.API_KEY)
-        self.model = genai.GenerativeModel('gemini-2.5-flash')
+        self.client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+        self.model = "claude-3-opus-20240229"
+
+    def _encode_image(self, image_path: str) -> str:
+        with open(image_path, "rb") as image_file:
+            return base64.b64encode(image_file.read()).decode('utf-8')
 
     def describe_image(self, image_path: str, context: Context) -> str:
         """
@@ -35,11 +41,40 @@ class TriggerEvaluator:
         Returns:
             The generated description.
         """
-        img = Image.open(image_path)
+        base64_image = self._encode_image(image_path)
+        
+        # Determine media type based on extension (simple check)
+        # Claude supports jpeg, png, gif, webp.
+        ext = os.path.splitext(image_path)[1].lower().replace('.', '')
+        if ext == 'jpg': ext = 'jpeg'
+        media_type = f"image/{ext}"
+
         prompt = f"Describe this image in detail, focusing on elements relevant to: {context.conversation_summary}"
-            
-        response = self.model.generate_content([prompt, img])
-        description = response.text.strip()
+        
+        response = self.client.messages.create(
+            model=self.model,
+            max_tokens=1024,
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image",
+                            "source": {
+                                "type": "base64",
+                                "media_type": media_type,
+                                "data": base64_image,
+                            },
+                        },
+                        {
+                            "type": "text",
+                            "text": prompt
+                        }
+                    ],
+                }
+            ],
+        )
+        description = response.content[0].text.strip()
             
         context.context_window_snapshot += f"\n[Image Description]: {description}"
         return description
@@ -56,6 +91,11 @@ class TriggerEvaluator:
         Returns:
             TriggerDecision object containing should_run, confidence, and reasoning.
         """
+        if Image_paths:
+            for image_path in Image_paths:
+                # We update context with descriptions before evaluating trigger
+                context.context_window_snapshot += self.describe_image(image_path, context)
+            
         system_prompt = (
             "You are an orchestration manager. Your job is to decide if a specific agent "
             "should be activated based on the conversation history. "
@@ -64,11 +104,6 @@ class TriggerEvaluator:
             "- \"confidence\": float (0.0 to 1.0)\n"
             "- \"reasoning\": string (explanation of your decision)"
         )
-
-
-        if Image_paths:
-            for image_path in Image_paths:
-                context.context_window_snapshot += self.describe_image(image_path, context)
             
         user_prompt = (
             f"Agent Name: {agent.agent_goal.agent_name}\n"
@@ -79,11 +114,16 @@ class TriggerEvaluator:
         )
         
         try:
-            full_prompt = f"{system_prompt}\n\n{user_prompt}"
+            response = self.client.messages.create(
+                model=self.model,
+                max_tokens=1024,
+                system=system_prompt,
+                messages=[
+                    {"role": "user", "content": user_prompt}
+                ]
+            )
             
-            response = self.model.generate_content(full_prompt, generation_config={"response_mime_type": "application/json"})
-            
-            response_text = response.text.strip()
+            response_text = response.content[0].text.strip()
             
             start_idx = response_text.find('{')
             end_idx = response_text.rfind('}') + 1

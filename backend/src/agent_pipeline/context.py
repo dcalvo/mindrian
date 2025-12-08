@@ -20,3 +20,4 @@ class Context:
     events: List[Event] = field(default_factory=list)
     conversation_summary: str = ""
     context_window_snapshot: str = ""
+    images: List[str] = field(default_factory=list)
