@@ -17,7 +17,7 @@ import {
 import { BlockNoteView } from "@blocknote/mantine";
 import "@blocknote/mantine/style.css";
 import { BlueButton } from "./BlueButton";
-import { AIContextButton } from "./AIContextButton";
+import AIContextButton from "./AIContextButton";
 
 export default function Editor() {
   // Creates a new editor instance.
