@@ -1,9 +1,8 @@
 # Mindrian
 ## System Design Document
 
-**Date:** December 2024  
-**Status:** Design Phase  
-**Timeline:** 2-day MVP
+**Date:** December 2025
+**Status:** Skeleton complete, research spikes in progress
 
 ---
 
@@ -709,59 +708,103 @@ Research task:
 
 ## 9. Implementation Phases
 
-### Phase 1: Static Foundation (Day 1, Hours 1-4)
+### Phase 0: Skeleton (Complete)
 
-**Goal:** User can log in, see pages, edit content (no real-time)
+**Goal:** Working project structure with auth, basic UI shell, and build pipeline
 
 ```
 Backend:
-  • Phoenix project setup with phx.gen.auth
-  • Database migrations (users, folders, pages)
-  • REST API for CRUD operations
-  • Basic tests for content context
+  ✓ Phoenix project with --no-live --no-assets --binary-id
+  ✓ phx.gen.auth (session cookies + magic links)
+  ✓ CORS configured for Vite dev server
+  ✓ API endpoints: /api/health, /api/me
+  ✓ Test channel: ping:lobby with ping/pong
+  ✓ Fly.io deployment configuration
 
 Frontend:
-  • Vite + React + TanStack setup
-  • Auth flow (login, register, session)
-  • File tree component (read-only initially)
-  • BlockNote editor loading page content
-  • Save on blur/interval (REST, not WebSocket)
+  ✓ Vite + React + TypeScript
+  ✓ TanStack Router with file-based routes
+  ✓ Phoenix socket client
+  ✓ Auth flow (useAuth hook, redirect to Phoenix login)
+  ✓ 3-pane layout shell (Header, FileTree, ContentArea, ChatPane)
+  ✓ Build outputs to backend/priv/static/spa/
+  ✓ Vite proxy for /api, /socket, /users
 
-验证 checkpoint:
-  □ Can register and log in
-  □ Can create folder and page via API
-  □ Can see file tree
-  □ Can edit page content
+Verification:
+  ✓ Can register, log in, log out
+  ✓ React app builds and served by Phoenix
+  ✓ 3-pane layout renders with placeholders
+  ✓ Channel ping/pong works from ChatPane
+  ✓ Works in both dev mode (port 5173) and prod mode (port 4000)
+```
+
+### Phase 1: Research Spikes (In Progress)
+
+**Goal:** Validate technical approach for real-time editing before building features
+
+```
+Spikes (see docs/research/):
+  □ y_ex: Understand API for server-side Yjs document handling
+  □ BlockNote + Yjs: Verify collaborative editing works
+  □ Channel binary data: Verify Uint8Array encoding over Phoenix Channels
+
+Why spikes first:
+  • y_ex is undocumented — need to verify it does what we need
+  • BlockNote Yjs integration maturity is unknown
+  • Binary encoding pattern affects all real-time code
+  • Better to discover blockers before building on assumptions
+```
+
+### Phase 2: Content Foundation
+
+**Goal:** User can create and edit pages (no real-time sync yet)
+
+```
+Backend:
+  • Database migrations (folders, pages)
+  • Content context with CRUD operations
+  • REST API or channel messages for content
+
+Frontend:
+  • BlockNote editor integration
+  • File tree populated from backend
+  • Page creation, selection, editing
+  • Save on blur/interval
+
+Verification:
+  □ Can create folder and page
+  □ Can see items in file tree
+  □ Can edit page content in BlockNote
   □ Content persists after refresh
 ```
 
-### Phase 2: Real-time Sync (Day 1, Hours 5-8)
+### Phase 3: Real-time Sync
 
-**Goal:** Edits sync across browser tabs/devices
+**Goal:** Edits sync across browser tabs/devices via Yjs
 
 ```
 Backend:
-  • Phoenix Channels setup
+  • y_ex integration
   • Page channel with Yjs update handling
   • Tree channel with broadcast on changes
-  • Yjs state persistence
+  • Yjs state persistence to PostgreSQL
 
 Frontend:
-  • WebSocket connection management
-  • Yjs integration with BlockNote
+  • Yjs provider connected to BlockNote
+  • WebSocket transport for Yjs updates
   • Tree channel subscription
   • Connection status indicator
 
-Verification checkpoint:
+Verification:
   □ Open same page in two tabs
   □ Edit in one, see change in other (< 2s)
   □ Create page in one tab, appears in other's tree
   □ Refresh preserves all state
 ```
 
-### Phase 3: Chat Foundation (Day 2, Hours 1-4)
+### Phase 4: Chat & AI
 
-**Goal:** Can chat with AI, responses stream
+**Goal:** Can chat with AI, responses stream, AI can see page content
 
 ```
 Backend:
@@ -771,19 +814,19 @@ Backend:
   • Context builder (current page + mentions)
 
 Frontend:
-  • Chat pane UI
-  • Message display with streaming
-  • Input with submit
-  • @ mention picker (basic)
+  • Chat pane with message history
+  • Streaming message display
+  • @ mention picker for pages
+  • Capability toggles
 
-Verification checkpoint:
+Verification:
   □ Can send message, see streaming response
   □ AI sees current page content
   □ Can @ mention another page
-  □ Chat works in both modes
+  □ Chat works in both modes (chat-only, page+chat)
 ```
 
-### Phase 4: Suggestions & Polish (Day 2, Hours 5-8)
+### Phase 5: Suggestions
 
 **Goal:** AI can propose edits, user can accept/reject
 
@@ -791,21 +834,18 @@ Verification checkpoint:
 Backend:
   • Suggestion parsing from AI response
   • Suggestion storage and status management
-  • Additional skills (expander at minimum)
+  • Additional skills (expander, etc.)
 
 Frontend:
-  • Suggestion overlay rendering
+  • Suggestion overlay rendering in editor
   • Accept/reject UI
-  • Prompt helper buttons
-  • Mode toggle polish
-  • Backlinks panel (basic)
+  • Prompt helper buttons (context-sensitive)
 
-Verification checkpoint:
+Verification:
   □ Ask AI to expand a section
   □ See suggestion appear inline
   □ Accept → applied to doc
   □ Reject → disappears
-  □ Prompt buttons work per mode
 ```
 
 ---
@@ -858,4 +898,4 @@ MVP is complete when:
 
 ---
 
-*Design document v1.0 — Ready for research phase and decision-making*
+*Design document v1.1 — Updated to reflect skeleton completion and spike-first approach*

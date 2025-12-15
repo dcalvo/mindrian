@@ -59,6 +59,9 @@ frontend/
 └── src/lib/
     ├── api.ts                 # REST client
     └── socket.ts              # Phoenix channel client
+
+docs/                              # Reference documents for AI agents and humans
+                                   # (design docs, research spikes, specs, etc.)
 ```
 
 ## Authentication
