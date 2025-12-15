@@ -36,11 +36,86 @@ By raising the quality of ideation through AI-driven deep research that asks the
 
 ## Getting Started
 
-*(Coming soon)*
+### Prerequisites
+
+- **Elixir** 1.19+ and **Erlang/OTP** 28+
+- **PostgreSQL** 17+
+- **Node.js** 24+
+
+### Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/dcalvo/mindrian.git
+cd mindrian
+
+# Backend setup
+cd backend
+mix deps.get
+mix ecto.setup
+cd ..
+
+# Frontend setup
+cd frontend
+npm install
+cd ..
+```
+
+### Development
+
+Run both servers in separate terminals:
+
+```bash
+# Terminal 1: Phoenix backend
+cd backend
+iex -S mix phx.server
+```
+
+```bash
+# Terminal 2: Vite dev server (for frontend development)
+cd frontend
+npm run dev
+```
+
+**Access the app at `http://localhost:5173`** for development (with hot reload).
+
+The Vite dev server proxies API requests (`/api/*`), WebSocket connections (`/socket/*`), and auth routes (`/users/*`) to Phoenix at `:4000`.
+
+### Production Build
+
+To test the production build locally:
+
+```bash
+# Build frontend
+cd frontend
+npm run build
+
+# Run Phoenix (serves the built SPA)
+cd ../backend
+iex -S mix phx.server
+```
+
+Access at `http://localhost:4000`.
 
 ## Architecture
 
-*(Coming soon)*
+```
+backend/                   # Phoenix backend (Elixir)
+├── lib/mindrian/          # Business logic, contexts
+├── lib/mindrian_web/      # Web layer (controllers, channels)
+└── priv/static/spa/       # Built React app (generated)
+
+frontend/                  # React SPA (TypeScript)
+├── src/components/        # UI components
+├── src/hooks/             # React hooks
+├── src/lib/               # API client, socket helpers
+└── src/routes/            # TanStack Router pages
+```
+
+**Key technologies:**
+- **Backend**: Phoenix, PostgreSQL, Phoenix Channels
+- **Frontend**: React, TypeScript, Vite, TanStack Router
+- **Auth**: Phoenix.gen.auth (session-based)
 
 ## Contributing
 
