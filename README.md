@@ -97,6 +97,31 @@ iex -S mix phx.server
 
 Access at `http://localhost:4000`.
 
+### Precommit
+
+Run before committing:
+
+```bash
+# Backend (from backend/)
+mix precommit
+
+# Frontend (from frontend/)
+npm run precommit
+```
+
+### Deployment
+
+Deploy to [Fly.io](https://fly.io):
+
+```bash
+fly deploy
+```
+
+Useful commands:
+- `./fiex` - Remote IEx console
+- `fly logs` - View logs
+- `fly mpg connect <cluster>` - Connect to database
+
 ## Architecture
 
 ```
