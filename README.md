@@ -67,14 +67,12 @@ Run both servers in separate terminals:
 
 ```bash
 # Terminal 1: Phoenix backend
-cd backend
-iex -S mix phx.server
+./run-backend                   # or: cd backend && iex -S mix phx.server
 ```
 
 ```bash
 # Terminal 2: Vite dev server (for frontend development)
-cd frontend
-npm run dev
+./run-frontend                  # or: cd frontend && npm run dev
 ```
 
 **Access the app at `http://localhost:5173`** for development (with hot reload).

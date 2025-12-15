@@ -22,14 +22,15 @@ mix precommit             # Run before committing
 npm install               # Install dependencies
 npm run dev               # Vite dev server (port 5173)
 npm run build             # Production build → backend/priv/static/spa/
+npm run format            # Auto-format code with Prettier
 npm run precommit         # Run before committing
 ```
 
 ## Development Workflow
 
-Two-terminal development:
-- Terminal 1: `cd backend && iex -S mix phx.server` (port 4000)
-- Terminal 2: `cd frontend && npm run dev` (port 5173)
+Two-terminal development (from repo root):
+- Terminal 1: `./run-backend` (port 4000)
+- Terminal 2: `./run-frontend` (port 5173)
 
 Access via `localhost:5173` - Vite proxies `/api`, `/socket`, `/users` to Phoenix.
 
