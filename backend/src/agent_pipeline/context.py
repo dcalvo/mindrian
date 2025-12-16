@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
 from .tool import ToolDefinition, ToolArgument
 from typing import List, Dict, Any
+# from pathlib import Path
+# have images be base64 encoded strings
 
 @dataclass
 class Event:

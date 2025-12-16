@@ -1,3 +1,6 @@
+from tool_registry import ToolRegistry
+
+# look into python decorators
 def analyze_dna(sequence):
     """
     Analyzes a DNA sequence.

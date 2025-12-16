@@ -98,6 +98,7 @@ class TriggerEvaluator:
             
             response_text = response.content[0].text.strip()
             
+            # TODO: LOOK over how to handle pidantic parsing from anthropic
             start_idx = response_text.find('{')
             end_idx = response_text.rfind('}') + 1
             
