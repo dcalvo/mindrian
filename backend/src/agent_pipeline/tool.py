@@ -30,6 +30,7 @@ class ToolRegistry:
         self.tools = {}
         self.tool_definitions = {}
     
+    # TODO talk about the order of registration
     def register_tool(self, tool: Callable) -> Callable:
         if tool.__name__ in self.tools:
             raise ValueError(f"Tool '{tool.__name__}' already registered.")

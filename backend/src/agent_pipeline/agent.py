@@ -1,21 +1,23 @@
 from typing import List, Dict, Callable
 from .tool import ToolDefinition, ToolArgument, AgentGoal
 from .context import Context
+from .tool import ToolRegistry
 
 class Agent:
-    def __init__(self, agent_goal: AgentGoal, tool_definitions: List[ToolDefinition], tool_directory: Dict[str, Callable], context: Context=Context()):
+    # universal agent tool registry
+    TOOL_REGISTRY = ToolRegistry()
+    
+    def __init__(self, agent_goal: AgentGoal, tool_definitions: List[ToolDefinition], context: Context=Context()):
         """
         Initialize the Agent with its goal, tool definitions, and executable tools.
 
         Args:
             agent_goal: The goal configuration for the agent.
             tool_definitions: List of definitions for the tools available to the agent.
-            tool_directory: Dictionary mapping tool names to their callable functions.
         """
         # initializing the agent
         self.agent_goal = agent_goal
         self.tool_definitions = tool_definitions
-        self.tools = tool_directory
         self.context = context
         # TODO: initialize the LLM
     
