@@ -32,10 +32,17 @@ class TestTriggerRealImages(unittest.TestCase):
         if not os.path.exists(self.labrador_path):
             self.skipTest(f"Labrador image not found at {self.labrador_path}")
 
+        # Read images and convert to base64
+        with open(self.goldfish_path, "rb") as f:
+            goldfish_b64 = base64.b64encode(f.read()).decode('utf-8')
+        
+        with open(self.labrador_path, "rb") as f:
+            labrador_b64 = base64.b64encode(f.read()).decode('utf-8')
+
         context = Context(
             conversation_summary="Identify the animals.",
             context_window_snapshot="User uploaded two images.",
-            images=[self.goldfish_path, self.labrador_path]
+            images=[goldfish_b64, labrador_b64]
         )
 
         agent_goal = AgentGoal(
@@ -50,8 +57,7 @@ class TestTriggerRealImages(unittest.TestCase):
         )
         agent = Agent(
             agent_goal=agent_goal, 
-            tool_definitions=[], 
-            tool_directory="/tmp/tools"
+            tool_definitions=[],
         )
         
         # Mock API response

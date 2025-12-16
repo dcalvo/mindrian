@@ -26,9 +26,20 @@ class TriggerEvaluator:
         self.client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
         self.model = "claude-3-opus-20240229"
 
-    def _encode_image(self, image_path: str) -> str:
-        with open(image_path, "rb") as image_file:
-            return base64.b64encode(image_file.read()).decode('utf-8')
+    def _get_media_type(self, b64_data: str) -> str:
+        """
+        Simple sniffing of the base64 header to determine media type.
+        """
+        if b64_data.startswith('/9j/'):
+            return 'image/jpeg'
+        elif b64_data.startswith('iVBORw0KGgo'):
+            return 'image/png'
+        elif b64_data.startswith('R0lGODlh'):
+            return 'image/gif'
+        elif b64_data.startswith('UklGR'):
+            return 'image/webp'
+        # Default fallback
+        return 'image/jpeg'
 
     def evaluate(self, agent: Agent, context: Context) -> TriggerDecision:
         """
@@ -62,12 +73,9 @@ class TriggerEvaluator:
         
         # Add images from context
         if context.images:
-            for image_path in context.images:
+            for base64_image in context.images:
                 try:
-                    base64_image = self._encode_image(image_path)
-                    ext = os.path.splitext(image_path)[1].lower().replace('.', '')
-                    if ext == 'jpg': ext = 'jpeg'
-                    media_type = f"image/{ext}"
+                    media_type = self._get_media_type(base64_image)
                     
                     content.append({
                         "type": "image",
@@ -78,7 +86,7 @@ class TriggerEvaluator:
                         },
                     })
                 except Exception as e:
-                    print(f"Error loading image {image_path}: {e}")
+                    print(f"Error processing image: {e}")
 
         # Add text content
         content.append({

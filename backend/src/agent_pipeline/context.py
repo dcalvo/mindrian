@@ -2,7 +2,6 @@ from dataclasses import dataclass, field
 from .tool import ToolDefinition, ToolArgument
 from typing import List, Dict, Any, NewType
 
-
 Base64String = NewType('Base64String', str)
 
 @dataclass
