@@ -24,7 +24,9 @@ defmodule Mindrian.Collaboration.DocServer do
      |> assign(%{
        topic: topic,
        doc_name: doc_name,
-       persistence_state: persistence_state
+       persistence_state: persistence_state,
+       # Map of origin PID -> client_id for tracking connected clients
+       client_ids: %{}
      })}
   end
 
@@ -59,6 +61,16 @@ defmodule Mindrian.Collaboration.DocServer do
       ) do
     updated_clients = added ++ updated ++ removed
 
+    # Track client IDs by origin PID for cleanup on disconnect
+    state =
+      if is_pid(origin) and added != [] do
+        # Associate the first added client_id with this origin PID
+        client_id = List.first(added)
+        assign(state, :client_ids, Map.put(state.assigns.client_ids, origin, client_id))
+      else
+        state
+      end
+
     with {:ok, update} <- Awareness.encode_update(awareness, updated_clients),
          {:ok, message} <- Sync.message_encode({:awareness, update}) do
       broadcast_update(origin, state.assigns.topic, message)
@@ -68,6 +80,37 @@ defmodule Mindrian.Collaboration.DocServer do
     end
 
     {:noreply, state}
+  end
+
+  @impl true
+  def handle_call({:client_disconnected, origin_pid}, _from, state) do
+    case Map.get(state.assigns.client_ids, origin_pid) do
+      nil ->
+        {:reply, :ok, state}
+
+      client_id ->
+        Logger.debug("Removing awareness for client #{client_id}")
+
+        # Remove the client's awareness state
+        Awareness.remove_states(state.awareness, [client_id])
+
+        # Broadcast the removal to other clients
+        with {:ok, update} <- Awareness.encode_update(state.awareness, [client_id]),
+             {:ok, message} <- Sync.message_encode({:awareness, update}) do
+          broadcast_update(nil, state.assigns.topic, message)
+        end
+
+        # Remove from our tracking map
+        new_client_ids = Map.delete(state.assigns.client_ids, origin_pid)
+        {:reply, :ok, assign(state, :client_ids, new_client_ids)}
+    end
+  end
+
+  @doc """
+  Notify the DocServer that a client has disconnected.
+  """
+  def client_disconnected(server, origin_pid) do
+    GenServer.call(server, {:client_disconnected, origin_pid})
   end
 
   @impl true

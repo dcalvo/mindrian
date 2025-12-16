@@ -12,8 +12,8 @@ defmodule Mindrian.Application do
       Mindrian.Repo,
       {DNSCluster, query: Application.get_env(:mindrian, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Mindrian.PubSub},
-      # Start a worker by calling: Mindrian.Worker.start_link(arg)
-      # {Mindrian.Worker, arg},
+      # Registry for DocServer processes (one per document)
+      {Registry, keys: :unique, name: Mindrian.DocServerRegistry},
       # Start to serve requests, typically the last entry
       MindrianWeb.Endpoint
     ]

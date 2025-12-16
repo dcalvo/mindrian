@@ -1,12 +1,6 @@
-import { createRootRoute, Outlet } from "@tanstack/react-router";
-import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
-import { CollaborationProvider } from "../contexts/CollaborationContext";
+import { createRootRoute } from "@tanstack/react-router";
+import { RootLayout } from "../components/RootLayout";
 
 export const Route = createRootRoute({
-  component: () => (
-    <CollaborationProvider>
-      <Outlet />
-      <TanStackRouterDevtools />
-    </CollaborationProvider>
-  ),
+  component: RootLayout,
 });

@@ -33,9 +33,7 @@ export function useAuth() {
   }, []);
 
   const logout = useCallback(() => {
-    // In dev mode, redirect to Phoenix directly
-    const base = import.meta.env.DEV ? "http://localhost:4000" : "";
-    window.location.href = `${base}/users/log-out`;
+    window.location.href = "/users/log-out";
   }, []);
 
   const login = useCallback(() => {

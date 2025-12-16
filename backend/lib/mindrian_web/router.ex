@@ -26,12 +26,19 @@ defmodule MindrianWeb.Router do
     plug :fetch_current_scope_for_user
   end
 
-  # API routes
+  # API routes (unauthenticated)
   scope "/api", MindrianWeb.API do
     pipe_through :api
 
     get "/health", HealthController, :index
     get "/me", UserController, :me
+  end
+
+  # API routes (authenticated)
+  scope "/api", MindrianWeb.API do
+    pipe_through [:api, :require_authenticated_user]
+
+    resources "/documents", DocumentController, except: [:new, :edit]
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development

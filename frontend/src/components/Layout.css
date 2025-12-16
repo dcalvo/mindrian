@@ -75,3 +75,147 @@
   color: #888;
   font-style: italic;
 }
+
+.no-document-selected,
+.document-loading,
+.document-not-found {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #666;
+  text-align: center;
+  padding: 2rem;
+}
+
+.no-document-selected h2,
+.document-not-found h2 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: #444;
+}
+
+.no-document-selected p,
+.document-not-found p {
+  color: #888;
+  margin: 0 0 1.5rem 0;
+  max-width: 320px;
+  line-height: 1.5;
+}
+
+.document-loading {
+  color: #888;
+}
+
+.document-loading p {
+  margin: 0;
+}
+
+.document-not-found button {
+  background: #333;
+  color: white;
+  border: none;
+  padding: 0.625rem 1.25rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background 0.15s ease;
+}
+
+.document-not-found button:hover {
+  background: #444;
+}
+
+/* FileTree styles */
+.file-tree-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.file-tree-header h3 {
+  margin: 0;
+}
+
+.create-button {
+  background: #333;
+  color: white;
+  border: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.create-button:hover {
+  background: #444;
+}
+
+.document-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.document-list li {
+  border-radius: 4px;
+  margin-bottom: 2px;
+}
+
+.document-list li:hover {
+  background: #e8e8e8;
+}
+
+.document-list li.active {
+  background: #ddd;
+}
+
+.document-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem;
+  color: inherit;
+  text-decoration: none;
+}
+
+.document-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.document-link .delete-button {
+  display: none;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  font-size: 0.75rem;
+  opacity: 0.6;
+}
+
+.document-list li:hover .delete-button {
+  display: block;
+}
+
+.document-link .delete-button:hover {
+  opacity: 1;
+}
+
+.document-list input {
+  flex: 1;
+  padding: 0.25rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.error {
+  color: #c00;
+}

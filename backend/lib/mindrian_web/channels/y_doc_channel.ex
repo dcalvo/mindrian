@@ -63,15 +63,25 @@ defmodule MindrianWeb.YDocChannel do
     {:stop, {:error, "doc server crashed"}, socket}
   end
 
-  defp start_or_get_doc_server(doc_name, topic) do
-    case :global.whereis_name({__MODULE__, doc_name}) do
-      :undefined ->
-        DocServer.start([topic: topic, doc_name: doc_name],
-          name: {:global, {__MODULE__, doc_name}}
-        )
+  @impl true
+  def terminate(_reason, socket) do
+    # Notify DocServer to remove this client's awareness state
+    if pid = socket.assigns[:doc_pid] do
+      DocServer.client_disconnected(pid, self())
+    end
 
-      pid ->
+    :ok
+  end
+
+  defp start_or_get_doc_server(doc_name, topic) do
+    case Registry.lookup(Mindrian.DocServerRegistry, doc_name) do
+      [{pid, _}] ->
         {:ok, pid}
+
+      [] ->
+        DocServer.start([topic: topic, doc_name: doc_name],
+          name: {:via, Registry, {Mindrian.DocServerRegistry, doc_name}}
+        )
     end
     |> case do
       {:ok, pid} ->

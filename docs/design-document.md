@@ -2,7 +2,7 @@
 ## System Design Document
 
 **Date:** December 2025
-**Status:** Skeleton complete, research spikes in progress
+**Status:** MVP collaborative editing implemented (see `blocknote-collaboration-plan.md`)
 
 ---
 
