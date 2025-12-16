@@ -95,20 +95,31 @@ def AgentLoader(agent_dir: str) -> Agent:
     trigger_content = _load_file_content(os.path.join(agent_dir, "TRIGGER.md"))
     skill_content = _load_file_content(os.path.join(agent_dir, "SKILL.md"))
     
-    # 6. Construct AgentGoal
+    # 6. Append Tool Definitions to Starter Prompt
+    tool_descriptions = "\n\nAvailable Tools:\n"
+    for tool_def in tool_definitions:
+        tool_descriptions += f"- {tool_def.name}: {tool_def.description}\n"
+        tool_descriptions += "  Arguments:\n"
+        for arg in tool_def.arguments:
+            tool_descriptions += f"    - {arg.name} ({arg.type}): {arg.description}\n"
+    
+    full_starter_prompt = skill_content + tool_descriptions
+
+    # 7. Construct AgentGoal
     agent_goal = AgentGoal(
         agent_name=config.get("name", os.path.basename(agent_dir)),
         tools=tool_definitions,
         dependencies=config.get("dependencies", []),
         description=config.get("description", ""), 
-        starter_prompt=skill_content,
+        starter_prompt=full_starter_prompt,
         timeout_seconds=config.get("timeout", 60),
         example_conversation_history=config.get("example_conversation_history", ""),
         trigger=trigger_content
     )
     
-    # 7. Create Agent
+    # 8. Create Agent
     return Agent(
         agent_goal=agent_goal,
         tool_definitions=tool_definitions,
+        tools=tool_directory
     )

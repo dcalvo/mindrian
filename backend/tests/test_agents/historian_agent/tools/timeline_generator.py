@@ -1,6 +1,6 @@
-from agent_pipeline.agent import Agent
+from agent_pipeline.tool import register_tool
 
-@Agent.TOOL_REGISTRY.register_tool
+@register_tool
 def generate_timeline(event_name):
     """
     Generates a timeline for a given event.
