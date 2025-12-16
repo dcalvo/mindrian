@@ -1,6 +1,6 @@
-from agent_pipeline.tool import register_tool
+from agent_pipeline.agent import Agent
 
-@register_tool
+@Agent.TOOL_REGISTRY.register_tool
 def analyze_dna(sequence):
     """
     Analyzes a DNA sequence.

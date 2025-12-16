@@ -120,6 +120,5 @@ def AgentLoader(agent_dir: str) -> Agent:
     # 8. Create Agent
     return Agent(
         agent_goal=agent_goal,
-        tool_definitions=tool_definitions,
-        tools=tool_directory
+        tool_definitions=tool_definitions
     )

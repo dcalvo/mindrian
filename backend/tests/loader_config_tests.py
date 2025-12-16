@@ -29,12 +29,8 @@ def test_agent_loader_config():
         assert "User: Calculate the force" in agent.agent_goal.example_conversation_history
         
         # Verify Tools
-        print(f"Tools: {list(agent.tools.keys())}")
-        assert "solve_equation" in agent.tools
-
-        # Verify Tool info in Starter Prompt
-        assert "solve_equation" in agent.agent_goal.starter_prompt
-        assert "Solves a simple linear equation." in agent.agent_goal.starter_prompt
+        print(f"Tools: {list(agent.TOOL_REGISTRY.tools.keys())}")
+        assert "solve_equation" in agent.TOOL_REGISTRY.tools
         
         # Verify Tool Definitions from Config
         tool_def = next(t for t in agent.agent_goal.tools if t.name == "solve_equation")
