@@ -1,3 +1,6 @@
+from agent_pipeline.agent import Agent
+
+@Agent.TOOL_REGISTRY.register_tool
 def solve_equation(equation_str):
     """
     Solves a simple linear equation.
