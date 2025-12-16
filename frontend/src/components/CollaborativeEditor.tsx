@@ -6,16 +6,7 @@ import { useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
 import { useCollaboration } from "../hooks/useCollaboration";
 import { useAuth } from "../hooks/useAuth";
-
-const COLORS = ["#30bced", "#6eeb83", "#ffbc42", "#ee6352", "#9ac2c9"];
-
-function getColorFromString(str: string): string {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return COLORS[Math.abs(hash) % COLORS.length];
-}
+import { COLORS, getColorFromString } from "../lib/colors";
 
 interface CollaborativeEditorProps {
   docId: string;

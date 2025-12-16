@@ -6,6 +6,7 @@ defmodule MindrianWeb.UserSocket do
   channel "ping:*", MindrianWeb.PingChannel
   channel "y_doc:*", MindrianWeb.YDocChannel
   channel "documents:*", MindrianWeb.DocumentsChannel
+  channel "presence:*", MindrianWeb.PresenceChannel
 
   @impl true
   def connect(_params, socket, connect_info) do
