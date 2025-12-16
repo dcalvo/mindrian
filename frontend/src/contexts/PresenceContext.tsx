@@ -32,7 +32,7 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
           if (cancelled) return;
 
           const presenceList: PresenceUser[] = [];
-          presence.list((id, { metas }) => {
+          presence.list((_id, { metas }) => {
             const meta = metas[0];
             if (meta) {
               presenceList.push({
