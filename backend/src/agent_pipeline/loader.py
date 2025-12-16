@@ -6,7 +6,33 @@ import json
 from typing import Dict, Callable, Optional, List
 from .agent import Agent
 from .tool import AgentGoal, ToolDefinition, ToolArgument
-from .tool_registry import TOOL_REGISTRY
+import importlib.util
+import os
+import sys
+
+def import_tools_from_directory(tools_dir: str):
+    """
+    Dynamically imports all Python modules in the specified directory.
+    This triggers the @register_tool decorators to run.
+    """
+    if not os.path.exists(tools_dir):
+        return
+
+    # Add the tools directory to sys.path so imports within tools work if needed
+    if tools_dir not in sys.path:
+        sys.path.append(tools_dir)
+
+    for filename in os.listdir(tools_dir):
+        if filename.endswith(".py") and not filename.startswith("__"):
+            file_path = os.path.join(tools_dir, filename)
+            module_name = filename[:-3]
+            
+            # Create a module spec
+            spec = importlib.util.spec_from_file_location(module_name, file_path)
+            if spec and spec.loader:
+                # Create and execute the module
+                module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(module)
 
 def _load_file_content(path: str) -> str:
     """Reads the content of a file if it exists, otherwise returns empty string."""
@@ -38,7 +64,9 @@ def AgentLoader(agent_dir: str) -> Agent:
     """
     Loads an agent from the specified directory.
     """
-    # 1. tools already loaded in tool_registry from decorators
+    # 1. Load Tools from Directory (triggers decorators)
+    tools_dir = os.path.join(agent_dir, "tools")
+    import_tools_from_directory(tools_dir)
     
     # 2. Load Config
     config_path = os.path.join(agent_dir, "config.json")
@@ -56,7 +84,8 @@ def AgentLoader(agent_dir: str) -> Agent:
     # 4. Validate Tools
     # Ensure every tool defined in config exists in the python files
     for tool_def in tool_definitions:
-        if tool_def.name not in TOOL_REGISTRY.tools:
+        # TODO possibly change this to method later
+        if tool_def.name not in  Agent.TOOL_REGISTRY.tools:
             raise ValueError(f"Tool '{tool_def.name}' defined in config but not found in tools directory.")
         else:
             # TODO: maybe define this in the tool file??
