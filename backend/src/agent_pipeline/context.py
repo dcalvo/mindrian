@@ -1,8 +1,9 @@
 from dataclasses import dataclass, field
 from .tool import ToolDefinition, ToolArgument
-from typing import List, Dict, Any
-# from pathlib import Path
-# have images be base64 encoded strings
+from typing import List, Dict, Any, NewType
+
+
+Base64String = NewType('Base64String', str)
 
 @dataclass
 class Event:
@@ -22,4 +23,4 @@ class Context:
     events: List[Event] = field(default_factory=list)
     conversation_summary: str = ""
     context_window_snapshot: str = ""
-    images: List[str] = field(default_factory=list)
+    images: List[Base64String] = field(default_factory=list)
