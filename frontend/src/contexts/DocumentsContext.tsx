@@ -55,7 +55,17 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
           setDocuments((prev) => prev.filter((d) => d.id !== id));
         });
 
-        channel.join();
+        // Wait for channel join to complete before proceeding
+        await new Promise<void>((resolve, reject) => {
+          channel
+            .join()
+            .receive("ok", () => resolve())
+            .receive("error", (err) => reject(new Error(JSON.stringify(err))))
+            .receive("timeout", () =>
+              reject(new Error("Channel join timeout"))
+            );
+        });
+
         channelRef.current = channel;
 
         if (cancelled) {
@@ -64,7 +74,7 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        // Fetch initial documents after channel is subscribed
+        // Fetch initial documents after channel is fully joined
         const docs = await listDocuments();
         if (cancelled) return;
 

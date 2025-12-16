@@ -183,11 +183,18 @@ defmodule MindrianWeb.UserAuth do
     if Accounts.sudo_mode?(conn.assigns.current_scope.user, -10) do
       conn
     else
-      conn
-      |> put_flash(:error, "You must re-authenticate to access this page.")
-      |> maybe_store_return_to()
-      |> redirect(to: ~p"/users/log-in")
-      |> halt()
+      if api_request?(conn) do
+        conn
+        |> put_status(:unauthorized)
+        |> Phoenix.Controller.json(%{error: "You must re-authenticate to access this resource"})
+        |> halt()
+      else
+        conn
+        |> put_flash(:error, "You must re-authenticate to access this page.")
+        |> maybe_store_return_to()
+        |> redirect(to: ~p"/users/log-in")
+        |> halt()
+      end
     end
   end
 
@@ -208,17 +215,31 @@ defmodule MindrianWeb.UserAuth do
 
   @doc """
   Plug for routes that require the user to be authenticated.
+
+  For API routes (Accept: application/json), returns 401 JSON.
+  For browser routes, redirects to login with flash message.
   """
   def require_authenticated_user(conn, _opts) do
     if conn.assigns.current_scope && conn.assigns.current_scope.user do
       conn
     else
-      conn
-      |> put_flash(:error, "You must log in to access this page.")
-      |> maybe_store_return_to()
-      |> redirect(to: ~p"/users/log-in")
-      |> halt()
+      if api_request?(conn) do
+        conn
+        |> put_status(:unauthorized)
+        |> Phoenix.Controller.json(%{error: "You must log in to access this resource"})
+        |> halt()
+      else
+        conn
+        |> put_flash(:error, "You must log in to access this page.")
+        |> maybe_store_return_to()
+        |> redirect(to: ~p"/users/log-in")
+        |> halt()
+      end
     end
+  end
+
+  defp api_request?(conn) do
+    String.starts_with?(conn.request_path, "/api/")
   end
 
   defp maybe_store_return_to(%{method: "GET"} = conn) do
