@@ -160,6 +160,19 @@ export function FileNode({
             </button>
           )}
 
+          <button
+            className="file-node-action danger"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (confirm(`Delete "${node.data.name}"?`)) {
+                onDelete([node.id]);
+              }
+            }}
+            title="Delete"
+          >
+            <Trash2 size={14} />
+          </button>
+
           <div style={{ position: "relative" }}>
             <button
               className="file-node-action"
