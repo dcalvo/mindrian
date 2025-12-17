@@ -12,6 +12,20 @@
   overflow: hidden;
 }
 
+/* Document page layout */
+.document-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+}
+
+.document-editor {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 24px 24px;
+}
+
 .file-tree {
   /* Width is controlled by JS now */
   min-width: 200px;

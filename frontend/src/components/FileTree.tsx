@@ -154,7 +154,10 @@ export function FileTree({ width }: FileTreeProps) {
 
   if (loading) {
     return (
-      <aside className="file-tree">
+      <aside
+        className="file-tree"
+        style={{ width: width ? `${width}px` : undefined }}
+      >
         <div className="file-tree-header">
           <h3>Workspace</h3>
         </div>
@@ -165,7 +168,10 @@ export function FileTree({ width }: FileTreeProps) {
 
   if (error) {
     return (
-      <aside className="file-tree">
+      <aside
+        className="file-tree"
+        style={{ width: width ? `${width}px` : undefined }}
+      >
         <div className="file-tree-header">
           <h3>Workspace</h3>
         </div>
@@ -217,7 +223,25 @@ export function FileTree({ width }: FileTreeProps) {
             onActivate={handleActivate}
           >
             {(props) => (
-              <FileNode {...props} onNavigate={() => {}} onDelete={() => {}} />
+              <FileNode
+                {...props}
+                onNavigate={() => {}}
+                onDelete={(ids: string[]) => {
+                  // Passing empty nodes, workaround for type mismatch
+                  handleDelete({ ids, nodes: [] });
+                }}
+                onCreateFile={async (parentId: string) => {
+                  try {
+                    const doc = await addDocument("Untitled", parentId);
+                    navigate({
+                      to: "/document/$documentId",
+                      params: { documentId: doc.id },
+                    });
+                  } catch (e) {
+                    console.error(e);
+                  }
+                }}
+              />
             )}
           </Tree>
         )}

@@ -1,30 +1,63 @@
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
 import type { NodeRendererProps } from "react-arborist";
-import { ChevronRight, FileText, Folder, Pencil, Trash2 } from "lucide-react";
+import {
+  ChevronRight,
+  FileText,
+  Folder,
+  Pencil,
+  Trash2,
+  MoreHorizontal,
+  Plus,
+} from "lucide-react";
 import type { TreeNode } from "../lib/tree";
 
-interface FileNodeProps extends NodeRendererProps<TreeNode> {
+export interface FileNodeProps extends NodeRendererProps<TreeNode> {
   onNavigate: (id: string, isFolder: boolean) => void;
-  onDelete: (id: string) => void;
+  onDelete: (ids: string[]) => void;
+  onCreateFile: (parentId: string) => void;
 }
 
-export function FileNode({ node, style, dragHandle, tree }: FileNodeProps) {
+export function FileNode({
+  node,
+  style,
+  dragHandle,
+  onDelete,
+  onCreateFile,
+}: FileNodeProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const [showMenu, setShowMenu] = useState(false);
+  const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setShowMenu(false);
+      }
+    };
+
+    if (showMenu) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showMenu]);
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!node.data.isFolder) {
-      // Navigate to document - handled by parent
       node.select();
       node.activate();
+    } else {
+      node.toggle();
     }
   };
 
   const handleDoubleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!node.data.isFolder) {
-      node.edit();
-    }
+    node.edit();
   };
 
   const handleSubmit = (name: string) => {
@@ -51,6 +84,14 @@ export function FileNode({ node, style, dragHandle, tree }: FileNodeProps) {
       }`}
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        // Position at cursor for right-click
+        const x = Math.min(e.clientX, window.innerWidth - 160);
+        const y = e.clientY;
+        setMenuPos({ x, y });
+        setShowMenu(true);
+      }}
     >
       {/* Chevron for folders */}
       {node.data.isFolder ? (
@@ -83,36 +124,93 @@ export function FileNode({ node, style, dragHandle, tree }: FileNodeProps) {
           onBlur={(e) => handleSubmit(e.currentTarget.value)}
           onKeyDown={handleKeyDown}
           autoFocus
+          onClick={(e) => e.stopPropagation()}
         />
       ) : (
         <span className="file-node-title">{node.data.name}</span>
       )}
 
-      {/* Actions */}
+      {/* Actions (hover) */}
       {!isEditing && (
         <div className="file-node-actions">
-          <button
-            className="file-node-action"
-            onClick={(e) => {
-              e.stopPropagation();
-              node.edit();
-            }}
-            title="Rename"
-          >
-            <Pencil size={12} />
-          </button>
-          <button
-            className="file-node-action danger"
-            onClick={(e) => {
-              e.stopPropagation();
-              if (confirm(`Delete "${node.data.name}"?`)) {
-                tree.delete(node.id);
-              }
-            }}
-            title="Delete"
-          >
-            <Trash2 size={12} />
-          </button>
+          {node.data.isFolder && (
+            <button
+              className="file-node-action"
+              onClick={(e) => {
+                e.stopPropagation();
+                onCreateFile(node.id);
+                if (!node.isOpen) node.toggle();
+              }}
+              title="New File"
+            >
+              <Plus size={14} />
+            </button>
+          )}
+
+          {!node.data.isFolder && (
+            <button
+              className="file-node-action"
+              onClick={(e) => {
+                e.stopPropagation();
+                node.edit();
+              }}
+              title="Rename"
+            >
+              <Pencil size={12} />
+            </button>
+          )}
+
+          <div style={{ position: "relative" }}>
+            <button
+              className="file-node-action"
+              onClick={(e) => {
+                e.stopPropagation();
+                // Position at cursor for consistency with right-click
+                const x = Math.min(e.clientX, window.innerWidth - 160);
+                const y = e.clientY;
+                setMenuPos({ x, y });
+                setShowMenu(!showMenu);
+              }}
+              title="More actions"
+            >
+              <MoreHorizontal size={14} />
+            </button>
+
+            {/* Context Menu */}
+            {showMenu && (
+              <div
+                ref={menuRef}
+                className="file-node-menu"
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  position: "fixed",
+                  zIndex: 1000,
+                  top: menuPos.y,
+                  left: menuPos.x,
+                }}
+              >
+                <button
+                  onClick={() => {
+                    setShowMenu(false);
+                    node.edit();
+                  }}
+                >
+                  <Pencil size={12} /> Rename
+                </button>
+                <button
+                  className="danger"
+                  onClick={() => {
+                    setShowMenu(false);
+                    if (confirm(`Delete "${node.data.name}"?`)) {
+                      onDelete([node.id]);
+                    }
+                  }}
+                >
+                  <Trash2 size={12} /> Delete
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
