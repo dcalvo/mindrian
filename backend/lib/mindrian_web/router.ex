@@ -43,6 +43,7 @@ defmodule MindrianWeb.Router do
     pipe_through [:api, :require_authenticated_user]
 
     resources "/documents", DocumentController, except: [:new, :edit]
+    put "/documents/:id/move", DocumentController, :move
   end
 
   # Agent tool API routes - localhost only, called by Agno microservice

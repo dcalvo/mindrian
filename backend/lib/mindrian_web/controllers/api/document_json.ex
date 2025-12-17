@@ -17,6 +17,9 @@ defmodule MindrianWeb.API.DocumentJSON do
     %{
       id: document.id,
       title: document.title,
+      parent_id: document.parent_id,
+      position: document.position,
+      is_folder: document.is_folder,
       created_at: document.inserted_at,
       updated_at: document.updated_at
     }

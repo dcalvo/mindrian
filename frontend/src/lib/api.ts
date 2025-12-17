@@ -9,6 +9,9 @@ export interface User {
 export interface Document {
   id: string;
   title: string;
+  parent_id: string | null;
+  position: number;
+  is_folder: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -66,10 +69,32 @@ export async function getDocument(id: string): Promise<Document> {
   return response.document;
 }
 
-export async function createDocument(title?: string): Promise<Document> {
+export async function createDocument(
+  title?: string,
+  parentId?: string | null
+): Promise<Document> {
   const response = await fetchApi<DocumentResponse>("/documents", {
     method: "POST",
-    body: JSON.stringify({ document: title ? { title } : {} }),
+    body: JSON.stringify({
+      document: { title: title || "Untitled", parent_id: parentId || null },
+    }),
+  });
+  return response.document;
+}
+
+export async function createFolder(
+  title?: string,
+  parentId?: string | null
+): Promise<Document> {
+  const response = await fetchApi<DocumentResponse>("/documents", {
+    method: "POST",
+    body: JSON.stringify({
+      document: {
+        title: title || "New Folder",
+        parent_id: parentId || null,
+        is_folder: true,
+      },
+    }),
   });
   return response.document;
 }
@@ -81,6 +106,18 @@ export async function updateDocument(
   const response = await fetchApi<DocumentResponse>(`/documents/${id}`, {
     method: "PATCH",
     body: JSON.stringify({ document: { title } }),
+  });
+  return response.document;
+}
+
+export async function moveDocument(
+  id: string,
+  parentId: string | null,
+  position: number
+): Promise<Document> {
+  const response = await fetchApi<DocumentResponse>(`/documents/${id}/move`, {
+    method: "PUT",
+    body: JSON.stringify({ document: { parent_id: parentId, position } }),
   });
   return response.document;
 }

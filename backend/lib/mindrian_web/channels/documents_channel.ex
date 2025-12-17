@@ -20,6 +20,10 @@ defmodule MindrianWeb.DocumentsChannel do
     broadcast_event(user_id, "document_updated", %{document: serialize_document(document)})
   end
 
+  def broadcast_moved(user_id, document) do
+    broadcast_event(user_id, "document_moved", %{document: serialize_document(document)})
+  end
+
   def broadcast_deleted(user_id, document_id) do
     broadcast_event(user_id, "document_deleted", %{id: document_id})
   end
@@ -41,6 +45,9 @@ defmodule MindrianWeb.DocumentsChannel do
     %{
       id: document.id,
       title: document.title,
+      parent_id: document.parent_id,
+      position: document.position,
+      is_folder: document.is_folder,
       created_at: document.inserted_at,
       updated_at: document.updated_at
     }

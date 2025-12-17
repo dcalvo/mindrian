@@ -9,7 +9,9 @@ import type { Channel } from "phoenix";
 import {
   listDocuments,
   createDocument,
+  createFolder,
   updateDocument,
+  moveDocument as apiMoveDocument,
   deleteDocument,
   getMe,
   type Document,
@@ -41,11 +43,17 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
           setDocuments((prev) => {
             // Avoid duplicates (in case this client created it or event arrived during fetch)
             if (prev.some((d) => d.id === document.id)) return prev;
-            return [document, ...prev];
+            return [...prev, document];
           });
         });
 
         channel.on("document_updated", ({ document }) => {
+          setDocuments((prev) =>
+            prev.map((d) => (d.id === document.id ? document : d))
+          );
+        });
+
+        channel.on("document_moved", ({ document }) => {
           setDocuments((prev) =>
             prev.map((d) => (d.id === document.id ? document : d))
           );
@@ -116,13 +124,30 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // These functions just make API calls - state updates come via channel broadcasts
-  const addDocument = useCallback(async (title?: string) => {
-    return await createDocument(title);
-  }, []);
+  const addDocument = useCallback(
+    async (title?: string, parentId?: string | null) => {
+      return await createDocument(title, parentId);
+    },
+    []
+  );
+
+  const addFolder = useCallback(
+    async (title?: string, parentId?: string | null) => {
+      return await createFolder(title, parentId);
+    },
+    []
+  );
 
   const renameDocument = useCallback(async (id: string, title: string) => {
     return await updateDocument(id, title);
   }, []);
+
+  const moveDocument = useCallback(
+    async (id: string, parentId: string | null, position: number) => {
+      return await apiMoveDocument(id, parentId, position);
+    },
+    []
+  );
 
   const removeDocument = useCallback(async (id: string) => {
     await deleteDocument(id);
@@ -136,7 +161,9 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
         error,
         refetch,
         addDocument,
+        addFolder,
         renameDocument,
+        moveDocument,
         removeDocument,
       }}
     >

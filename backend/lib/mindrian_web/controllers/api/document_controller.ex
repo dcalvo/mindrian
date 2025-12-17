@@ -10,7 +10,14 @@ defmodule MindrianWeb.API.DocumentController do
   end
 
   def create(conn, %{"document" => document_params}) do
-    case Documents.create_document(conn.assigns.current_scope, document_params) do
+    create_fn =
+      if document_params["is_folder"] do
+        &Documents.create_folder/2
+      else
+        &Documents.create_document/2
+      end
+
+    case create_fn.(conn.assigns.current_scope, document_params) do
       {:ok, document} ->
         conn
         |> put_status(:created)
@@ -54,6 +61,31 @@ defmodule MindrianWeb.API.DocumentController do
          {:ok, document} <- Documents.update_document(document, document_params) do
       render(conn, :show, document: document)
     else
+      nil ->
+        conn
+        |> put_status(:not_found)
+        |> json(%{error: "Document not found"})
+
+      {:error, changeset} ->
+        conn
+        |> put_status(:unprocessable_entity)
+        |> render(:error, changeset: changeset)
+    end
+  end
+
+  @doc """
+  Move a document/folder to new parent and/or position.
+  """
+  def move(conn, %{"id" => id, "document" => move_params}) do
+    case Documents.move_document(conn.assigns.current_scope, id, move_params) do
+      {:ok, document} ->
+        render(conn, :show, document: document)
+
+      {:error, :circular_reference} ->
+        conn
+        |> put_status(:unprocessable_entity)
+        |> json(%{error: "Cannot move a folder into itself or its descendants"})
+
       nil ->
         conn
         |> put_status(:not_found)
