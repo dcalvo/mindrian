@@ -69,7 +69,26 @@ export function FileTree() {
 
   // Handle renaming
   const handleRename: RenameHandler<TreeNode> = useCallback(
-    async ({ id, name }) => {
+    async ({ id, name, node }) => {
+      // Prevent renaming to existing name in same folder (same type only)
+      const parent = node.parent;
+      if (parent && parent.children) {
+        const isFolder = node.data.isFolder;
+        const hasDuplicate = parent.children.some(
+          (sibling) =>
+            sibling.id !== id &&
+            sibling.data.isFolder === isFolder &&
+            sibling.data.name.toLowerCase() === name.trim().toLowerCase()
+        );
+
+        if (hasDuplicate) {
+          alert(
+            `A ${isFolder ? "folder" : "page"} with the name "${name}" already exists in this location.`
+          );
+          return;
+        }
+      }
+
       try {
         await renameDocument(id, name);
       } catch (err) {

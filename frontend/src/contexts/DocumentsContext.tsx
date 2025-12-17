@@ -123,19 +123,57 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const getUniqueName = useCallback(
+    (baseName: string, parentId: string | null, isFolder: boolean) => {
+      // Filter for siblings of the same type (folder/file) to check for name collisions
+      // Note: The user request implies checking against same type, or maybe all types?
+      // Usually file systems allow a file and folder to have same name, but some don't.
+      // The user said "renaming a folder to another folder... (same for document)" implies type-specific check.
+      const siblings = documents.filter(
+        (d) => d.parent_id === parentId && d.is_folder === isFolder
+      );
+
+      const siblingNames = new Set(siblings.map((d) => d.title.toLowerCase()));
+
+      if (!siblingNames.has(baseName.toLowerCase())) {
+        return baseName;
+      }
+
+      let counter = 1;
+      while (true) {
+        const newName = `${baseName} (${counter})`;
+        if (!siblingNames.has(newName.toLowerCase())) {
+          return newName;
+        }
+        counter++;
+      }
+    },
+    [documents]
+  );
+
   // These functions just make API calls - state updates come via channel broadcasts
   const addDocument = useCallback(
-    async (title?: string, parentId?: string | null) => {
-      return await createDocument(title, parentId);
+    async (title: string = "Untitled", parentId?: string | null) => {
+      const uniqueTitle = getUniqueName(
+        title,
+        parentId || null,
+        false // isFolder
+      );
+      return await createDocument(uniqueTitle, parentId);
     },
-    []
+    [getUniqueName]
   );
 
   const addFolder = useCallback(
-    async (title?: string, parentId?: string | null) => {
-      return await createFolder(title, parentId);
+    async (title: string = "New Folder", parentId?: string | null) => {
+      const uniqueTitle = getUniqueName(
+        title,
+        parentId || null,
+        true // isFolder
+      );
+      return await createFolder(uniqueTitle, parentId);
     },
-    []
+    [getUniqueName]
   );
 
   const renameDocument = useCallback(async (id: string, title: string) => {
