@@ -13,7 +13,11 @@ import { FileNode } from "./FileNode";
 import { buildTree, type TreeNode } from "../lib/tree";
 import "./FileTree.css";
 
-export function FileTree() {
+interface FileTreeProps {
+  width?: number;
+}
+
+export function FileTree({ width }: FileTreeProps) {
   const navigate = useNavigate();
   const params = useParams({ strict: false }) as { documentId?: string };
   const currentDocumentId = params.documentId;
@@ -171,7 +175,10 @@ export function FileTree() {
   }
 
   return (
-    <aside className="file-tree">
+    <aside
+      className="file-tree"
+      style={{ width: width ? `${width}px` : undefined }}
+    >
       <div className="file-tree-header">
         <h3>Workspace</h3>
         <div className="file-tree-actions">
