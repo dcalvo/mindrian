@@ -3,6 +3,7 @@ const API_BASE = "/api";
 export interface User {
   id: string;
   email: string;
+  socket_token: string;
 }
 
 export interface Document {

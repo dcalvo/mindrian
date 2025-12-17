@@ -1,25 +1,24 @@
 defmodule MindrianWeb.PresenceChannel do
-  use Phoenix.Channel
+  use MindrianWeb, :channel
 
+  alias Mindrian.Accounts
   alias MindrianWeb.Presence
 
   @impl true
-  def join("presence:lobby", %{"user_id" => user_id, "email" => email}, socket)
-      when is_binary(user_id) and is_binary(email) do
-    send(self(), {:after_join, user_id, email})
-    {:ok, assign(socket, user_id: user_id, email: email)}
-  end
-
-  def join("presence:lobby", _payload, _socket) do
-    {:error, %{reason: "missing user_id or email"}}
+  def join("presence:lobby", _payload, socket) do
+    send(self(), :after_join)
+    {:ok, socket}
   end
 
   @impl true
-  def handle_info({:after_join, user_id, email}, socket) do
+  def handle_info(:after_join, socket) do
+    user_id = socket.assigns.user_id
+    user = Accounts.get_user!(user_id)
+
     {:ok, _} =
-      Presence.track(socket, user_id, %{
+      Presence.track(socket, to_string(user_id), %{
         id: user_id,
-        email: email,
+        email: user.email,
         online_at: System.system_time(:second)
       })
 

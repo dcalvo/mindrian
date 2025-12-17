@@ -14,10 +14,10 @@ defmodule MindrianWeb.API.UserControllerTest do
       conn = log_in_user(conn, user)
       conn = get(conn, ~p"/api/me")
 
-      assert json_response(conn, 200) == %{
-               "id" => user.id,
-               "email" => user.email
-             }
+      response = json_response(conn, 200)
+      assert response["id"] == user.id
+      assert response["email"] == user.email
+      assert is_binary(response["socket_token"])
     end
   end
 end

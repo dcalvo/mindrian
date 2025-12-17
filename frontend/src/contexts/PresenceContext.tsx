@@ -21,10 +21,7 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
     const setup = async () => {
       try {
         const socket = getSocket();
-        const channel = socket.channel("presence:lobby", {
-          user_id: user.id,
-          email: user.email,
-        });
+        const channel = socket.channel("presence:lobby", {});
 
         const presence = new Presence(channel);
 

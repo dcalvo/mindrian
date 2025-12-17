@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { getMe } from "../lib/api";
 import type { User } from "../lib/api";
+import { setSocketToken, disconnectSocket } from "../lib/socket";
 
 interface AuthState {
   user: User | null;
@@ -20,11 +21,16 @@ export function useAuth() {
 
     getMe()
       .then((user) => {
-        if (!cancelled) setState({ user, loading: false, error: null });
+        if (!cancelled) {
+          setSocketToken(user.socket_token);
+          setState({ user, loading: false, error: null });
+        }
       })
       .catch(() => {
-        if (!cancelled)
+        if (!cancelled) {
+          disconnectSocket();
           setState({ user: null, loading: false, error: "Not authenticated" });
+        }
       });
 
     return () => {

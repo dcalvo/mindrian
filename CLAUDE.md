@@ -90,9 +90,15 @@ Dev-only: `/dev/dashboard` (LiveDashboard), `/dev/mailbox` (email preview)
 
 ## WebSocket
 
-Phoenix channels via `/socket`. Test channel: `ping:lobby` responds to `ping` with `pong`.
+Phoenix channels via `/socket` with token-based authentication. All channels require authentication.
 
-Frontend connects via `src/lib/socket.ts` using the `phoenix` npm package.
+**Auth flow:**
+1. `GET /api/me` returns `socket_token`
+2. Frontend connects with `new Socket("/socket", { params: { token } })`
+3. `UserSocket` verifies token and assigns `user_id` to socket
+4. Connections without valid token are rejected
+
+See `user_socket.ex` for channel creation guidelines.
 
 ## Deployment (Fly.io)
 
