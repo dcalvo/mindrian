@@ -1,0 +1,19 @@
+.presence-bubbles {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.presence-bubble {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: white;
+  text-transform: uppercase;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
