@@ -9,7 +9,7 @@ defmodule MindrianWeb.ChatChannel do
   use MindrianWeb, :channel
   require Logger
 
-  alias Mindrian.Agent.AgentServer
+  alias Mindrian.Agent
 
   @impl true
   def join("chat:" <> user_id, _payload, socket) do
@@ -19,14 +19,15 @@ defmodule MindrianWeb.ChatChannel do
       session_id = generate_session_id()
       socket = assign(socket, :session_id, session_id)
 
-      # Start or get the agent server for this session
-      case AgentServer.get_or_start(socket.assigns.user_id, session_id, self()) do
-        {:ok, _pid} ->
+      # Start or get the agent session and subscribe to its PubSub topic
+      case Agent.start_session(socket.assigns.user_id, session_id) do
+        {:ok, topic} ->
+          Phoenix.PubSub.subscribe(Mindrian.PubSub, topic)
           Logger.info("User #{user_id} joined chat channel, session #{session_id}")
           {:ok, %{session_id: session_id}, socket}
 
         {:error, reason} ->
-          Logger.error("Failed to start agent server: #{inspect(reason)}")
+          Logger.error("Failed to start agent session: #{inspect(reason)}")
           {:error, %{reason: "failed_to_start_agent"}}
       end
     else
@@ -36,15 +37,13 @@ defmodule MindrianWeb.ChatChannel do
 
   @impl true
   def handle_in("user_message", %{"content" => content} = payload, socket) do
-    context = %{
-      document_id: payload["context"]["document_id"]
-    }
+    document_id = get_in(payload, ["context", "document_id"])
 
-    case AgentServer.send_message(
+    case Agent.send_message(
            socket.assigns.user_id,
            socket.assigns.session_id,
            content,
-           context
+           document_id: document_id
          ) do
       :ok ->
         {:reply, :ok, socket}
@@ -59,7 +58,7 @@ defmodule MindrianWeb.ChatChannel do
 
   @impl true
   def handle_in("tool_response", %{"request_id" => request_id, "approved" => approved}, socket) do
-    case AgentServer.respond_to_tool(
+    case Agent.respond_to_tool(
            socket.assigns.user_id,
            socket.assigns.session_id,
            request_id,
@@ -75,7 +74,7 @@ defmodule MindrianWeb.ChatChannel do
 
   @impl true
   def handle_in("cancel", _payload, socket) do
-    AgentServer.cancel(socket.assigns.user_id, socket.assigns.session_id)
+    Agent.cancel(socket.assigns.user_id, socket.assigns.session_id)
     {:reply, :ok, socket}
   end
 

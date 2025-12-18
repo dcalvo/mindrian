@@ -1,6 +1,10 @@
 import { createContext } from "react";
 
-export type ChatStatus = "idle" | "thinking" | "awaiting_approval" | "executing";
+export type ChatStatus =
+  | "idle"
+  | "thinking"
+  | "awaiting_approval"
+  | "executing";
 
 export interface ChatMessage {
   id: string;

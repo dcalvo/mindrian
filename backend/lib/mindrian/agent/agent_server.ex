@@ -17,10 +17,43 @@ defmodule Mindrian.Agent.AgentServer do
   use GenServer
   require Logger
 
-  alias Mindrian.Agent.{Anthropic, Tools}
+  alias Mindrian.Agent.{Anthropic, Debug, Message, Tools}
   alias Mindrian.Accounts.Scope
 
   @idle_timeout :timer.minutes(30)
+  # Maximum number of messages to include in API calls (prevents context overflow)
+  @max_context_messages 50
+
+  # State struct for type safety and documentation
+  defmodule State do
+    @moduledoc false
+    @enforce_keys [:user_id, :session_id, :topic]
+    defstruct [
+      :user_id,
+      :session_id,
+      :topic,
+      :current_document_id,
+      :current_tool,
+      :task_ref,
+      messages: [],
+      status: :idle,
+      pending_tools: :queue.new()
+    ]
+
+    @type status :: :idle | :thinking | :awaiting_approval | :executing
+
+    @type t :: %__MODULE__{
+            user_id: integer(),
+            session_id: String.t(),
+            topic: String.t(),
+            current_document_id: String.t() | nil,
+            current_tool: map() | nil,
+            task_ref: reference() | nil,
+            messages: [map()],
+            status: status(),
+            pending_tools: :queue.queue()
+          }
+  end
 
   # Client API
 
@@ -65,18 +98,22 @@ defmodule Mindrian.Agent.AgentServer do
   @doc """
   Looks up an existing agent server or starts a new one.
   """
-  def get_or_start(user_id, session_id, callback_pid) do
+  def get_or_start(user_id, session_id) do
     case Registry.lookup(Mindrian.AgentServerRegistry, {user_id, session_id}) do
       [{pid, _}] ->
         {:ok, pid}
 
       [] ->
-        start_link(
-          user_id: user_id,
-          session_id: session_id,
-          callback_pid: callback_pid
-        )
+        start_link(user_id: user_id, session_id: session_id)
     end
+  end
+
+  @doc """
+  Returns the PubSub topic for an agent session.
+  Callers should subscribe to this topic to receive agent messages.
+  """
+  def topic(user_id, session_id) do
+    "agent:#{user_id}:#{session_id}"
   end
 
   # Server callbacks
@@ -85,19 +122,15 @@ defmodule Mindrian.Agent.AgentServer do
   def init(opts) do
     user_id = Keyword.fetch!(opts, :user_id)
     session_id = Keyword.fetch!(opts, :session_id)
-    callback_pid = Keyword.fetch!(opts, :callback_pid)
 
-    state = %{
+    state = %State{
       user_id: user_id,
       session_id: session_id,
-      callback_pid: callback_pid,
-      messages: [],
-      status: :idle,
-      pending_tools: [],
-      current_document_id: nil
+      topic: topic(user_id, session_id)
     }
 
     Logger.info("AgentServer started for user #{user_id}, session #{session_id}")
+    Debug.session_started(user_id, session_id)
     schedule_idle_timeout()
 
     {:ok, state}
@@ -106,23 +139,34 @@ defmodule Mindrian.Agent.AgentServer do
   @impl true
   def handle_call({:send_message, content, context}, _from, state) do
     if state.status != :idle do
+      Debug.emit(:message_rejected, %{
+        user_id: state.user_id,
+        session_id: state.session_id,
+        reason: :busy
+      })
+
       {:reply, {:error, :busy}, state}
     else
+      Debug.message_received(state.user_id, state.session_id, content)
+
       # Update current document context
       document_id = context[:document_id] || state.current_document_id
       state = %{state | current_document_id: document_id}
 
       # Add user message to history
-      user_message = %{role: "user", content: content}
+      user_message = Message.user(content)
       messages = state.messages ++ [user_message]
+      old_status = state.status
       state = %{state | messages: messages, status: :thinking}
 
       # Notify status change
+      Debug.status_changed(state.user_id, state.session_id, old_status, :thinking)
       send_callback(state, {:status, :thinking})
 
       # Process message asynchronously
-      server_pid = self()
-      spawn_link(fn -> process_message(server_pid, state) end)
+      Debug.task_started(state.user_id, state.session_id, :process_message)
+      server = self()
+      state = start_task(state, fn -> process_message(server, state) end)
 
       {:reply, :ok, state}
     end
@@ -130,50 +174,76 @@ defmodule Mindrian.Agent.AgentServer do
 
   @impl true
   def handle_call({:tool_response, request_id, approved}, _from, state) do
-    case find_pending_tool(state.pending_tools, request_id) do
+    # Only respond to current_tool
+    case state.current_tool do
       nil ->
         {:reply, {:error, :not_found}, state}
 
-      tool_request ->
+      %{request_id: ^request_id, tool_name: tool_name} = tool_request ->
         if approved do
+          Debug.tool_approved(state.user_id, state.session_id, tool_name, request_id)
+          Debug.status_changed(state.user_id, state.session_id, state.status, :executing)
           state = %{state | status: :executing}
           send_callback(state, {:status, :executing})
 
           # Execute tool asynchronously
-          server_pid = self()
-          spawn_link(fn -> execute_tool(server_pid, state, tool_request) end)
+          Debug.task_started(state.user_id, state.session_id, :execute_tool)
+          server = self()
+          state = start_task(state, fn -> execute_tool(server, state, tool_request) end)
 
           {:reply, :ok, state}
         else
+          Debug.tool_rejected(state.user_id, state.session_id, tool_name, request_id)
+
           # Tool rejected - add rejection result to message history
-          tool_result_message = %{
-            role: "user",
-            content: [
-              %{
-                type: "tool_result",
-                tool_use_id: tool_request.request_id,
-                content: "The user rejected this tool request.",
-                is_error: true
-              }
-            ]
+          tool_result_message = Message.tool_rejected(tool_request.request_id)
+
+          # Clear current tool and queue, rejection cancels all pending tools
+          messages = state.messages ++ [tool_result_message]
+
+          Debug.status_changed(state.user_id, state.session_id, state.status, :thinking)
+
+          state = %{
+            state
+            | messages: messages,
+              status: :thinking,
+              current_tool: nil,
+              pending_tools: :queue.new()
           }
 
-          messages = state.messages ++ [tool_result_message]
-          state = %{state | messages: messages, status: :thinking, pending_tools: []}
           send_callback(state, {:status, :thinking})
 
           # Continue with rejection message
-          server_pid = self()
-          spawn_link(fn -> continue_with_rejection(server_pid, state) end)
+          Debug.task_started(state.user_id, state.session_id, :continue_after_rejection)
+          server = self()
+          state = start_task(state, fn -> continue_with_rejection(server, state) end)
 
           {:reply, :ok, state}
         end
+
+      _other_tool ->
+        # Request ID doesn't match current tool
+        {:reply, {:error, :not_found}, state}
     end
   end
 
   @impl true
   def handle_call(:cancel, _from, state) do
-    state = %{state | status: :idle, pending_tools: []}
+    Debug.cancelled(state.user_id, state.session_id)
+
+    # Demonitor and flush any running task
+    if state.task_ref, do: Process.demonitor(state.task_ref, [:flush])
+
+    Debug.status_changed(state.user_id, state.session_id, state.status, :idle)
+
+    state = %{
+      state
+      | status: :idle,
+        current_tool: nil,
+        pending_tools: :queue.new(),
+        task_ref: nil
+    }
+
     send_callback(state, {:status, :idle})
     {:reply, :ok, state}
   end
@@ -185,16 +255,20 @@ defmodule Mindrian.Agent.AgentServer do
 
   @impl true
   def handle_cast({:api_response, response}, state) do
+    Debug.task_completed(state.user_id, state.session_id, :api_call)
+
     case response do
-      {:ok, %{tool_use: tool_use, content: content, stop_reason: _stop_reason}}
+      {:ok, %{tool_use: tool_use, content: content, stop_reason: stop_reason}}
       when tool_use != [] ->
+        Debug.api_response(state.user_id, state.session_id, stop_reason, length(tool_use))
+
         # Assistant wants to use tools
         # Add assistant message with tool use to history
-        assistant_message = build_assistant_message(content, tool_use)
+        assistant_message = Message.assistant_with_tools(content, tool_use)
         messages = state.messages ++ [assistant_message]
 
-        # Create pending tool requests
-        pending_tools =
+        # Create tool requests
+        tool_requests =
           Enum.map(tool_use, fn tool ->
             %{
               request_id: tool.id,
@@ -204,44 +278,73 @@ defmodule Mindrian.Agent.AgentServer do
             }
           end)
 
-        state = %{state | messages: messages, status: :awaiting_approval, pending_tools: pending_tools}
+        # Queue all tools, set first as current
+        {current_tool, pending_queue} = queue_tools(tool_requests)
+
+        Debug.status_changed(state.user_id, state.session_id, state.status, :awaiting_approval)
+
+        state = %{
+          state
+          | messages: messages,
+            status: :awaiting_approval,
+            current_tool: current_tool,
+            pending_tools: pending_queue
+        }
 
         # Send content if any
         if content != "" do
+          Debug.pubsub_broadcast(state.user_id, state.session_id, :assistant_message)
           send_callback(state, {:assistant_message, content})
         end
 
-        # Send tool requests for approval
-        Enum.each(pending_tools, fn tool ->
-          send_callback(state, {:tool_request, tool})
-        end)
+        # Only send the current tool request for approval (one at a time)
+        Debug.tool_requested(
+          state.user_id,
+          state.session_id,
+          current_tool.tool_name,
+          current_tool.request_id
+        )
 
+        Debug.pubsub_broadcast(state.user_id, state.session_id, :tool_request)
+        send_callback(state, {:tool_request, current_tool})
+        Debug.pubsub_broadcast(state.user_id, state.session_id, :status)
         send_callback(state, {:status, :awaiting_approval})
         {:noreply, state}
 
-      {:ok, %{content: content, stop_reason: "end_turn"}} ->
+      {:ok, %{content: content, stop_reason: stop_reason}} ->
+        Debug.api_response(state.user_id, state.session_id, stop_reason, 0)
+
         # Final response
-        assistant_message = %{role: "assistant", content: content}
+        assistant_message = Message.assistant(content)
         messages = state.messages ++ [assistant_message]
-        state = %{state | messages: messages, status: :idle, pending_tools: []}
 
+        Debug.status_changed(state.user_id, state.session_id, state.status, :idle)
+
+        state = %{
+          state
+          | messages: messages,
+            status: :idle,
+            current_tool: nil,
+            pending_tools: :queue.new()
+        }
+
+        Debug.pubsub_broadcast(state.user_id, state.session_id, :assistant_message)
         send_callback(state, {:assistant_message, content})
-        send_callback(state, {:status, :idle})
-        {:noreply, state}
-
-      {:ok, %{content: content}} ->
-        # Some other stop reason, treat as final
-        assistant_message = %{role: "assistant", content: content}
-        messages = state.messages ++ [assistant_message]
-        state = %{state | messages: messages, status: :idle, pending_tools: []}
-
-        send_callback(state, {:assistant_message, content})
+        Debug.pubsub_broadcast(state.user_id, state.session_id, :status)
         send_callback(state, {:status, :idle})
         {:noreply, state}
 
       {:error, reason} ->
+        Debug.emit(:api_error, %{
+          user_id: state.user_id,
+          session_id: state.session_id,
+          reason: inspect(reason)
+        })
+
         Logger.error("Anthropic API error: #{inspect(reason)}")
-        state = %{state | status: :idle}
+
+        Debug.status_changed(state.user_id, state.session_id, state.status, :idle)
+        state = %{state | status: :idle, current_tool: nil, pending_tools: :queue.new()}
 
         send_callback(state, {:error, "API error: #{inspect(reason)}"})
         send_callback(state, {:status, :idle})
@@ -251,68 +354,106 @@ defmodule Mindrian.Agent.AgentServer do
 
   @impl true
   def handle_cast({:tool_executed, tool_request, result}, state) do
-    # Send tool result to client
-    case result do
-      {:ok, data} ->
-        send_callback(state, {:tool_result, tool_request.request_id, true, data})
+    success = match?({:ok, _}, result)
+    Debug.tool_executed(state.user_id, state.session_id, tool_request.tool_name, success)
 
-      {:error, error} ->
-        send_callback(state, {:tool_result, tool_request.request_id, false, error})
-    end
-
-    # Build tool result content and add to message history
-    content =
+    # Send tool result to client and build message for history
+    tool_result_message =
       case result do
-        {:ok, data} -> Jason.encode!(data)
-        {:error, error} -> "Error: #{error}"
-      end
+        {:ok, data} ->
+          Debug.pubsub_broadcast(state.user_id, state.session_id, :tool_result)
+          send_callback(state, {:tool_result, tool_request.request_id, true, data})
+          Message.tool_success(tool_request.request_id, data)
 
-    tool_result_message = %{
-      role: "user",
-      content: [
-        %{
-          type: "tool_result",
-          tool_use_id: tool_request.request_id,
-          content: content
-        }
-        |> maybe_add_tool_error(match?({:error, _}, result))
-      ]
-    }
+        {:error, error} ->
+          Debug.pubsub_broadcast(state.user_id, state.session_id, :tool_result)
+          send_callback(state, {:tool_result, tool_request.request_id, false, error})
+          Message.tool_error(tool_request.request_id, error)
+      end
 
     # Add tool result to message history
     messages = state.messages ++ [tool_result_message]
-    state = %{state | messages: messages}
+    state = %{state | messages: messages, current_tool: nil}
 
-    # Remove from pending tools
-    remaining_tools = Enum.reject(state.pending_tools, &(&1.request_id == tool_request.request_id))
+    # Check if there are more tools in the queue
+    case :queue.out(state.pending_tools) do
+      {{:value, next_tool}, remaining_queue} ->
+        # More tools to process - send next for approval
+        Debug.status_changed(state.user_id, state.session_id, state.status, :awaiting_approval)
 
-    if remaining_tools == [] do
-      # All tools executed, continue conversation
-      state = %{state | status: :thinking, pending_tools: []}
-      send_callback(state, {:status, :thinking})
+        state = %{
+          state
+          | current_tool: next_tool,
+            pending_tools: remaining_queue,
+            status: :awaiting_approval
+        }
 
-      # Continue with tool results
-      server_pid = self()
-      spawn_link(fn -> continue_after_tools(server_pid, state) end)
+        Debug.tool_requested(
+          state.user_id,
+          state.session_id,
+          next_tool.tool_name,
+          next_tool.request_id
+        )
 
-      {:noreply, state}
-    else
-      # More tools pending
-      state = %{state | pending_tools: remaining_tools, status: :awaiting_approval}
-      send_callback(state, {:status, :awaiting_approval})
-      {:noreply, state}
+        send_callback(state, {:tool_request, next_tool})
+        send_callback(state, {:status, :awaiting_approval})
+        {:noreply, state}
+
+      {:empty, _} ->
+        # All tools executed, continue conversation
+        Debug.status_changed(state.user_id, state.session_id, state.status, :thinking)
+        state = %{state | status: :thinking, pending_tools: :queue.new()}
+        send_callback(state, {:status, :thinking})
+
+        # Continue with tool results
+        Debug.task_started(state.user_id, state.session_id, :continue_after_tools)
+        server = self()
+        state = start_task(state, fn -> continue_after_tools(server, state) end)
+
+        {:noreply, state}
     end
   end
 
   @impl true
   def handle_info(:idle_timeout, state) do
     if state.status == :idle and state.messages == [] do
+      Debug.session_timeout(state.user_id, state.session_id)
       Logger.info("AgentServer idle timeout for user #{state.user_id}")
       {:stop, :normal, state}
     else
       schedule_idle_timeout()
       {:noreply, state}
     end
+  end
+
+  # Task exited normally - just clear the ref
+  @impl true
+  def handle_info({:DOWN, ref, :process, _pid, :normal}, %{task_ref: ref} = state)
+      when is_reference(ref) do
+    {:noreply, %{state | task_ref: nil}}
+  end
+
+  # Task crashed - reset to idle and notify user
+  @impl true
+  def handle_info({:DOWN, ref, :process, _pid, reason}, %{task_ref: ref} = state)
+      when is_reference(ref) do
+    Debug.task_crashed(state.user_id, state.session_id, reason)
+    Logger.error("Agent task crashed: #{inspect(reason)}")
+
+    Debug.status_changed(state.user_id, state.session_id, state.status, :idle)
+
+    state = %{
+      state
+      | status: :idle,
+        task_ref: nil,
+        current_tool: nil,
+        pending_tools: :queue.new()
+    }
+
+    send_callback(state, {:error, "An internal error occurred. Please try again."})
+    send_callback(state, {:status, :idle})
+
+    {:noreply, state}
   end
 
   @impl true
@@ -337,24 +478,64 @@ defmodule Mindrian.Agent.AgentServer do
     Process.send_after(self(), :idle_timeout, @idle_timeout)
   end
 
-  defp send_callback(state, message) do
-    send(state.callback_pid, {:agent, message})
+  # Starts a fire-and-forget task with explicit monitoring for crash detection
+  defp start_task(state, fun) do
+    {:ok, pid} = Task.Supervisor.start_child(Mindrian.AgentTaskSupervisor, fun)
+    ref = Process.monitor(pid)
+    %{state | task_ref: ref}
   end
 
-  defp find_pending_tool(pending_tools, request_id) do
-    Enum.find(pending_tools, &(&1.request_id == request_id))
+  defp send_callback(state, message) do
+    Phoenix.PubSub.broadcast(Mindrian.PubSub, state.topic, {:agent, message})
+  end
+
+  # Takes a list of tool requests, returns {current_tool, queue_of_remaining}
+  defp queue_tools([first | rest]) do
+    queue = Enum.reduce(rest, :queue.new(), fn tool, q -> :queue.in(tool, q) end)
+    {first, queue}
+  end
+
+  defp queue_tools([]) do
+    {nil, :queue.new()}
   end
 
   defp process_message(server_pid, state) do
     # Build system prompt with document context
     system = build_system_prompt(state.current_document_id)
 
+    # Transform and trim internal messages to API format
+    api_messages =
+      state.messages
+      |> prepare_messages_for_api()
+      |> Message.to_anthropic_messages()
+
     # Call Anthropic API
-    response = Anthropic.chat(
-      state.messages,
-      tools: Tools.definitions(),
-      system: system
-    )
+    Debug.api_request(state.user_id, state.session_id, length(api_messages), true)
+
+    response =
+      try do
+        Anthropic.chat(
+          api_messages,
+          tools: Tools.definitions(),
+          system: system
+        )
+      rescue
+        e ->
+          Debug.emit(:api_exception, %{
+            user_id: state.user_id,
+            session_id: state.session_id,
+            error: Exception.message(e),
+            stacktrace: Exception.format_stacktrace(__STACKTRACE__)
+          })
+
+          reraise e, __STACKTRACE__
+      end
+
+    Debug.emit(:api_call_completed, %{
+      user_id: state.user_id,
+      session_id: state.session_id,
+      success: match?({:ok, _}, response)
+    })
 
     GenServer.cast(server_pid, {:api_response, response})
   end
@@ -363,11 +544,12 @@ defmodule Mindrian.Agent.AgentServer do
     # Build scope for the user
     scope = build_scope(state.user_id)
 
-    result = Tools.execute(
-      tool_request.tool_name,
-      tool_request.tool_input,
-      scope
-    )
+    result =
+      Tools.execute(
+        tool_request.tool_name,
+        tool_request.tool_input,
+        scope
+      )
 
     GenServer.cast(server_pid, {:tool_executed, tool_request, result})
   end
@@ -376,11 +558,19 @@ defmodule Mindrian.Agent.AgentServer do
     # Messages already include the rejection tool_result, just call the API
     system = build_system_prompt(state.current_document_id)
 
-    response = Anthropic.chat(
-      state.messages,
-      tools: Tools.definitions(),
-      system: system
-    )
+    api_messages =
+      state.messages
+      |> prepare_messages_for_api()
+      |> Message.to_anthropic_messages()
+
+    Debug.api_request(state.user_id, state.session_id, length(api_messages), true)
+
+    response =
+      Anthropic.chat(
+        api_messages,
+        tools: Tools.definitions(),
+        system: system
+      )
 
     GenServer.cast(server_pid, {:api_response, response})
   end
@@ -389,69 +579,85 @@ defmodule Mindrian.Agent.AgentServer do
     # Messages already include the tool_result, just call the API
     system = build_system_prompt(state.current_document_id)
 
-    response = Anthropic.chat(
-      state.messages,
-      tools: Tools.definitions(),
-      system: system
-    )
+    api_messages =
+      state.messages
+      |> prepare_messages_for_api()
+      |> Message.to_anthropic_messages()
+
+    Debug.api_request(state.user_id, state.session_id, length(api_messages), true)
+
+    response =
+      Anthropic.chat(
+        api_messages,
+        tools: Tools.definitions(),
+        system: system
+      )
 
     GenServer.cast(server_pid, {:api_response, response})
   end
 
-  defp maybe_add_tool_error(result, true), do: Map.put(result, :is_error, true)
-  defp maybe_add_tool_error(result, _), do: result
+  # Prepares messages for the API by keeping only the most recent ones
+  # to prevent context window overflow
+  defp prepare_messages_for_api(messages) do
+    messages
+    |> Enum.take(-@max_context_messages)
+  end
+
+  alias Mindrian.Collaboration.DocServer
+
+  @base_system_prompt """
+  You are a helpful AI assistant integrated into Mindrian, a collaborative document platform.
+  You can help users create, read, edit, and delete their documents.
+
+  When using tools:
+  - Always explain what you're about to do before using a tool
+  - If a tool request is rejected, acknowledge it and suggest alternatives
+  - Be concise but helpful in your responses
+  """
 
   defp build_system_prompt(nil) do
-    """
-    You are a helpful AI assistant integrated into Mindrian, a collaborative document platform.
-    You can help users create, read, edit, and delete their documents.
-
-    When using tools:
-    - Always explain what you're about to do before using a tool
-    - If a tool request is rejected, acknowledge it and suggest alternatives
-    - Be concise but helpful in your responses
-    """
+    @base_system_prompt
   end
 
   defp build_system_prompt(document_id) do
-    """
-    You are a helpful AI assistant integrated into Mindrian, a collaborative document platform.
-    You can help users create, read, edit, and delete their documents.
+    case DocServer.get_blocks(document_id) do
+      {:ok, blocks} ->
+        preview = format_blocks_preview(blocks)
 
-    The user is currently viewing document ID: #{document_id}
-    You can reference this document in your responses and use tools to read or edit it.
+        """
+        #{@base_system_prompt}
 
-    When using tools:
-    - Always explain what you're about to do before using a tool
-    - If a tool request is rejected, acknowledge it and suggest alternatives
-    - Be concise but helpful in your responses
-    """
+        The user is currently viewing document ID: #{document_id}
+
+        Document preview (first 10 blocks):
+        #{preview}
+
+        Use read_document for full content if needed, or edit_document to make changes.
+        """
+
+      _ ->
+        # Fallback if document can't be read
+        """
+        #{@base_system_prompt}
+
+        The user is currently viewing document ID: #{document_id}
+        You can reference this document in your responses and use tools to read or edit it.
+        """
+    end
+  end
+
+  defp format_blocks_preview(blocks) do
+    blocks
+    |> Enum.take(10)
+    |> Enum.map_join("\n", fn block ->
+      content = block[:content] || ""
+      truncated = String.slice(content, 0..100)
+      "- [#{block[:type]}] #{truncated}"
+    end)
   end
 
   defp build_scope(user_id) do
     user = Mindrian.Accounts.get_user!(user_id)
     %Scope{user: user}
-  end
-
-  defp build_assistant_message(content, tool_use) do
-    # Build the content array for the assistant message
-    content_blocks =
-      if content != "" do
-        [%{type: "text", text: content}]
-      else
-        []
-      end
-
-    tool_blocks =
-      Enum.map(tool_use, fn tool ->
-        %{
-          type: "tool_use",
-          id: tool.id,
-          name: tool.name,
-          input: tool.input
-        }
-      end)
-
-    %{role: "assistant", content: content_blocks ++ tool_blocks}
   end
 end

@@ -7,6 +7,10 @@ export function setSocketToken(token: string): void {
   socketToken = token;
 }
 
+export function isSocketReady(): boolean {
+  return socketToken !== null;
+}
+
 export function getSocket(): Socket {
   if (!socket) {
     if (!socketToken) {

@@ -17,6 +17,8 @@ defmodule Mindrian.Application do
       {Registry, keys: :unique, name: Mindrian.DocServerRegistry},
       # Registry for AgentServer processes (one per user session)
       {Registry, keys: :unique, name: Mindrian.AgentServerRegistry},
+      # Task supervisor for agent async work (API calls, tool execution)
+      {Task.Supervisor, name: Mindrian.AgentTaskSupervisor},
       # Start to serve requests, typically the last entry
       MindrianWeb.Endpoint
     ]

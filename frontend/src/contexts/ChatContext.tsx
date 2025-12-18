@@ -1,4 +1,10 @@
-import { useState, useEffect, useCallback, useRef, type ReactNode } from "react";
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  type ReactNode,
+} from "react";
 import type { Channel } from "phoenix";
 import { useParams } from "@tanstack/react-router";
 import { getSocket } from "../lib/socket";

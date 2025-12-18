@@ -24,6 +24,28 @@ export function ChatPane() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, pendingTool]);
 
+  // Keyboard shortcuts for tool approval and cancel
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Cmd/Ctrl + Enter to approve pending tool
+      if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && pendingTool) {
+        e.preventDefault();
+        approveToolRequest(pendingTool.requestId);
+      }
+      // Escape to cancel/reject
+      if (e.key === "Escape") {
+        if (pendingTool) {
+          rejectToolRequest(pendingTool.requestId);
+        } else if (status !== "idle") {
+          cancel();
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [pendingTool, status, approveToolRequest, rejectToolRequest, cancel]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || status !== "idle") return;

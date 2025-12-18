@@ -1,3 +1,4 @@
+import Markdown from "react-markdown";
 import type { ChatMessage as ChatMessageType } from "../contexts/chat";
 
 interface ChatMessageProps {
@@ -10,7 +11,9 @@ export function ChatMessage({ message }: ChatMessageProps) {
   return (
     <div className={`chat-message ${isUser ? "user" : "assistant"}`}>
       <div className="chat-message-header">
-        <span className="chat-message-role">{isUser ? "You" : "Assistant"}</span>
+        <span className="chat-message-role">
+          {isUser ? "You" : "Assistant"}
+        </span>
         <span className="chat-message-time">
           {message.timestamp.toLocaleTimeString([], {
             hour: "2-digit",
@@ -18,7 +21,9 @@ export function ChatMessage({ message }: ChatMessageProps) {
           })}
         </span>
       </div>
-      <div className="chat-message-content">{message.content}</div>
+      <div className="chat-message-content">
+        {isUser ? message.content : <Markdown>{message.content}</Markdown>}
+      </div>
     </div>
   );
 }

@@ -23,10 +23,10 @@ export function ToolApproval({ tool, onApprove, onReject }: ToolApprovalProps) {
       </div>
       <div className="tool-approval-actions">
         <button className="tool-approve-btn" onClick={onApprove}>
-          Approve
+          Approve <kbd>⌘↵</kbd>
         </button>
         <button className="tool-reject-btn" onClick={onReject}>
-          Reject
+          Reject <kbd>Esc</kbd>
         </button>
       </div>
     </div>
