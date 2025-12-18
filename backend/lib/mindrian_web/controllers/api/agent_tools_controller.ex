@@ -9,7 +9,7 @@ defmodule MindrianWeb.API.AgentToolsController do
 
   alias Mindrian.Accounts
   alias Mindrian.Accounts.Scope
-  alias Mindrian.Agent.Tools.{CreateDocument, ReadDocument, EditDocument, DeleteDocument}
+  alias Mindrian.Agent.Tools.{ListDocuments, CreateDocument, ReadDocument, EditDocument, DeleteDocument}
 
   plug :load_user_from_body
 
@@ -24,6 +24,11 @@ defmodule MindrianWeb.API.AgentToolsController do
         |> json(%{success: false, error: "Invalid user_id"})
         |> halt()
     end
+  end
+
+  def list_documents(conn, params) do
+    {:ok, result} = ListDocuments.execute(params, conn.assigns.current_scope)
+    json(conn, %{success: true, result: result})
   end
 
   def create_document(conn, params) do

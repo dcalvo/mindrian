@@ -232,7 +232,12 @@ defmodule Mindrian.Collaboration.DocServer do
     MindrianWeb.Endpoint.broadcast(topic, "yjs", {:binary, message})
   end
 
-  defp broadcast_update(origin, topic, message) do
+  # Agent origin is an atom, not a PID - use regular broadcast
+  defp broadcast_update(origin, topic, message) when is_atom(origin) do
+    MindrianWeb.Endpoint.broadcast(topic, "yjs", {:binary, message})
+  end
+
+  defp broadcast_update(origin, topic, message) when is_pid(origin) do
     MindrianWeb.Endpoint.broadcast_from(origin, topic, "yjs", {:binary, message})
   end
 
@@ -252,12 +257,23 @@ defmodule Mindrian.Collaboration.DocServer do
     block_type = block["type"] || "paragraph"
     content = block["content"] || ""
 
-    # Generate a unique block ID
-    block_id = generate_block_id()
+    Logger.debug("append_block: type=#{block_type}, content=#{content}")
 
-    # Create an XmlElement for the block with BlockNote structure
-    prelim = create_block_prelim(block_type, block_id, content)
-    Yex.XmlFragment.push(fragment, prelim)
+    # BlockNote structure: fragment > blockGroup > blockContainer > paragraph/heading/etc > text
+    # We need to find the root blockGroup and append a blockContainer inside it
+    case get_root_block_group(fragment) do
+      {:ok, block_group} ->
+        block_id = generate_block_id()
+        block_container = create_block_container(block_type, block_id, content)
+        Yex.XmlElement.push(block_group, block_container)
+
+      :error ->
+        # No blockGroup exists - create the full structure
+        Logger.debug("No blockGroup found, creating full structure")
+        block_id = generate_block_id()
+        prelim = create_full_block_structure(block_type, block_id, content)
+        Yex.XmlFragment.push(fragment, prelim)
+    end
   end
 
   defp apply_operation(fragment, %{"type" => "insert_block"} = op) do
@@ -266,51 +282,72 @@ defmodule Mindrian.Collaboration.DocServer do
     content = block["content"] || ""
     after_id = op["after_id"]
 
-    block_id = generate_block_id()
-    prelim = create_block_prelim(block_type, block_id, content)
+    case get_root_block_group(fragment) do
+      {:ok, block_group} ->
+        block_id = generate_block_id()
+        block_container = create_block_container(block_type, block_id, content)
 
-    if after_id do
-      # Find the index of the block with the given ID
-      case find_block_index(fragment, after_id) do
-        {:ok, index} ->
-          Yex.XmlFragment.insert(fragment, index + 1, prelim)
+        if after_id do
+          # Find the index of the blockContainer with the given ID inside blockGroup
+          case find_block_container_index(block_group, after_id) do
+            {:ok, index} ->
+              Yex.XmlElement.insert(block_group, index + 1, block_container)
 
-        :error ->
-          # If not found, insert at end
-          Yex.XmlFragment.push(fragment, prelim)
-      end
-    else
-      # Insert at beginning
-      Yex.XmlFragment.insert(fragment, 0, prelim)
+            :error ->
+              # If not found, insert at end
+              Yex.XmlElement.push(block_group, block_container)
+          end
+        else
+          # Insert at beginning
+          Yex.XmlElement.insert(block_group, 0, block_container)
+        end
+
+      :error ->
+        # No blockGroup - create full structure
+        block_id = generate_block_id()
+        prelim = create_full_block_structure(block_type, block_id, content)
+        Yex.XmlFragment.push(fragment, prelim)
     end
   end
 
   defp apply_operation(fragment, %{"type" => "delete_block", "block_id" => block_id}) do
-    case find_block_index(fragment, block_id) do
-      {:ok, index} ->
-        Yex.XmlFragment.delete(fragment, index, 1)
+    case get_root_block_group(fragment) do
+      {:ok, block_group} ->
+        case find_block_container_index(block_group, block_id) do
+          {:ok, index} ->
+            Yex.XmlElement.delete(block_group, index, 1)
+
+          :error ->
+            {:error, "Block not found: #{block_id}"}
+        end
 
       :error ->
-        {:error, "Block not found: #{block_id}"}
+        {:error, "No blockGroup found in document"}
     end
   end
 
   defp apply_operation(fragment, %{"type" => "update_block", "block_id" => block_id} = op) do
     content = op["content"] || ""
 
-    case find_block_index(fragment, block_id) do
-      {:ok, index} ->
-        # Get the existing block to preserve its type
-        {:ok, existing} = Yex.XmlFragment.fetch(fragment, index)
-        block_type = Yex.XmlElement.get_tag(existing)
+    case get_root_block_group(fragment) do
+      {:ok, block_group} ->
+        case find_block_container_index(block_group, block_id) do
+          {:ok, index} ->
+            # Get the existing blockContainer to find the inner block type
+            {:ok, existing_container} = Yex.XmlElement.fetch(block_group, index)
+            block_type = get_inner_block_type(existing_container)
 
-        # Delete and re-insert with new content
-        Yex.XmlFragment.delete(fragment, index, 1)
-        prelim = create_block_prelim(block_type, block_id, content)
-        Yex.XmlFragment.insert(fragment, index, prelim)
+            # Delete and re-insert with new content
+            Yex.XmlElement.delete(block_group, index, 1)
+            block_container = create_block_container(block_type, block_id, content)
+            Yex.XmlElement.insert(block_group, index, block_container)
+
+          :error ->
+            {:error, "Block not found: #{block_id}"}
+        end
 
       :error ->
-        {:error, "Block not found: #{block_id}"}
+        {:error, "No blockGroup found in document"}
     end
   end
 
@@ -318,27 +355,121 @@ defmodule Mindrian.Collaboration.DocServer do
     {:error, "Unknown operation type: #{inspect(op)}"}
   end
 
-  defp create_block_prelim(block_type, block_id, content) do
-    # BlockNote stores blocks as XmlElements with specific structure
-    # The tag is the block type, and content is nested in XmlText
+  # Find the root blockGroup element in the fragment
+  defp get_root_block_group(fragment) do
+    fragment
+    |> Yex.XmlFragment.children()
+    |> Enum.find(fn elem ->
+      case elem do
+        %Yex.XmlElement{} -> Yex.XmlElement.get_tag(elem) == "blockGroup"
+        _ -> false
+      end
+    end)
+    |> case do
+      nil -> :error
+      block_group -> {:ok, block_group}
+    end
+  end
+
+  # Create a blockContainer with nested block type and content
+  # Structure: <blockContainer id="..."><paragraph ...>TEXT</paragraph></blockContainer>
+  defp create_block_container(block_type, block_id, content) do
+    # Normalize block_type - agent might send "blockGroup" but we need actual types
+    actual_type = if block_type in ["blockGroup", "blockContainer"], do: "paragraph", else: block_type
+
+    # Parse markdown bold and convert to delta format
+    text_prelim = parse_markdown_to_prelim(content)
+
+    # Create the inner block (paragraph, heading, etc) with default props
+    inner_block =
+      Yex.XmlElementPrelim.new(
+        actual_type,
+        [text_prelim],
+        %{
+          "backgroundColor" => "default",
+          "textAlignment" => "left",
+          "textColor" => "default"
+        }
+      )
+
+    # Wrap in blockContainer
     Yex.XmlElementPrelim.new(
-      block_type,
-      [Yex.XmlTextPrelim.from(content)],
-      %{"blockId" => block_id}
+      "blockContainer",
+      [inner_block],
+      %{"id" => block_id}
     )
   end
 
-  defp find_block_index(fragment, block_id) do
-    fragment
-    |> Yex.XmlFragment.children()
+  # Parse markdown bold (**text**) and convert to Yjs delta format
+  defp parse_markdown_to_prelim(content) when is_binary(content) do
+    # Regex to match **bold** patterns
+    # Split content into segments, preserving bold markers
+    parts = Regex.split(~r/(\*\*[^*]+\*\*)/, content, include_captures: true)
+
+    delta =
+      parts
+      |> Enum.reject(&(&1 == ""))
+      |> Enum.map(fn part ->
+        if String.starts_with?(part, "**") and String.ends_with?(part, "**") do
+          # Bold text - strip markers and add attribute
+          text = String.slice(part, 2..-3//1)
+          %{insert: text, attributes: %{"bold" => true}}
+        else
+          # Plain text
+          %{insert: part}
+        end
+      end)
+
+    case delta do
+      [] -> Yex.XmlTextPrelim.from("")
+      _ -> Yex.XmlTextPrelim.from(delta)
+    end
+  end
+
+  defp parse_markdown_to_prelim(content), do: Yex.XmlTextPrelim.from(to_string(content))
+
+  # Create a full block structure for empty documents
+  # Structure: <blockGroup><blockContainer id="..."><paragraph ...>TEXT</paragraph></blockContainer></blockGroup>
+  defp create_full_block_structure(block_type, block_id, content) do
+    block_container = create_block_container(block_type, block_id, content)
+
+    Yex.XmlElementPrelim.new(
+      "blockGroup",
+      [block_container],
+      %{}
+    )
+  end
+
+  # Find blockContainer by id within a blockGroup element
+  defp find_block_container_index(block_group, block_id) do
+    block_group
+    |> Yex.XmlElement.children()
     |> Enum.with_index()
     |> Enum.find_value(:error, fn {elem, index} ->
-      attrs = Yex.XmlElement.get_attributes(elem)
+      case elem do
+        %Yex.XmlElement{} ->
+          attrs = Yex.XmlElement.get_attributes(elem)
 
-      if attrs["blockId"] == block_id or attrs["id"] == block_id do
-        {:ok, index}
-      else
-        nil
+          if attrs["id"] == block_id do
+            {:ok, index}
+          else
+            nil
+          end
+
+        _ ->
+          nil
+      end
+    end)
+  end
+
+  # Get the inner block type from a blockContainer (e.g., "paragraph", "heading")
+  defp get_inner_block_type(block_container) do
+    block_container
+    |> Yex.XmlElement.children()
+    |> Enum.find_value("paragraph", fn elem ->
+      case elem do
+        %Yex.XmlElement{} -> Yex.XmlElement.get_tag(elem)
+        _ -> nil
       end
     end)
   end
@@ -348,10 +479,99 @@ defmodule Mindrian.Collaboration.DocServer do
   end
 
   defp extract_blocks(fragment) do
-    fragment
-    |> Yex.XmlFragment.children()
-    |> Enum.map(&extract_block/1)
-    |> Enum.to_list()
+    children = Yex.XmlFragment.children(fragment) |> Enum.to_list()
+    Logger.debug("extract_blocks: #{length(children)} children in fragment")
+
+    # Log full structure for debugging
+    Enum.each(children, fn child ->
+      log_element_tree(child, 0)
+    end)
+
+    # BlockNote structure: fragment > blockGroup > blockContainer > paragraph/etc
+    # Extract blocks from inside the blockGroup
+    case get_root_block_group(fragment) do
+      {:ok, block_group} ->
+        block_group
+        |> Yex.XmlElement.children()
+        |> Enum.filter(fn elem ->
+          case elem do
+            %Yex.XmlElement{} -> Yex.XmlElement.get_tag(elem) == "blockContainer"
+            _ -> false
+          end
+        end)
+        |> Enum.map(&extract_block_from_container/1)
+
+      :error ->
+        # Fallback to old behavior for non-BlockNote documents
+        children
+        |> Enum.map(&extract_block/1)
+    end
+  end
+
+  # Extract block info from a blockContainer element
+  defp extract_block_from_container(%Yex.XmlElement{} = container) do
+    attrs = Yex.XmlElement.get_attributes(container)
+    block_id = attrs["id"]
+
+    # Find the inner block (paragraph, heading, etc)
+    inner_block =
+      container
+      |> Yex.XmlElement.children()
+      |> Enum.find(fn elem ->
+        case elem do
+          %Yex.XmlElement{} -> true
+          _ -> false
+        end
+      end)
+
+    case inner_block do
+      %Yex.XmlElement{} = block ->
+        tag = Yex.XmlElement.get_tag(block)
+        block_attrs = Yex.XmlElement.get_attributes(block)
+        content = extract_text_content(block)
+
+        %{
+          id: block_id,
+          type: tag,
+          props: block_attrs,
+          content: content
+        }
+
+      _ ->
+        %{
+          id: block_id,
+          type: "unknown",
+          props: %{},
+          content: ""
+        }
+    end
+  end
+
+  # Debug helper to log the full XML tree structure
+  defp log_element_tree(%Yex.XmlElement{} = elem, depth) do
+    indent = String.duplicate("  ", depth)
+    tag = Yex.XmlElement.get_tag(elem)
+    attrs = Yex.XmlElement.get_attributes(elem)
+    Logger.debug("#{indent}<#{tag} #{inspect(attrs)}>")
+
+    elem
+    |> Yex.XmlElement.children()
+    |> Enum.each(fn child ->
+      log_element_tree(child, depth + 1)
+    end)
+
+    Logger.debug("#{indent}</#{tag}>")
+  end
+
+  defp log_element_tree(%Yex.XmlText{} = text, depth) do
+    indent = String.duplicate("  ", depth)
+    content = Yex.XmlText.to_string(text)
+    Logger.debug("#{indent}TEXT: #{inspect(content)}")
+  end
+
+  defp log_element_tree(other, depth) do
+    indent = String.duplicate("  ", depth)
+    Logger.debug("#{indent}UNKNOWN: #{inspect(other)}")
   end
 
   defp extract_block(%Yex.XmlElement{} = elem) do

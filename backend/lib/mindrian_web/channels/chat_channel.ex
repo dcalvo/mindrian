@@ -225,6 +225,8 @@ defmodule MindrianWeb.ChatChannel do
 
   defp handle_agno_event(%{"event" => "RunPaused"} = event, socket) do
     # Tool execution needed (external_execution=True)
+    Logger.debug("RunPaused event received: #{inspect(event, pretty: true)}")
+
     case extract_tool(event) do
       {:ok, tool} ->
         push(socket, "tool_request", %{
@@ -279,21 +281,39 @@ defmodule MindrianWeb.ChatChannel do
   end
 
   # Extract tool info from RunPaused event
-  defp extract_tool(%{"tools" => [tool | _], "run_id" => run_id}) do
-    {:ok,
-     %{
-       run_id: run_id,
-       tool_call_id: tool["tool_call_id"] || generate_request_id(),
-       tool_name: tool["tool_name"],
-       tool_input: tool["tool_args"] || %{},
-       description: describe_tool(tool)
-     }}
+  # Agno may send multiple tools - find the one that requires confirmation
+  defp extract_tool(%{"tools" => tools, "run_id" => run_id}) when is_list(tools) do
+    Logger.debug("Extracting tool from #{length(tools)} tools")
+
+    # Find the tool that requires confirmation, or fall back to the last tool
+    tool =
+      Enum.find(tools, List.last(tools), fn t ->
+        t["requires_confirmation"] == true
+      end)
+
+    Logger.debug("Selected tool: #{inspect(tool, pretty: true)}")
+
+    if tool do
+      {:ok,
+       %{
+         run_id: run_id,
+         tool_call_id: tool["tool_call_id"] || generate_request_id(),
+         tool_name: tool["tool_name"],
+         tool_input: tool["tool_args"] || %{},
+         description: describe_tool(tool)
+       }}
+    else
+      :error
+    end
   end
 
   defp extract_tool(_), do: :error
 
   defp describe_tool(%{"tool_name" => name, "tool_args" => args}) do
     case name do
+      "list_documents" ->
+        "List all documents"
+
       "create_document" ->
         title = args["title"] || "Untitled"
         "Create a new document titled \"#{title}\""

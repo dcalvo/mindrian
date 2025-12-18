@@ -30,6 +30,20 @@ def _phoenix_request(
     return response.json()
 
 
+@tool(requires_confirmation=False)
+def list_documents(run_context: Optional[RunContext] = None) -> dict[str, Any]:
+    """List all documents in the user's workspace.
+
+    Returns:
+        List of documents with document_id, title, created_at, and updated_at
+    """
+    return _phoenix_request(
+        "/api/agent/tools/list_documents",
+        {},
+        run_context,
+    )
+
+
 @tool(requires_confirmation=True)
 def create_document(title: str, run_context: Optional[RunContext] = None) -> dict[str, Any]:
     """Create a new document in the user's workspace.
@@ -119,4 +133,4 @@ def delete_document(document_id: str, run_context: Optional[RunContext] = None) 
 
 
 # Export all document tools
-document_tools = [create_document, read_document, edit_document, delete_document]
+document_tools = [list_documents, create_document, read_document, edit_document, delete_document]
