@@ -32,9 +32,10 @@ defmodule Mindrian.AgentServer do
 
     Logger.info("Starting Python agent on port #{port_number}")
 
-    # Find uv executable
     uv_path = System.find_executable("uv") || "/usr/local/bin/uv"
 
+    # Don't specify env - let the subprocess inherit all environment variables
+    # including ANTHROPIC_API_KEY from Fly secrets
     port =
       Port.open(
         {:spawn_executable, uv_path},
@@ -51,8 +52,7 @@ defmodule Mindrian.AgentServer do
             "--port",
             port_number
           ],
-          cd: agent_dir,
-          env: build_env()
+          cd: agent_dir
         ]
       )
 
@@ -85,7 +85,14 @@ defmodule Mindrian.AgentServer do
   @impl true
   def terminate(_reason, %{port: port}) when is_port(port) do
     Logger.info("Stopping Python agent")
-    Port.close(port)
+
+    # Port may already be closed if we're terminating due to exit_status
+    try do
+      Port.close(port)
+    rescue
+      ArgumentError -> :ok
+    end
+
     :ok
   end
 
@@ -98,16 +105,4 @@ defmodule Mindrian.AgentServer do
       Path.expand("../agent", File.cwd!())
   end
 
-  # Pass through relevant environment variables
-  defp build_env do
-    base_env = [
-      {~c"PORT", String.to_charlist(System.get_env("AGENT_PORT", @default_port))}
-    ]
-
-    # Pass through ANTHROPIC_API_KEY if set
-    case System.get_env("ANTHROPIC_API_KEY") do
-      nil -> base_env
-      key -> [{~c"ANTHROPIC_API_KEY", String.to_charlist(key)} | base_env]
-    end
-  end
 end

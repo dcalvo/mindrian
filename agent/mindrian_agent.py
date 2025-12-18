@@ -45,11 +45,14 @@ When working with documents:
 Be concise and helpful. Focus on assisting the user with their research and \
 document management tasks."""
 
+# Get API key from environment
+api_key = os.getenv("ANTHROPIC_API_KEY")
+
 # Create the agent
 agent = Agent(
     id="mindrian-agent",
     name="Mindrian Agent",
-    model=Claude(id="claude-sonnet-4-5"),
+    model=Claude(id="claude-sonnet-4-5", api_key=api_key),
     db=db,
     tools=document_tools,
     instructions=SYSTEM_PROMPT,

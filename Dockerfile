@@ -72,17 +72,22 @@ COPY backend/config/runtime.exs config/
 COPY backend/rel rel
 RUN mix release
 
-# Python agent build stage
-FROM python:3.12-slim AS agent-builder
+# Python agent build stage - use debian to match runner
+ARG RUNNER_IMAGE
+FROM ${RUNNER_IMAGE} AS agent-builder
 
-# Install uv
+# Install Python and uv
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends python3 python3-venv \
+  && rm -rf /var/lib/apt/lists/*
+
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 WORKDIR /app/agent
 COPY agent/pyproject.toml agent/uv.lock ./
 COPY agent/tools ./tools
 
-# Sync dependencies (creates .venv)
+# Sync dependencies (creates .venv with correct Python path)
 RUN uv sync --frozen
 
 # Copy the rest of the agent code
@@ -126,9 +131,12 @@ ENV AGENT_DIRECTORY="/app/agent"
 ENV AGENT_PORT="8000"
 ENV START_AGENT_SERVER="true"
 ENV AGNO_URL="http://localhost:8000"
+ENV PHOENIX_URL="http://localhost:8080"
+ENV UV_CACHE_DIR="/app/agent/.uv-cache"
+ENV HOME="/app"
 
-# Create tmp directory for agent sqlite db
-RUN mkdir -p /app/agent/tmp && chown -R nobody:nogroup /app/agent
+# Create tmp and cache directories for agent
+RUN mkdir -p /app/agent/tmp /app/agent/.uv-cache && chown -R nobody:nogroup /app
 
 USER nobody
 
