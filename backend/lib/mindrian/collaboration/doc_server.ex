@@ -400,33 +400,62 @@ defmodule Mindrian.Collaboration.DocServer do
     )
   end
 
-  # Parse markdown bold (**text**) and convert to Yjs delta format
+  # Parse markdown and convert to Yjs delta format using MDEx
+  # Enable GFM extensions for strikethrough, tables, autolinks, task lists
+  @mdex_options [
+    extension: [
+      strikethrough: true,
+      table: true,
+      autolink: true,
+      tasklist: true
+    ]
+  ]
+
   defp parse_markdown_to_prelim(content) when is_binary(content) do
-    # Regex to match **bold** patterns
-    # Split content into segments, preserving bold markers
-    parts = Regex.split(~r/(\*\*[^*]+\*\*)/, content, include_captures: true)
+    case MDEx.to_delta(content, @mdex_options) do
+      {:ok, delta} ->
+        yex_delta = convert_mdex_delta_to_yex(delta)
 
-    delta =
-      parts
-      |> Enum.reject(&(&1 == ""))
-      |> Enum.map(fn part ->
-        if String.starts_with?(part, "**") and String.ends_with?(part, "**") do
-          # Bold text - strip markers and add attribute
-          text = String.slice(part, 2..-3//1)
-          %{insert: text, attributes: %{"bold" => true}}
-        else
-          # Plain text
-          %{insert: part}
+        case yex_delta do
+          [] -> Yex.XmlTextPrelim.from("")
+          _ -> Yex.XmlTextPrelim.from(yex_delta)
         end
-      end)
 
-    case delta do
-      [] -> Yex.XmlTextPrelim.from("")
-      _ -> Yex.XmlTextPrelim.from(delta)
+      {:error, _} ->
+        # Fallback to plain text on parse error
+        Yex.XmlTextPrelim.from(content)
     end
   end
 
   defp parse_markdown_to_prelim(content), do: Yex.XmlTextPrelim.from(to_string(content))
+
+  # Convert MDEx delta (string keys) to Yex delta (atom keys)
+  # Also filters out block-level newlines since BlockNote uses XML structure
+  defp convert_mdex_delta_to_yex(mdex_delta) do
+    mdex_delta
+    |> Enum.reject(&block_level_newline?/1)
+    |> Enum.map(&convert_delta_entry/1)
+  end
+
+  # Skip newlines that carry block-level attributes (headers, blockquotes, etc.)
+  defp block_level_newline?(%{"insert" => "\n", "attributes" => attrs}) do
+    Map.has_key?(attrs, "header") or
+      Map.has_key?(attrs, "blockquote") or
+      Map.has_key?(attrs, "code-block") or
+      Map.has_key?(attrs, "list")
+  end
+
+  defp block_level_newline?(%{"insert" => "\n"}), do: true
+  defp block_level_newline?(_), do: false
+
+  # Convert string keys to atom keys
+  defp convert_delta_entry(%{"insert" => text, "attributes" => attrs}) do
+    %{insert: text, attributes: attrs}
+  end
+
+  defp convert_delta_entry(%{"insert" => text}) do
+    %{insert: text}
+  end
 
   # Create a full block structure for empty documents
   # Structure: <blockGroup><blockContainer id="..."><paragraph ...>TEXT</paragraph></blockContainer></blockGroup>

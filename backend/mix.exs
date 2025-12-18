@@ -59,7 +59,8 @@ defmodule Mindrian.MixProject do
       {:dns_cluster, "~> 0.2.0"},
       {:bandit, "~> 1.5"},
       {:cors_plug, "~> 3.0"},
-      {:y_ex, "~> 0.10.2"}
+      {:y_ex, "~> 0.10.2"},
+      {:mdex, "~> 0.10"}
     ]
   end
 
