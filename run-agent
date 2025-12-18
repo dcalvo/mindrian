@@ -1,0 +1,2 @@
+#!/bin/bash
+cd agent && uv run uvicorn mindrian_agent:app --port 8000 --reload

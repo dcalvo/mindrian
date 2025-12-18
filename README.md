@@ -41,6 +41,7 @@ By raising the quality of ideation through AI-driven deep research that asks the
 - **Elixir** 1.19+ and **Erlang/OTP** 28+
 - **PostgreSQL** 17+
 - **Node.js** 24+
+- **Python** 3.11+ with **uv** package manager
 
 ### Setup
 
@@ -59,19 +60,31 @@ cd ..
 cd frontend
 npm install
 cd ..
+
+# Agent setup
+cd agent
+uv sync
+cp .env.example .env
+# Edit .env with your ANTHROPIC_API_KEY
+cd ..
 ```
 
 ### Development
 
-Run both servers in separate terminals:
+Run all three servers in separate terminals:
 
 ```bash
-# Terminal 1: Phoenix backend
+# Terminal 1: Phoenix backend (port 4000)
 ./run-backend                   # or: cd backend && iex -S mix phx.server
 ```
 
 ```bash
-# Terminal 2: Vite dev server (for frontend development)
+# Terminal 2: Agno agent (port 8000)
+./run-agent                     # or: cd agent && uv run uvicorn mindrian_agent:app --port 8000 --reload
+```
+
+```bash
+# Terminal 3: Vite dev server (port 5173)
 ./run-frontend                  # or: cd frontend && npm run dev
 ```
 
@@ -128,6 +141,10 @@ backend/                   # Phoenix backend (Elixir)
 ├── lib/mindrian_web/      # Web layer (controllers, channels)
 └── priv/static/spa/       # Built React app (generated)
 
+agent/                     # AI agent microservice (Python)
+├── mindrian_agent.py      # Agent definition with Agno
+└── tools/                 # Document tools for agent
+
 frontend/                  # React SPA (TypeScript)
 ├── src/components/        # UI components
 ├── src/hooks/             # React hooks
@@ -137,6 +154,7 @@ frontend/                  # React SPA (TypeScript)
 
 **Key technologies:**
 - **Backend**: Phoenix, PostgreSQL, Phoenix Channels
+- **Agent**: Python, Agno, Claude
 - **Frontend**: React, TypeScript, Vite, TanStack Router
 - **Auth**: Phoenix.gen.auth (session-based)
 

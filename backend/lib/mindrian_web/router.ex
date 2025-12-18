@@ -19,6 +19,10 @@ defmodule MindrianWeb.Router do
     plug :fetch_current_scope_for_user
   end
 
+  pipeline :localhost_only do
+    plug MindrianWeb.Plugs.RequireLocalhost
+  end
+
   # SPA pipeline - no layout wrapping
   pipeline :spa do
     plug :accepts, ["html"]
@@ -39,6 +43,16 @@ defmodule MindrianWeb.Router do
     pipe_through [:api, :require_authenticated_user]
 
     resources "/documents", DocumentController, except: [:new, :edit]
+  end
+
+  # Agent tool API routes - localhost only, called by Agno microservice
+  scope "/api/agent/tools", MindrianWeb.API do
+    pipe_through [:api, :localhost_only]
+
+    post "/create_document", AgentToolsController, :create_document
+    post "/read_document", AgentToolsController, :read_document
+    post "/edit_document", AgentToolsController, :edit_document
+    post "/delete_document", AgentToolsController, :delete_document
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development

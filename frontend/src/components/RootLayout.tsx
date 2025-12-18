@@ -6,14 +6,9 @@ import { PresenceProvider } from "../contexts/PresenceContext";
 import { ChatProvider } from "../contexts/ChatContext";
 import { Layout } from "./Layout";
 import { useAuth } from "../hooks/useAuth";
-import { useAgentDebug } from "../hooks/useAgentDebug";
 
 export function RootLayout() {
   const { user, loading, isAuthenticated, login } = useAuth();
-
-  // Subscribe to agent debug events (dev only, no-op in prod)
-  // Must be after auth check since it requires socket token
-  useAgentDebug(isAuthenticated);
 
   if (loading) {
     return (
