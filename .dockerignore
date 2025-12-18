@@ -48,3 +48,10 @@ erl_crash.dump
 
 # Documentation
 /docs/
+
+# Agent artifacts
+/agent/.venv/
+/agent/.ruff_cache/
+/agent/__pycache__/
+/agent/tmp/
+/agent/.env

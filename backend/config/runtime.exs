@@ -10,6 +10,17 @@ if agno_url = System.get_env("AGNO_URL") do
   config :mindrian, :agno_url, agno_url
 end
 
+# Agent server configuration
+# Set START_AGENT_SERVER=true to have Phoenix supervise the Python agent
+if System.get_env("START_AGENT_SERVER") in ~w(true 1) do
+  config :mindrian, :start_agent_server, true
+end
+
+# Agent directory (defaults to ../agent relative to working directory)
+if agent_dir = System.get_env("AGENT_DIRECTORY") do
+  config :mindrian, :agent_directory, agent_dir
+end
+
 # config/runtime.exs is executed for all environments, including
 # during releases. It is executed after compilation and before the
 # system starts, so it is typically used to load production configuration

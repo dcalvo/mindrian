@@ -15,6 +15,8 @@ defmodule Mindrian.Application do
       MindrianWeb.Presence,
       # Registry for DocServer processes (one per document)
       {Registry, keys: :unique, name: Mindrian.DocServerRegistry},
+      # Python agent server (controlled by :start_agent_server config)
+      Mindrian.AgentServer,
       # Start to serve requests, typically the last entry
       MindrianWeb.Endpoint
     ]

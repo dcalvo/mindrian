@@ -72,14 +72,35 @@ COPY backend/config/runtime.exs config/
 COPY backend/rel rel
 RUN mix release
 
+# Python agent build stage
+FROM python:3.12-slim AS agent-builder
+
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+WORKDIR /app/agent
+COPY agent/pyproject.toml agent/uv.lock ./
+COPY agent/tools ./tools
+
+# Sync dependencies (creates .venv)
+RUN uv sync --frozen
+
+# Copy the rest of the agent code
+COPY agent/*.py ./
+
 # start a new build stage so that the final image will only contain
 # the compiled release and other runtime necessities
 ARG RUNNER_IMAGE
 FROM ${RUNNER_IMAGE} AS final
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends libstdc++6 openssl libncurses6 locales ca-certificates \
+  && apt-get install -y --no-install-recommends \
+    libstdc++6 openssl libncurses6 locales ca-certificates \
+    python3 python3-venv \
   && rm -rf /var/lib/apt/lists/*
+
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 # Set the locale
 RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen \
@@ -90,13 +111,24 @@ ENV LANGUAGE=en_US:en
 ENV LC_ALL=en_US.UTF-8
 
 WORKDIR "/app"
-RUN chown nobody /app
 
 # set runner ENV
 ENV MIX_ENV="prod"
 
-# Only copy the final release from the build stage
+# Copy the Elixir release
 COPY --from=builder --chown=nobody:root /app/_build/${MIX_ENV}/rel/mindrian ./
+
+# Copy the Python agent with its virtual environment
+COPY --from=agent-builder --chown=nobody:root /app/agent /app/agent
+
+# Configure agent server
+ENV AGENT_DIRECTORY="/app/agent"
+ENV AGENT_PORT="8000"
+ENV START_AGENT_SERVER="true"
+ENV AGNO_URL="http://localhost:8000"
+
+# Create tmp directory for agent sqlite db
+RUN mkdir -p /app/agent/tmp && chown -R nobody:nogroup /app/agent
 
 USER nobody
 
