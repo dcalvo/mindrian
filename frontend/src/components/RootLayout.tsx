@@ -3,6 +3,7 @@ import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { CollaborationProvider } from "../contexts/CollaborationContext";
 import { DocumentsProvider } from "../contexts/DocumentsContext";
 import { PresenceProvider } from "../contexts/PresenceContext";
+import { ChatProvider } from "../contexts/ChatContext";
 import { Layout } from "./Layout";
 import { useAuth } from "../hooks/useAuth";
 
@@ -30,12 +31,14 @@ export function RootLayout() {
   return (
     <PresenceProvider>
       <DocumentsProvider>
-        <CollaborationProvider>
-          <Layout user={user!}>
-            <Outlet />
-          </Layout>
-          <TanStackRouterDevtools />
-        </CollaborationProvider>
+        <ChatProvider>
+          <CollaborationProvider>
+            <Layout user={user!}>
+              <Outlet />
+            </Layout>
+            <TanStackRouterDevtools />
+          </CollaborationProvider>
+        </ChatProvider>
       </DocumentsProvider>
     </PresenceProvider>
   );

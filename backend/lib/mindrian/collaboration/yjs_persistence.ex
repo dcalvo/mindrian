@@ -35,9 +35,11 @@ defmodule Mindrian.Collaboration.YjsPersistence do
     :ok
   end
 
-  # Private functions
-
-  defp get_y_doc(doc_name) do
+  @doc """
+  Loads a Yjs document from the database by applying all stored updates.
+  Returns a Yex.Doc struct with the full document state.
+  """
+  def get_y_doc(doc_name) do
     ydoc = Yex.Doc.new()
     updates = get_updates(doc_name)
 

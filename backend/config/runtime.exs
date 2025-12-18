@@ -1,5 +1,10 @@
 import Config
 
+# Anthropic API key for AI agent (all environments)
+if api_key = System.get_env("ANTHROPIC_API_KEY") do
+  config :mindrian, :anthropic_api_key, api_key
+end
+
 # config/runtime.exs is executed for all environments, including
 # during releases. It is executed after compilation and before the
 # system starts, so it is typically used to load production configuration
