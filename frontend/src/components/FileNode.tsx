@@ -10,6 +10,7 @@ import {
   Plus,
 } from "lucide-react";
 import type { TreeNode } from "../lib/tree";
+import { createPortal } from "react-dom";
 
 export interface FileNodeProps extends NodeRendererProps<TreeNode> {
   onNavigate: (id: string, isFolder: boolean) => void;
@@ -87,7 +88,7 @@ export function FileNode({
       onContextMenu={(e) => {
         e.preventDefault();
         // Position at cursor for right-click
-        const x = Math.min(e.clientX, window.innerWidth - 160);
+        const x = e.clientX;
         const y = e.clientY;
         setMenuPos({ x, y });
         setShowMenu(true);
@@ -190,39 +191,41 @@ export function FileNode({
             </button>
 
             {/* Context Menu */}
-            {showMenu && (
-              <div
-                ref={menuRef}
-                className="file-node-menu"
-                onClick={(e) => e.stopPropagation()}
-                style={{
-                  position: "fixed",
-                  zIndex: 1000,
-                  top: menuPos.y,
-                  left: menuPos.x,
-                }}
-              >
-                <button
-                  onClick={() => {
-                    setShowMenu(false);
-                    node.edit();
+            {showMenu &&
+              createPortal(
+                <div
+                  ref={menuRef}
+                  className="file-node-menu"
+                  onClick={(e) => e.stopPropagation()}
+                  style={{
+                    position: "fixed",
+                    zIndex: 1000,
+                    top: menuPos.y,
+                    left: menuPos.x,
                   }}
                 >
-                  <Pencil size={12} /> Rename
-                </button>
-                <button
-                  className="danger"
-                  onClick={() => {
-                    setShowMenu(false);
-                    if (confirm(`Delete "${node.data.name}"?`)) {
-                      onDelete([node.id]);
-                    }
-                  }}
-                >
-                  <Trash2 size={12} /> Delete
-                </button>
-              </div>
-            )}
+                  <button
+                    onClick={() => {
+                      setShowMenu(false);
+                      node.edit();
+                    }}
+                  >
+                    <Pencil size={12} /> Rename
+                  </button>
+                  <button
+                    className="danger"
+                    onClick={() => {
+                      setShowMenu(false);
+                      if (confirm(`Delete "${node.data.name}"?`)) {
+                        onDelete([node.id]);
+                      }
+                    }}
+                  >
+                    <Trash2 size={12} /> Delete
+                  </button>
+                </div>,
+                document.body
+              )}
           </div>
         </div>
       )}
