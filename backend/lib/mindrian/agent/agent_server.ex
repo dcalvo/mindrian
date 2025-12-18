@@ -35,12 +35,13 @@ defmodule Mindrian.Agent.AgentServer do
       :current_document_id,
       :current_tool,
       :task_ref,
+      :streaming_text,
       messages: [],
       status: :idle,
       pending_tools: :queue.new()
     ]
 
-    @type status :: :idle | :thinking | :awaiting_approval | :executing
+    @type status :: :idle | :thinking | :streaming | :awaiting_approval | :executing
 
     @type t :: %__MODULE__{
             user_id: integer(),
@@ -49,6 +50,7 @@ defmodule Mindrian.Agent.AgentServer do
             current_document_id: String.t() | nil,
             current_tool: map() | nil,
             task_ref: reference() | nil,
+            streaming_text: String.t() | nil,
             messages: [map()],
             status: status(),
             pending_tools: :queue.queue()
@@ -234,11 +236,17 @@ defmodule Mindrian.Agent.AgentServer do
     # Demonitor and flush any running task
     if state.task_ref, do: Process.demonitor(state.task_ref, [:flush])
 
+    # If streaming, notify client that stream was cancelled
+    if state.status == :streaming do
+      send_callback(state, :stream_cancelled)
+    end
+
     Debug.status_changed(state.user_id, state.session_id, state.status, :idle)
 
     state = %{
       state
       | status: :idle,
+        streaming_text: nil,
         current_tool: nil,
         pending_tools: :queue.new(),
         task_ref: nil
@@ -350,6 +358,122 @@ defmodule Mindrian.Agent.AgentServer do
         send_callback(state, {:status, :idle})
         {:noreply, state}
     end
+  end
+
+  # Streaming event handlers
+
+  @impl true
+  def handle_cast(:stream_start, state) do
+    Debug.status_changed(state.user_id, state.session_id, state.status, :streaming)
+    state = %{state | status: :streaming, streaming_text: ""}
+    send_callback(state, {:status, :streaming})
+    send_callback(state, :stream_start)
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_cast({:stream_delta, text}, state) do
+    state = %{state | streaming_text: (state.streaming_text || "") <> text}
+    send_callback(state, {:stream_delta, text})
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_cast({:stream_end, tool_use}, state) do
+    Debug.task_completed(state.user_id, state.session_id, :api_call)
+    content = state.streaming_text || ""
+
+    if tool_use == [] do
+      # Final response, no tools
+      Debug.api_response(state.user_id, state.session_id, "end_turn", 0)
+      assistant_message = Message.assistant(content)
+      messages = state.messages ++ [assistant_message]
+
+      Debug.status_changed(state.user_id, state.session_id, state.status, :idle)
+
+      state = %{
+        state
+        | messages: messages,
+          status: :idle,
+          streaming_text: nil,
+          current_tool: nil,
+          pending_tools: :queue.new()
+      }
+
+      send_callback(state, {:stream_end, nil})
+      send_callback(state, {:status, :idle})
+      {:noreply, state}
+    else
+      # Tools requested
+      Debug.api_response(state.user_id, state.session_id, "tool_use", length(tool_use))
+      assistant_message = Message.assistant_with_tools(content, tool_use)
+      messages = state.messages ++ [assistant_message]
+
+      # Create tool requests
+      tool_requests =
+        Enum.map(tool_use, fn tool ->
+          %{
+            request_id: tool.id,
+            tool_name: tool.name,
+            tool_input: tool.input,
+            description: Tools.describe_action(tool.name, tool.input)
+          }
+        end)
+
+      # Queue all tools, set first as current
+      {current_tool, pending_queue} = queue_tools(tool_requests)
+
+      Debug.status_changed(state.user_id, state.session_id, state.status, :awaiting_approval)
+
+      state = %{
+        state
+        | messages: messages,
+          status: :awaiting_approval,
+          streaming_text: nil,
+          current_tool: current_tool,
+          pending_tools: pending_queue
+      }
+
+      # Emit stream_end before tool request
+      send_callback(state, {:stream_end, nil})
+
+      # Send tool request for approval
+      Debug.tool_requested(
+        state.user_id,
+        state.session_id,
+        current_tool.tool_name,
+        current_tool.request_id
+      )
+
+      send_callback(state, {:tool_request, current_tool})
+      send_callback(state, {:status, :awaiting_approval})
+      {:noreply, state}
+    end
+  end
+
+  @impl true
+  def handle_cast({:stream_error, reason}, state) do
+    Logger.error("Stream error: #{inspect(reason)}")
+
+    Debug.emit(:api_error, %{
+      user_id: state.user_id,
+      session_id: state.session_id,
+      reason: inspect(reason)
+    })
+
+    Debug.status_changed(state.user_id, state.session_id, state.status, :idle)
+
+    state = %{
+      state
+      | status: :idle,
+        streaming_text: nil,
+        current_tool: nil,
+        pending_tools: :queue.new()
+    }
+
+    send_callback(state, {:error, "Streaming failed: #{inspect(reason)}"})
+    send_callback(state, {:status, :idle})
+    {:noreply, state}
   end
 
   @impl true
@@ -509,35 +633,49 @@ defmodule Mindrian.Agent.AgentServer do
       |> prepare_messages_for_api()
       |> Message.to_anthropic_messages()
 
-    # Call Anthropic API
+    # Call Anthropic API with streaming
     Debug.api_request(state.user_id, state.session_id, length(api_messages), true)
 
-    response =
-      try do
-        Anthropic.chat(
+    # Define callback that sends events to the GenServer
+    callback = fn
+      :stream_start ->
+        GenServer.cast(server_pid, :stream_start)
+
+      {:stream_delta, text} ->
+        GenServer.cast(server_pid, {:stream_delta, text})
+
+      {:stream_end, tool_use} ->
+        GenServer.cast(server_pid, {:stream_end, tool_use})
+
+      {:stream_error, reason} ->
+        GenServer.cast(server_pid, {:stream_error, reason})
+    end
+
+    try do
+      result =
+        Anthropic.stream_chat(
           api_messages,
+          callback,
           tools: Tools.definitions(),
           system: system
         )
-      rescue
-        e ->
-          Debug.emit(:api_exception, %{
-            user_id: state.user_id,
-            session_id: state.session_id,
-            error: Exception.message(e),
-            stacktrace: Exception.format_stacktrace(__STACKTRACE__)
-          })
 
-          reraise e, __STACKTRACE__
-      end
+      Debug.emit(:api_call_completed, %{
+        user_id: state.user_id,
+        session_id: state.session_id,
+        success: result == :ok
+      })
+    rescue
+      e ->
+        Debug.emit(:api_exception, %{
+          user_id: state.user_id,
+          session_id: state.session_id,
+          error: Exception.message(e),
+          stacktrace: Exception.format_stacktrace(__STACKTRACE__)
+        })
 
-    Debug.emit(:api_call_completed, %{
-      user_id: state.user_id,
-      session_id: state.session_id,
-      success: match?({:ok, _}, response)
-    })
-
-    GenServer.cast(server_pid, {:api_response, response})
+        GenServer.cast(server_pid, {:stream_error, {:exception, Exception.message(e)}})
+    end
   end
 
   defp execute_tool(server_pid, state, tool_request) do
@@ -555,45 +693,13 @@ defmodule Mindrian.Agent.AgentServer do
   end
 
   defp continue_with_rejection(server_pid, state) do
-    # Messages already include the rejection tool_result, just call the API
-    system = build_system_prompt(state.current_document_id)
-
-    api_messages =
-      state.messages
-      |> prepare_messages_for_api()
-      |> Message.to_anthropic_messages()
-
-    Debug.api_request(state.user_id, state.session_id, length(api_messages), true)
-
-    response =
-      Anthropic.chat(
-        api_messages,
-        tools: Tools.definitions(),
-        system: system
-      )
-
-    GenServer.cast(server_pid, {:api_response, response})
+    # Messages already include the rejection tool_result, continue with streaming
+    process_message(server_pid, state)
   end
 
   defp continue_after_tools(server_pid, state) do
-    # Messages already include the tool_result, just call the API
-    system = build_system_prompt(state.current_document_id)
-
-    api_messages =
-      state.messages
-      |> prepare_messages_for_api()
-      |> Message.to_anthropic_messages()
-
-    Debug.api_request(state.user_id, state.session_id, length(api_messages), true)
-
-    response =
-      Anthropic.chat(
-        api_messages,
-        tools: Tools.definitions(),
-        system: system
-      )
-
-    GenServer.cast(server_pid, {:api_response, response})
+    # Messages already include the tool_result, continue with streaming
+    process_message(server_pid, state)
   end
 
   # Prepares messages for the API by keeping only the most recent ones

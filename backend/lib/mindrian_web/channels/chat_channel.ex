@@ -88,6 +88,20 @@ defmodule MindrianWeb.ChatChannel do
       {:assistant_message, content} ->
         push(socket, "assistant_message", %{content: content})
 
+      # Streaming events
+      :stream_start ->
+        push(socket, "stream_start", %{})
+
+      {:stream_delta, text} ->
+        push(socket, "stream_delta", %{text: text})
+
+      {:stream_end, _tool_use} ->
+        # tool_use is nil here; tools are handled via tool_request event
+        push(socket, "stream_end", %{})
+
+      :stream_cancelled ->
+        push(socket, "stream_cancelled", %{})
+
       {:tool_request, tool} ->
         push(socket, "tool_request", %{
           request_id: tool.request_id,

@@ -82,17 +82,26 @@ defmodule Mindrian.Agent.Tools.EditDocument do
     document_id = input["document_id"]
     operations = input["operations"] || []
 
-    case Documents.get_document(scope, document_id) do
-      nil ->
-        {:error, "Document not found or not authorized"}
+    cond do
+      is_nil(document_id) ->
+        {:error, "document_id is required"}
 
-      _document ->
-        case DocServer.apply_block_operations(document_id, operations) do
-          :ok ->
-            {:ok, %{document_id: document_id, operations_applied: length(operations)}}
+      operations == [] ->
+        {:error, "at least one operation is required"}
 
-          {:error, reason} ->
-            {:error, "Failed to apply operations: #{inspect(reason)}"}
+      true ->
+        case Documents.get_document(scope, document_id) do
+          nil ->
+            {:error, "Document not found or not authorized"}
+
+          _document ->
+            case DocServer.apply_block_operations(document_id, operations) do
+              :ok ->
+                {:ok, %{document_id: document_id, operations_applied: length(operations)}}
+
+              {:error, reason} ->
+                {:error, "Failed to apply operations: #{inspect(reason)}"}
+            end
         end
     end
   end

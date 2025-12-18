@@ -13,11 +13,15 @@ import {
   ChatContext,
   type ChatMessage,
   type ChatStatus,
+  type StreamingMessage,
   type ToolRequest,
 } from "./chat";
 
 export function ChatProvider({ children }: { children: ReactNode }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [streamingMessage, setStreamingMessage] =
+    useState<StreamingMessage | null>(null);
+  const streamingMessageRef = useRef<StreamingMessage | null>(null);
   const [pendingTool, setPendingTool] = useState<ToolRequest | null>(null);
   const [status, setStatus] = useState<ChatStatus>("idle");
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -75,6 +79,50 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         channel.on("error", ({ message }) => {
           setError(message);
           setStatus("idle");
+        });
+
+        // Streaming event handlers
+        channel.on("stream_start", () => {
+          const newMessage: StreamingMessage = {
+            id: crypto.randomUUID(),
+            content: "",
+            startTime: new Date(),
+          };
+          streamingMessageRef.current = newMessage;
+          setStreamingMessage(newMessage);
+        });
+
+        channel.on("stream_delta", ({ text }: { text: string }) => {
+          if (streamingMessageRef.current) {
+            const updated = {
+              ...streamingMessageRef.current,
+              content: streamingMessageRef.current.content + text,
+            };
+            streamingMessageRef.current = updated;
+            setStreamingMessage(updated);
+          }
+        });
+
+        channel.on("stream_end", () => {
+          // Finalize streaming message into messages array
+          // We use a ref to get the current value without side effects in setState
+          const current = streamingMessageRef.current;
+          if (current && current.content) {
+            const message: ChatMessage = {
+              id: current.id,
+              role: "assistant",
+              content: current.content,
+              timestamp: current.startTime,
+            };
+            setMessages((msgs) => [...msgs, message]);
+          }
+          streamingMessageRef.current = null;
+          setStreamingMessage(null);
+        });
+
+        channel.on("stream_cancelled", () => {
+          streamingMessageRef.current = null;
+          setStreamingMessage(null);
         });
 
         // Join the channel
@@ -167,6 +215,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
     channelRef.current.push("cancel", {});
     setStatus("idle");
+    streamingMessageRef.current = null;
+    setStreamingMessage(null);
     setPendingTool(null);
   }, []);
 
@@ -174,6 +224,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     <ChatContext.Provider
       value={{
         messages,
+        streamingMessage,
         pendingTool,
         status,
         sessionId,

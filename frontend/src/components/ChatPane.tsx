@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
 import { useChat } from "../hooks/useChat";
 import { ChatMessage } from "./ChatMessage";
 import { ToolApproval } from "./ToolApproval";
@@ -7,6 +8,7 @@ import "./ChatPane.css";
 export function ChatPane() {
   const {
     messages,
+    streamingMessage,
     pendingTool,
     status,
     error,
@@ -19,10 +21,10 @@ export function ChatPane() {
   const [input, setInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom when new messages arrive
+  // Auto-scroll to bottom when new messages arrive or streaming updates
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, pendingTool]);
+  }, [messages, streamingMessage, pendingTool]);
 
   // Escape to cancel (when not awaiting tool approval)
   useEffect(() => {
@@ -47,6 +49,8 @@ export function ChatPane() {
     switch (status) {
       case "thinking":
         return "Thinking...";
+      case "streaming":
+        return null; // Don't show status text while streaming - the message itself shows progress
       case "awaiting_approval":
         return "Waiting for approval";
       case "executing":
@@ -70,7 +74,7 @@ export function ChatPane() {
       {error && <div className="chat-error">{error}</div>}
 
       <div className="chat-messages">
-        {messages.length === 0 && !pendingTool && (
+        {messages.length === 0 && !streamingMessage && !pendingTool && (
           <div className="chat-empty">
             Start a conversation with the AI assistant. It can help you create,
             read, and edit your documents.
@@ -80,6 +84,24 @@ export function ChatPane() {
         {messages.map((message) => (
           <ChatMessage key={message.id} message={message} />
         ))}
+
+        {streamingMessage && (
+          <div className="chat-message assistant streaming">
+            <div className="chat-message-header">
+              <span className="chat-message-role">Assistant</span>
+              <span className="chat-message-time">
+                {streamingMessage.startTime.toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
+            </div>
+            <div className="chat-message-content">
+              <ReactMarkdown>{streamingMessage.content}</ReactMarkdown>
+              <span className="streaming-cursor">▋</span>
+            </div>
+          </div>
+        )}
 
         <div ref={messagesEndRef} />
       </div>

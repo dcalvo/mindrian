@@ -314,3 +314,23 @@
   background: #9ca3af;
   cursor: not-allowed;
 }
+
+/* Streaming message styles */
+.chat-message.streaming .chat-message-content {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.streaming-cursor {
+  display: inline-block;
+  margin-left: 2px;
+  animation: blink 1s step-end infinite;
+  color: #3b82f6;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}

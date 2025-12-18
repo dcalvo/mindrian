@@ -3,6 +3,7 @@ import { createContext } from "react";
 export type ChatStatus =
   | "idle"
   | "thinking"
+  | "streaming"
   | "awaiting_approval"
   | "executing";
 
@@ -27,8 +28,15 @@ export interface ToolResult {
   error?: string;
 }
 
+export interface StreamingMessage {
+  id: string;
+  content: string;
+  startTime: Date;
+}
+
 export interface ChatContextValue {
   messages: ChatMessage[];
+  streamingMessage: StreamingMessage | null;
   pendingTool: ToolRequest | null;
   status: ChatStatus;
   sessionId: string | null;

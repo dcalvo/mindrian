@@ -33,18 +33,22 @@ defmodule Mindrian.Agent.Tools.ReadDocument do
   def execute(input, scope) do
     document_id = input["document_id"]
 
-    case Documents.get_document(scope, document_id) do
-      nil ->
-        {:error, "Document not found or not authorized"}
+    if is_nil(document_id) do
+      {:error, "document_id is required"}
+    else
+      case Documents.get_document(scope, document_id) do
+        nil ->
+          {:error, "Document not found or not authorized"}
 
-      document ->
-        case DocServer.get_blocks(document_id) do
-          {:ok, blocks} ->
-            {:ok, %{document_id: document.id, title: document.title, blocks: blocks}}
+        document ->
+          case DocServer.get_blocks(document_id) do
+            {:ok, blocks} ->
+              {:ok, %{document_id: document.id, title: document.title, blocks: blocks}}
 
-          {:error, reason} ->
-            {:error, "Failed to read document: #{inspect(reason)}"}
-        end
+            {:error, reason} ->
+              {:error, "Failed to read document: #{inspect(reason)}"}
+          end
+      end
     end
   end
 

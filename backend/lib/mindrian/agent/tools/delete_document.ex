@@ -32,18 +32,22 @@ defmodule Mindrian.Agent.Tools.DeleteDocument do
   def execute(input, scope) do
     document_id = input["document_id"]
 
-    case Documents.get_document(scope, document_id) do
-      nil ->
-        {:error, "Document not found or not authorized"}
+    if is_nil(document_id) do
+      {:error, "document_id is required"}
+    else
+      case Documents.get_document(scope, document_id) do
+        nil ->
+          {:error, "Document not found or not authorized"}
 
-      document ->
-        case Documents.delete_document(document) do
-          {:ok, _} ->
-            {:ok, %{deleted: true, document_id: document_id}}
+        document ->
+          case Documents.delete_document(document) do
+            {:ok, _} ->
+              {:ok, %{deleted: true, document_id: document_id}}
 
-          {:error, reason} ->
-            {:error, "Failed to delete document: #{inspect(reason)}"}
-        end
+            {:error, reason} ->
+              {:error, "Failed to delete document: #{inspect(reason)}"}
+          end
+      end
     end
   end
 

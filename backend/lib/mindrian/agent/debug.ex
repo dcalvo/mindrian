@@ -160,4 +160,18 @@ defmodule Mindrian.Agent.Debug do
       session_id: session_id
     })
   end
+
+  # SSE streaming debug events (no user context available in Anthropic module)
+
+  def sse_event(event_type, data \\ %{}) do
+    emit(:sse_event, Map.merge(%{event_type: event_type}, data))
+  end
+
+  def sse_chunk(chunk_size) do
+    emit(:sse_chunk, %{chunk_size: chunk_size})
+  end
+
+  def sse_parse_error(error) do
+    emit(:sse_parse_error, %{error: inspect(error)})
+  end
 end
