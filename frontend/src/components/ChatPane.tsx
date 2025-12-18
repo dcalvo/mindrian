@@ -24,27 +24,16 @@ export function ChatPane() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, pendingTool]);
 
-  // Keyboard shortcuts for tool approval and cancel
+  // Escape to cancel (when not awaiting tool approval)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Cmd/Ctrl + Enter to approve pending tool
-      if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && pendingTool) {
-        e.preventDefault();
-        approveToolRequest(pendingTool.requestId);
-      }
-      // Escape to cancel/reject
-      if (e.key === "Escape") {
-        if (pendingTool) {
-          rejectToolRequest(pendingTool.requestId);
-        } else if (status !== "idle") {
-          cancel();
-        }
+      if (e.key === "Escape" && !pendingTool && status !== "idle") {
+        cancel();
       }
     };
-
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [pendingTool, status, approveToolRequest, rejectToolRequest, cancel]);
+  }, [pendingTool, status, cancel]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,42 +81,45 @@ export function ChatPane() {
           <ChatMessage key={message.id} message={message} />
         ))}
 
-        {pendingTool && (
+        <div ref={messagesEndRef} />
+      </div>
+
+      <div className="chat-footer">
+        {pendingTool ? (
           <ToolApproval
             tool={pendingTool}
             onApprove={() => approveToolRequest(pendingTool.requestId)}
             onReject={() => rejectToolRequest(pendingTool.requestId)}
           />
+        ) : (
+          <>
+            {getStatusText() && (
+              <div className="chat-status">
+                <span className="chat-status-indicator" />
+                {getStatusText()}
+              </div>
+            )}
+            <form className="chat-input-form" onSubmit={handleSubmit}>
+              <input
+                type="text"
+                className="chat-input"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder={
+                  status === "idle" ? "Type a message..." : "Waiting..."
+                }
+                disabled={status !== "idle"}
+              />
+              <button
+                type="submit"
+                className="chat-send-btn"
+                disabled={!input.trim() || status !== "idle"}
+              >
+                Send
+              </button>
+            </form>
+          </>
         )}
-
-        <div ref={messagesEndRef} />
-      </div>
-
-      <div className="chat-footer">
-        {getStatusText() && (
-          <div className="chat-status">
-            <span className="chat-status-indicator" />
-            {getStatusText()}
-          </div>
-        )}
-
-        <form className="chat-input-form" onSubmit={handleSubmit}>
-          <input
-            type="text"
-            className="chat-input"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder={status === "idle" ? "Type a message..." : "Waiting..."}
-            disabled={status !== "idle"}
-          />
-          <button
-            type="submit"
-            className="chat-send-btn"
-            disabled={!input.trim() || status !== "idle"}
-          >
-            Send
-          </button>
-        </form>
       </div>
     </aside>
   );
