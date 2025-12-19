@@ -49,21 +49,22 @@ defmodule Mindrian.Chat.ConversationTest do
     end
   end
 
-  describe "start_agent_message/2" do
-    test "adds a streaming agent message" do
+  describe "start_agent_message/1" do
+    test "adds a streaming agent message with generated ID" do
       conv = %{Conversation.new("conv-1") | status: :running}
 
-      assert {:ok, new_conv, events} = Conversation.start_agent_message(conv, "agent-1")
+      assert {:ok, new_conv, events} = Conversation.start_agent_message(conv)
 
-      assert [%{id: "agent-1", role: :agent, content: "", status: :streaming}] = new_conv.messages
-      assert events == [{:agent_started, "agent-1"}]
+      assert [%{id: message_id, role: :agent, content: "", status: :streaming}] = new_conv.messages
+      assert is_binary(message_id)
+      assert events == [{:agent_started, message_id}]
     end
 
     test "rejects when idle" do
       conv = Conversation.new("conv-1")
 
       assert {:error, {:invalid_status, current: :idle, expected: :running}} =
-               Conversation.start_agent_message(conv, "agent-1")
+               Conversation.start_agent_message(conv)
     end
 
     test "rejects when already streaming" do
@@ -73,11 +74,11 @@ defmodule Mindrian.Chat.ConversationTest do
         |> Map.put(:messages, [%{id: "agent-1", role: :agent, content: "Hi", status: :streaming}])
 
       assert {:error, {:already_streaming, id: "agent-1"}} =
-               Conversation.start_agent_message(conv, "agent-2")
+               Conversation.start_agent_message(conv)
     end
   end
 
-  describe "append_chunk/3" do
+  describe "append_chunk/2" do
     test "appends content to streaming message" do
       conv =
         Conversation.new("conv-1")
@@ -86,20 +87,19 @@ defmodule Mindrian.Chat.ConversationTest do
           %{id: "agent-1", role: :agent, content: "Hello", status: :streaming}
         ])
 
-      assert {:ok, new_conv, events} = Conversation.append_chunk(conv, "agent-1", " world")
+      assert {:ok, new_conv, events} = Conversation.append_chunk(conv, " world")
 
       assert [%{content: "Hello world"}] = new_conv.messages
       assert events == [{:agent_chunk, "agent-1", " world"}]
     end
 
-    test "rejects when message not found" do
+    test "rejects when no streaming message" do
       conv =
         Conversation.new("conv-1")
         |> Map.put(:status, :running)
         |> Map.put(:messages, [])
 
-      assert {:error, {:message_not_found, id: "agent-1"}} =
-               Conversation.append_chunk(conv, "agent-1", " world")
+      assert {:error, :no_streaming_message} = Conversation.append_chunk(conv, " world")
     end
 
     test "rejects when message is not streaming" do
@@ -108,12 +108,11 @@ defmodule Mindrian.Chat.ConversationTest do
         |> Map.put(:status, :running)
         |> Map.put(:messages, [%{id: "agent-1", role: :agent, content: "Done", status: :complete}])
 
-      assert {:error, {:invalid_message_status, current: :complete, expected: :streaming}} =
-               Conversation.append_chunk(conv, "agent-1", " more")
+      assert {:error, :no_streaming_message} = Conversation.append_chunk(conv, " more")
     end
   end
 
-  describe "complete_agent_message/2" do
+  describe "complete_agent_message/1" do
     test "transitions streaming message to complete, stays running" do
       conv =
         Conversation.new("conv-1")
@@ -122,12 +121,21 @@ defmodule Mindrian.Chat.ConversationTest do
           %{id: "agent-1", role: :agent, content: "Response", status: :streaming}
         ])
 
-      assert {:ok, new_conv, events} = Conversation.complete_agent_message(conv, "agent-1")
+      assert {:ok, new_conv, events} = Conversation.complete_agent_message(conv)
 
       # Stays running - use complete_run to transition to idle
       assert new_conv.status == :running
       assert [%{status: :complete}] = new_conv.messages
       assert events == [{:agent_complete, "agent-1"}]
+    end
+
+    test "rejects when no streaming message" do
+      conv =
+        Conversation.new("conv-1")
+        |> Map.put(:status, :running)
+        |> Map.put(:messages, [])
+
+      assert {:error, :no_streaming_message} = Conversation.complete_agent_message(conv)
     end
   end
 
@@ -947,12 +955,12 @@ defmodule Mindrian.Chat.ConversationTest do
       {:ok, conv, _} = Conversation.send_message(conv, "msg-1", "Hello")
       assert conv.status == :running
 
-      # Agent starts response
-      {:ok, conv, _} = Conversation.start_agent_message(conv, "agent-1")
+      # Agent starts response (ID is generated internally)
+      {:ok, conv, _} = Conversation.start_agent_message(conv)
 
-      # Agent streams chunks
-      {:ok, conv, _} = Conversation.append_chunk(conv, "agent-1", "Hi ")
-      {:ok, conv, _} = Conversation.append_chunk(conv, "agent-1", "there!")
+      # Agent streams chunks (finds streaming message automatically)
+      {:ok, conv, _} = Conversation.append_chunk(conv, "Hi ")
+      {:ok, conv, _} = Conversation.append_chunk(conv, "there!")
 
       # Agent run completes
       {:ok, conv, _} = Conversation.complete_run(conv)

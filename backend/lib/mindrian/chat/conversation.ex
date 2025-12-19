@@ -47,9 +47,9 @@ defmodule Mindrian.Chat.Conversation do
   **Driver actions** (called by backend orchestration): `execute_approved_tool`,
   `complete_tool_call`, `fail_tool_call`, `next_approved_tool`
 
-  **Agent actions** (called when LLM produces output): `start_agent_message`,
-  `append_chunk`, `complete_agent_message`, `request_tool_call`,
-  `request_approved_tool_call`, `await_approval`, `complete_run`
+  **Agent actions** (called when LLM produces output): `start_agent_message/1`,
+  `append_chunk/2`, `complete_agent_message/1`, `request_tool_call/5`,
+  `request_approved_tool_call/5`, `await_approval/1`, `complete_run/1`
   """
 
   alias Mindrian.Chat.{Event, Message}
@@ -180,13 +180,14 @@ defmodule Mindrian.Chat.Conversation do
 
   @doc """
   Agent starts a new response. Only valid when running.
+  Generates a message ID internally and returns it in the event.
   Fails if there's already a streaming message (must complete it first).
   """
-  @spec start_agent_message(t(), String.t()) ::
-          {:ok, t(), [Event.t()]} | {:error, term()}
-  def start_agent_message(%{status: :running} = conv, message_id) do
+  @spec start_agent_message(t()) :: {:ok, t(), [Event.t()]} | {:error, term()}
+  def start_agent_message(%{status: :running} = conv) do
     case find_streaming_message(conv.messages) do
       nil ->
+        message_id = generate_id()
         message = Message.agent(message_id)
         new_conv = %{conv | messages: conv.messages ++ [message]}
         events = [{:agent_started, message_id}]
@@ -197,55 +198,63 @@ defmodule Mindrian.Chat.Conversation do
     end
   end
 
-  def start_agent_message(%{status: status}, _message_id) do
+  def start_agent_message(%{status: status}) do
     {:error, {:invalid_status, current: status, expected: :running}}
   end
 
   @doc """
   Agent appends a chunk to the current streaming message.
+  Finds the streaming message automatically.
   """
-  @spec append_chunk(t(), String.t(), String.t()) ::
-          {:ok, t(), [Event.t()]} | {:error, term()}
-  def append_chunk(%{status: :running} = conv, message_id, chunk) do
-    case update_agent_message(conv.messages, message_id, :streaming, fn msg ->
-           %{msg | content: msg.content <> chunk}
-         end) do
-      {:ok, messages} ->
+  @spec append_chunk(t(), String.t()) :: {:ok, t(), [Event.t()]} | {:error, term()}
+  def append_chunk(%{status: :running} = conv, chunk) do
+    case find_streaming_message(conv.messages) do
+      nil ->
+        {:error, :no_streaming_message}
+
+      %{id: message_id} ->
+        messages =
+          Enum.map(conv.messages, fn
+            %{id: ^message_id} = msg -> %{msg | content: msg.content <> chunk}
+            msg -> msg
+          end)
+
         new_conv = %{conv | messages: messages}
         events = [{:agent_chunk, message_id, chunk}]
         {:ok, new_conv, events}
-
-      {:error, reason} ->
-        {:error, reason}
     end
   end
 
-  def append_chunk(%{status: status}, _message_id, _chunk) do
+  def append_chunk(%{status: status}, _chunk) do
     {:error, {:invalid_status, current: status, expected: :running}}
   end
 
   @doc """
-  Marks an agent message as complete. Does NOT end the run.
+  Marks the current streaming agent message as complete. Does NOT end the run.
   Use this when the agent finishes a text segment before a tool call.
   For ending the entire run, use `complete_run/1`.
+  Finds the streaming message automatically.
   """
-  @spec complete_agent_message(t(), String.t()) ::
-          {:ok, t(), [Event.t()]} | {:error, term()}
-  def complete_agent_message(%{status: :running} = conv, message_id) do
-    case update_agent_message(conv.messages, message_id, :streaming, fn msg ->
-           %{msg | status: :complete}
-         end) do
-      {:ok, messages} ->
+  @spec complete_agent_message(t()) :: {:ok, t(), [Event.t()]} | {:error, term()}
+  def complete_agent_message(%{status: :running} = conv) do
+    case find_streaming_message(conv.messages) do
+      nil ->
+        {:error, :no_streaming_message}
+
+      %{id: message_id} ->
+        messages =
+          Enum.map(conv.messages, fn
+            %{id: ^message_id} = msg -> %{msg | status: :complete}
+            msg -> msg
+          end)
+
         new_conv = %{conv | messages: messages}
         events = [{:agent_complete, message_id}]
         {:ok, new_conv, events}
-
-      {:error, reason} ->
-        {:error, reason}
     end
   end
 
-  def complete_agent_message(%{status: status}, _message_id) do
+  def complete_agent_message(%{status: status}) do
     {:error, {:invalid_status, current: status, expected: :running}}
   end
 
@@ -467,27 +476,7 @@ defmodule Mindrian.Chat.Conversation do
   # Private Helpers
   # ---------------------------------------------------------------------------
 
-  defp update_agent_message(messages, id, expected_status, update_fn) do
-    case find_message(messages, id) do
-      {:ok, %{role: :agent, status: ^expected_status}} ->
-        updated =
-          Enum.map(messages, fn
-            %{id: ^id} = msg -> update_fn.(msg)
-            msg -> msg
-          end)
-
-        {:ok, updated}
-
-      {:ok, %{role: :agent, status: status}} ->
-        {:error, {:invalid_message_status, current: status, expected: expected_status}}
-
-      {:ok, msg} ->
-        {:error, {:invalid_message_role, current: msg.role, expected: :agent}}
-
-      :not_found ->
-        {:error, {:message_not_found, id: id}}
-    end
-  end
+  defp generate_id, do: Nanoid.generate()
 
   defp update_tool_call(messages, id, expected_status, update_fn) do
     case find_message(messages, id) do

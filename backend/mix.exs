@@ -60,7 +60,8 @@ defmodule Mindrian.MixProject do
       {:bandit, "~> 1.5"},
       {:cors_plug, "~> 3.0"},
       {:y_ex, "~> 0.10.2"},
-      {:mdex, "~> 0.10"}
+      {:mdex, "~> 0.10"},
+      {:nanoid, "~> 2.1.0"}
     ]
   end
 
