@@ -38,7 +38,6 @@ defmodule MindrianWeb.UserSocket do
   channel "y_doc:*", MindrianWeb.YDocChannel
   channel "documents:*", MindrianWeb.DocumentsChannel
   channel "presence:*", MindrianWeb.PresenceChannel
-  channel "chat:*", MindrianWeb.ChatChannel
 
   # Token valid for 2 weeks (same as session token)
   @max_age 86400 * 14
