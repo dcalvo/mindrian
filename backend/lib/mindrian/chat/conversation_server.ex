@@ -449,7 +449,7 @@ defmodule Mindrian.Chat.ConversationServer do
 
       if tools != [] do
         # Continue the driver with tool decisions
-        case state.driver.continue(state.run_id, tools) do
+        case state.driver.continue(state.run_id, conv.scope, tools) do
           {:ok, enumerable} ->
             spawn_driver_task(state, enumerable)
 

@@ -36,6 +36,8 @@ defmodule Mindrian.Chat.Drivers.AgnoDriver do
     if user_message == nil do
       {:error, "No user message to send"}
     else
+      Logger.info("AgnoDriver: starting run for session=#{conv.scope.session_id}")
+
       form_data = [
         {"message", user_message.content},
         {"stream", "true"},
@@ -49,7 +51,7 @@ defmodule Mindrian.Chat.Drivers.AgnoDriver do
   end
 
   @impl true
-  def continue(run_id, tools) do
+  def continue(run_id, scope, tools) do
     url = "#{agno_url()}/agents/#{@agent_id}/runs/#{run_id}/continue"
 
     # Build tool execution list
@@ -70,12 +72,14 @@ defmodule Mindrian.Chat.Drivers.AgnoDriver do
         end
       end)
 
-    # Get session_id from first tool's context (they all share the same run)
-    # For continue, we don't have the scope, so we pass empty strings
-    # Agno uses run_id to look up the session
+    tool_names = Enum.map(tools, & &1.tool_name) |> Enum.join(", ")
+    Logger.info("AgnoDriver: continuing run=#{run_id} with tools=[#{tool_names}]")
+
     form_data = [
       {"tools", Jason.encode!(tool_executions)},
-      {"stream", "true"}
+      {"stream", "true"},
+      {"session_id", scope.session_id},
+      {"user_id", scope.user.id}
     ]
 
     {:ok, build_event_stream(url, form_data)}
@@ -83,14 +87,17 @@ defmodule Mindrian.Chat.Drivers.AgnoDriver do
 
   @impl true
   def cancel(run_id) do
+    Logger.info("AgnoDriver: cancelling run=#{run_id}")
     url = "#{agno_url()}/agents/#{@agent_id}/runs/#{run_id}/cancel"
 
     case Req.post(url, receive_timeout: @timeout) do
       {:ok, %{status: 200}} ->
+        Logger.info("AgnoDriver: cancelled run=#{run_id}")
         :ok
 
       # Agno returns 500 for already-completed runs - treat as success
       {:ok, %{status: 500}} ->
+        Logger.info("AgnoDriver: run=#{run_id} already completed")
         :ok
 
       {:ok, %{status: status, body: body}} ->
@@ -201,6 +208,7 @@ defmodule Mindrian.Chat.Drivers.AgnoDriver do
 
   defp cleanup_consumer(%{pid: pid}) do
     if Process.alive?(pid) do
+      Process.unlink(pid)
       Process.exit(pid, :kill)
     end
   end
@@ -210,6 +218,7 @@ defmodule Mindrian.Chat.Drivers.AgnoDriver do
   # ---------------------------------------------------------------------------
 
   defp translate_event(%{"event" => "RunStarted", "run_id" => run_id}) do
+    Logger.info("AgnoDriver: run started run_id=#{run_id}")
     {:run_started, run_id}
   end
 
@@ -224,10 +233,12 @@ defmodule Mindrian.Chat.Drivers.AgnoDriver do
   end
 
   defp translate_event(%{"event" => "RunContentCompleted"}) do
+    Logger.debug("AgnoDriver: text content completed")
     :text_end
   end
 
   defp translate_event(%{"event" => "ToolCallStarted", "tool" => tool}) do
+    Logger.info("AgnoDriver: tool started name=#{tool["tool_name"]} id=#{tool["tool_call_id"]}")
     {:tool_started, tool["tool_call_id"], tool["tool_name"], tool["tool_args"] || %{}}
   end
 
@@ -235,14 +246,19 @@ defmodule Mindrian.Chat.Drivers.AgnoDriver do
     id = tool["tool_call_id"]
 
     if tool["tool_call_error"] do
+      Logger.warning("AgnoDriver: tool failed id=#{id}")
       {:tool_failed, id, tool["result"] || "Tool execution failed"}
     else
+      Logger.info("AgnoDriver: tool completed id=#{id}")
       result = parse_python_dict(tool["result"])
       {:tool_completed, id, result}
     end
   end
 
   defp translate_event(%{"event" => "RunPaused", "run_id" => run_id, "tools" => tools}) do
+    tool_names = Enum.map(tools, & &1["tool_name"]) |> Enum.join(", ")
+    Logger.info("AgnoDriver: run paused for approval run_id=#{run_id} tools=[#{tool_names}]")
+
     tool_infos =
       Enum.map(tools, fn tool ->
         %{
@@ -257,14 +273,17 @@ defmodule Mindrian.Chat.Drivers.AgnoDriver do
   end
 
   defp translate_event(%{"event" => "RunContinued"}) do
+    Logger.info("AgnoDriver: run continued")
     :continued
   end
 
   defp translate_event(%{"event" => "RunCompleted"}) do
+    Logger.info("AgnoDriver: run completed")
     :complete
   end
 
   defp translate_event(%{"event" => "RunError", "content" => content}) do
+    Logger.error("AgnoDriver: run error: #{content}")
     {:error, content}
   end
 
@@ -291,7 +310,7 @@ defmodule Mindrian.Chat.Drivers.AgnoDriver do
     |> String.replace(~r/\bTrue\b/, "true")
     |> String.replace(~r/\bFalse\b/, "false")
     |> String.replace(~r/\bNone\b/, "null")
-    |> String.replace("'", "\"")
+    |> convert_python_quotes()
     |> Jason.decode()
     |> case do
       {:ok, parsed} -> parsed
@@ -300,6 +319,19 @@ defmodule Mindrian.Chat.Drivers.AgnoDriver do
   end
 
   defp parse_python_dict(other), do: other
+
+  # Convert Python single quotes to JSON double quotes, handling escaped quotes
+  # and apostrophes inside double-quoted strings.
+  # Python: {'key': "it's working", 'other': 'value'}
+  # JSON:   {"key": "it's working", "other": "value"}
+  defp convert_python_quotes(str) do
+    # Strategy: Python uses single quotes for dict keys/string values,
+    # but double quotes for strings containing apostrophes.
+    # We convert unescaped single quotes to double quotes.
+    str
+    |> String.replace(~r/(?<![\\])'/, "\"")
+    |> String.replace("\\'", "'")
+  end
 
   defp agno_url do
     Application.get_env(:mindrian, :agno_url, "http://localhost:8000")

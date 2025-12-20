@@ -45,9 +45,6 @@ defmodule MindrianWeb.ChatChannel do
 
         case ConversationServer.start_link(scope: scope, driver: driver) do
           {:ok, pid} ->
-            # Link to server so it dies when channel dies
-            Process.link(pid)
-
             # Subscribe to conversation events
             topic = "conversation:#{session_id}"
             Phoenix.PubSub.subscribe(Mindrian.PubSub, topic)

@@ -70,13 +70,18 @@ defmodule Mindrian.Chat.Driver do
   @doc """
   Continue a paused run after user approval/rejection decisions.
 
+  `scope` provides user and session context for the continuation.
   `tools` is a list of tool decisions with `confirmed: true | false`.
   Approved tools (confirmed: true) will be executed.
   Rejected tools (confirmed: false) will be skipped.
 
   Returns `{:ok, enumerable}` that yields events as the continuation progresses.
   """
-  @callback continue(run_id :: String.t(), tools :: [tool_decision()]) ::
+  @callback continue(
+              run_id :: String.t(),
+              scope :: Mindrian.Accounts.Scope.t(),
+              tools :: [tool_decision()]
+            ) ::
               {:ok, Enumerable.t(event())}
 
   @doc """

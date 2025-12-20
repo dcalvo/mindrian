@@ -109,7 +109,7 @@ defmodule MindrianWeb.ChatChannelTest do
         {:ok, run_events}
       end)
 
-      expect(MockDriver, :continue, fn "run-1", tools ->
+      expect(MockDriver, :continue, fn "run-1", _scope, tools ->
         assert length(tools) == 1
         [tool] = tools
         assert tool.confirmed == true
@@ -156,7 +156,7 @@ defmodule MindrianWeb.ChatChannelTest do
         {:ok, run_events}
       end)
 
-      expect(MockDriver, :continue, fn "run-1", tools ->
+      expect(MockDriver, :continue, fn "run-1", _scope, tools ->
         assert length(tools) == 1
         [tool] = tools
         assert tool.confirmed == false
