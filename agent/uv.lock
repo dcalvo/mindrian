@@ -4,7 +4,7 @@ requires-python = ">=3.11"
 
 [[package]]
 name = "agno"
-version = "2.3.14"
+version = "2.3.18"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "docstring-parser" },
@@ -21,9 +21,9 @@ dependencies = [
     { name = "typer" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/45/35/156562c5aecc4f2d41bd94dd2c9727a07a7b363f1b31fd062a401dcdd169/agno-2.3.14.tar.gz", hash = "sha256:26359bb6ecb62d824030e828fa40aaa82d82474c4025d5fe24af47024f29ab51", size = 1290870, upload-time = "2025-12-17T21:45:26.046Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/3d/49/53c83fc260a1b000673cecfa6e4ef60cf0aeaf321a989189b64afcc38e94/agno-2.3.18.tar.gz", hash = "sha256:7b8db25f717ea26760ac4087e0cc58005394e99c5c7e87d3464b3e07f0a37a27", size = 1329531, upload-time = "2025-12-19T18:51:07.269Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/59/81/32f48963eb128c460b582782df7fe9099538ed16d56c57096092703115ef/agno-2.3.14-py3-none-any.whl", hash = "sha256:0f1a959b7c52a097423a77f4cdb1cf6841bf93630f8b7f64618b283cd019a278", size = 1559982, upload-time = "2025-12-17T21:45:23.437Z" },
+    { url = "https://files.pythonhosted.org/packages/a5/47/a92a5c7dbf6f94e0fc78c4ff3bde049e7d83ccbd922bffef0298f4072846/agno-2.3.18-py3-none-any.whl", hash = "sha256:65de33f02135903408248b8e61cef45f5efd43890f0baf20ad839ee9e550894e", size = 1603046, upload-time = "2025-12-19T18:51:04.813Z" },
 ]
 
 [package.optional-dependencies]
@@ -420,7 +420,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "agno", extras = ["anthropic"], specifier = ">=2.3.14" },
+    { name = "agno", extras = ["anthropic"], specifier = ">=2.3.18" },
     { name = "fastapi", specifier = ">=0.125.0" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "psycopg", extras = ["binary"], specifier = ">=3.3.2" },
