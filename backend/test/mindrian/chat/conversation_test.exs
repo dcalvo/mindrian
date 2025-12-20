@@ -1,13 +1,30 @@
 defmodule Mindrian.Chat.ConversationTest do
   use ExUnit.Case, async: true
 
+  alias Mindrian.Accounts.{Scope, User}
   alias Mindrian.Chat.Conversation
 
-  describe "new/1" do
+  # Helper to create a test scope with optional overrides
+  defp test_scope(attrs \\ %{}) do
+    user = attrs[:user] || %User{id: Ecto.UUID.generate(), email: "test@example.com"}
+    session_id = attrs[:session_id] || "test-session"
+    Scope.for_chat(user, session_id)
+  end
+
+  # Helper to create a conversation fixture with optional overrides
+  defp conversation_fixture(attrs \\ %{}) do
+    id = attrs[:id] || "conv-#{System.unique_integer([:positive])}"
+    scope = attrs[:scope] || test_scope()
+    Conversation.new(id, scope)
+  end
+
+  describe "new/2" do
     test "creates an idle conversation with no messages" do
-      conv = Conversation.new("conv-1")
+      scope = test_scope()
+      conv = Conversation.new("conv-1", scope)
 
       assert conv.id == "conv-1"
+      assert conv.scope == scope
       assert conv.status == :idle
       assert conv.messages == []
       assert conv.pending_error == nil
@@ -16,7 +33,7 @@ defmodule Mindrian.Chat.ConversationTest do
 
   describe "send_message/3" do
     test "transitions from idle to running" do
-      conv = Conversation.new("conv-1")
+      conv = conversation_fixture()
 
       assert {:ok, new_conv, events} = Conversation.send_message(conv, "msg-1", "Hello")
 
@@ -27,7 +44,7 @@ defmodule Mindrian.Chat.ConversationTest do
     end
 
     test "clears pending_error on new message" do
-      conv = %{Conversation.new("conv-1") | pending_error: "Previous error"}
+      conv = %{conversation_fixture() | pending_error: "Previous error"}
 
       assert {:ok, new_conv, _events} = Conversation.send_message(conv, "msg-1", "Hello")
 
@@ -35,14 +52,14 @@ defmodule Mindrian.Chat.ConversationTest do
     end
 
     test "rejects when not idle" do
-      conv = %{Conversation.new("conv-1") | status: :running}
+      conv = %{conversation_fixture() | status: :running}
 
       assert {:error, {:not_your_turn, current: :running, expected: :idle}} =
                Conversation.send_message(conv, "msg-1", "Hello")
     end
 
     test "rejects when awaiting approval" do
-      conv = %{Conversation.new("conv-1") | status: :awaiting_approval}
+      conv = %{conversation_fixture() | status: :awaiting_approval}
 
       assert {:error, {:not_your_turn, current: :awaiting_approval, expected: :idle}} =
                Conversation.send_message(conv, "msg-1", "Hello")
@@ -51,7 +68,7 @@ defmodule Mindrian.Chat.ConversationTest do
 
   describe "start_agent_message/1" do
     test "adds a streaming agent message with generated ID" do
-      conv = %{Conversation.new("conv-1") | status: :running}
+      conv = %{conversation_fixture() | status: :running}
 
       assert {:ok, new_conv, events} = Conversation.start_agent_message(conv)
 
@@ -63,7 +80,7 @@ defmodule Mindrian.Chat.ConversationTest do
     end
 
     test "rejects when idle" do
-      conv = Conversation.new("conv-1")
+      conv = conversation_fixture()
 
       assert {:error, {:invalid_status, current: :idle, expected: :running}} =
                Conversation.start_agent_message(conv)
@@ -71,7 +88,7 @@ defmodule Mindrian.Chat.ConversationTest do
 
     test "rejects when already streaming" do
       conv =
-        Conversation.new("conv-1")
+        conversation_fixture()
         |> Map.put(:status, :running)
         |> Map.put(:messages, [%{id: "agent-1", role: :agent, content: "Hi", status: :streaming}])
 
@@ -83,7 +100,7 @@ defmodule Mindrian.Chat.ConversationTest do
   describe "append_chunk/2" do
     test "appends content to streaming message" do
       conv =
-        Conversation.new("conv-1")
+        conversation_fixture()
         |> Map.put(:status, :running)
         |> Map.put(:messages, [
           %{id: "agent-1", role: :agent, content: "Hello", status: :streaming}
@@ -97,7 +114,7 @@ defmodule Mindrian.Chat.ConversationTest do
 
     test "rejects when no streaming message" do
       conv =
-        Conversation.new("conv-1")
+        conversation_fixture()
         |> Map.put(:status, :running)
         |> Map.put(:messages, [])
 
@@ -106,7 +123,7 @@ defmodule Mindrian.Chat.ConversationTest do
 
     test "rejects when message is not streaming" do
       conv =
-        Conversation.new("conv-1")
+        conversation_fixture()
         |> Map.put(:status, :running)
         |> Map.put(:messages, [%{id: "agent-1", role: :agent, content: "Done", status: :complete}])
 
@@ -117,7 +134,7 @@ defmodule Mindrian.Chat.ConversationTest do
   describe "complete_agent_message/1" do
     test "transitions streaming message to complete, stays running" do
       conv =
-        Conversation.new("conv-1")
+        conversation_fixture()
         |> Map.put(:status, :running)
         |> Map.put(:messages, [
           %{id: "agent-1", role: :agent, content: "Response", status: :streaming}
@@ -133,7 +150,7 @@ defmodule Mindrian.Chat.ConversationTest do
 
     test "rejects when no streaming message" do
       conv =
-        Conversation.new("conv-1")
+        conversation_fixture()
         |> Map.put(:status, :running)
         |> Map.put(:messages, [])
 
@@ -144,7 +161,7 @@ defmodule Mindrian.Chat.ConversationTest do
   describe "complete_run/1" do
     test "finalizes any streaming message and transitions to idle" do
       conv =
-        Conversation.new("conv-1")
+        conversation_fixture()
         |> Map.put(:status, :running)
         |> Map.put(:messages, [
           %{id: "agent-1", role: :agent, content: "Done", status: :streaming}
@@ -163,7 +180,7 @@ defmodule Mindrian.Chat.ConversationTest do
 
     test "transitions to idle even without streaming message" do
       conv =
-        Conversation.new("conv-1")
+        conversation_fixture()
         |> Map.put(:status, :running)
         |> Map.put(:messages, [%{id: "agent-1", role: :agent, content: "Done", status: :complete}])
 
@@ -174,7 +191,7 @@ defmodule Mindrian.Chat.ConversationTest do
     end
 
     test "rejects when not running" do
-      conv = Conversation.new("conv-1")
+      conv = conversation_fixture()
 
       assert {:error, {:invalid_status, current: :idle, expected: :running}} =
                Conversation.complete_run(conv)
@@ -183,7 +200,7 @@ defmodule Mindrian.Chat.ConversationTest do
 
   describe "request_tool_call/5" do
     test "adds tool call and stays running" do
-      conv = %{Conversation.new("conv-1") | status: :running}
+      conv = %{conversation_fixture() | status: :running}
 
       assert {:ok, new_conv, events} =
                Conversation.request_tool_call(
@@ -214,7 +231,7 @@ defmodule Mindrian.Chat.ConversationTest do
 
     test "auto-completes streaming message before adding tool call" do
       conv =
-        Conversation.new("conv-1")
+        conversation_fixture()
         |> Map.put(:status, :running)
         |> Map.put(:messages, [
           %{id: "agent-1", role: :agent, content: "Let me do that", status: :streaming}
@@ -248,7 +265,7 @@ defmodule Mindrian.Chat.ConversationTest do
     end
 
     test "can queue multiple tool calls" do
-      conv = %{Conversation.new("conv-1") | status: :running}
+      conv = %{conversation_fixture() | status: :running}
 
       {:ok, conv, _} = Conversation.request_tool_call(conv, "tool-1", "op1", %{}, "First op")
       {:ok, conv, _} = Conversation.request_tool_call(conv, "tool-2", "op2", %{}, "Second op")
@@ -260,7 +277,7 @@ defmodule Mindrian.Chat.ConversationTest do
     end
 
     test "rejects when not running" do
-      conv = Conversation.new("conv-1")
+      conv = conversation_fixture()
 
       assert {:error, {:invalid_status, current: :idle, expected: :running}} =
                Conversation.request_tool_call(conv, "tool-1", "create_document", %{}, "desc")
@@ -269,7 +286,7 @@ defmodule Mindrian.Chat.ConversationTest do
 
   describe "request_approved_tool_call/5" do
     test "creates tool call with :approved status" do
-      conv = %{Conversation.new("conv-1") | status: :running}
+      conv = %{conversation_fixture() | status: :running}
 
       assert {:ok, new_conv, events} =
                Conversation.request_approved_tool_call(
@@ -287,7 +304,7 @@ defmodule Mindrian.Chat.ConversationTest do
     end
 
     test "auto-approved tools don't block await_approval" do
-      conv = %{Conversation.new("conv-1") | status: :running}
+      conv = %{conversation_fixture() | status: :running}
 
       {:ok, conv, _} =
         Conversation.request_approved_tool_call(conv, "tool-1", "Read", %{}, "Read")
@@ -304,7 +321,7 @@ defmodule Mindrian.Chat.ConversationTest do
   describe "await_approval/1" do
     test "transitions to awaiting_approval when there are pending tools" do
       conv =
-        Conversation.new("conv-1")
+        conversation_fixture()
         |> Map.put(:status, :running)
         |> Map.put(:messages, [
           %{
@@ -327,13 +344,13 @@ defmodule Mindrian.Chat.ConversationTest do
     end
 
     test "rejects when no pending approvals" do
-      conv = %{Conversation.new("conv-1") | status: :running, messages: []}
+      conv = %{conversation_fixture() | status: :running, messages: []}
 
       assert {:error, :no_pending_approvals} = Conversation.await_approval(conv)
     end
 
     test "rejects when not running" do
-      conv = Conversation.new("conv-1")
+      conv = conversation_fixture()
 
       assert {:error, {:invalid_status, current: :idle, expected: :running}} =
                Conversation.await_approval(conv)
@@ -343,7 +360,7 @@ defmodule Mindrian.Chat.ConversationTest do
   describe "approve_tool_call/2" do
     test "marks tool as approved, stays awaiting_approval when more pending" do
       conv =
-        Conversation.new("conv-1")
+        conversation_fixture()
         |> Map.put(:status, :awaiting_approval)
         |> Map.put(:messages, [
           %{
@@ -383,7 +400,7 @@ defmodule Mindrian.Chat.ConversationTest do
 
     test "transitions to running when last tool is approved" do
       conv =
-        Conversation.new("conv-1")
+        conversation_fixture()
         |> Map.put(:status, :awaiting_approval)
         |> Map.put(:messages, [
           %{
@@ -411,14 +428,18 @@ defmodule Mindrian.Chat.ConversationTest do
     end
 
     test "rejects when not awaiting approval" do
-      conv = Conversation.new("conv-1")
+      conv = conversation_fixture()
 
       assert {:error, {:invalid_status, current: :idle, expected: :awaiting_approval}} =
                Conversation.approve_tool_call(conv, "tool-1")
     end
 
     test "rejects when tool not found" do
-      conv = %{Conversation.new("conv-1") | status: :awaiting_approval, messages: []}
+      conv = %{
+        conversation_fixture()
+        | status: :awaiting_approval,
+          messages: []
+      }
 
       assert {:error, {:tool_call_not_found, id: "tool-1"}} =
                Conversation.approve_tool_call(conv, "tool-1")
@@ -428,7 +449,7 @@ defmodule Mindrian.Chat.ConversationTest do
   describe "execute_approved_tool/2" do
     test "marks approved tool as executing" do
       conv =
-        Conversation.new("conv-1")
+        conversation_fixture()
         |> Map.put(:status, :running)
         |> Map.put(:messages, [
           %{
@@ -452,7 +473,7 @@ defmodule Mindrian.Chat.ConversationTest do
 
     test "rejects when tool not approved" do
       conv =
-        Conversation.new("conv-1")
+        conversation_fixture()
         |> Map.put(:status, :running)
         |> Map.put(:messages, [
           %{
@@ -473,7 +494,7 @@ defmodule Mindrian.Chat.ConversationTest do
     end
 
     test "rejects when not running" do
-      conv = %{Conversation.new("conv-1") | status: :awaiting_approval}
+      conv = %{conversation_fixture() | status: :awaiting_approval}
 
       assert {:error, {:invalid_status, current: :awaiting_approval, expected: :running}} =
                Conversation.execute_approved_tool(conv, "tool-1")
@@ -483,7 +504,7 @@ defmodule Mindrian.Chat.ConversationTest do
   describe "next_approved_tool/1" do
     test "returns first approved tool" do
       conv =
-        Conversation.new("conv-1")
+        conversation_fixture()
         |> Map.put(:messages, [
           %{
             id: "tool-1",
@@ -524,7 +545,7 @@ defmodule Mindrian.Chat.ConversationTest do
     end
 
     test "returns nil when no approved tools" do
-      conv = Conversation.new("conv-1")
+      conv = conversation_fixture()
 
       assert nil == Conversation.next_approved_tool(conv)
     end
@@ -533,7 +554,7 @@ defmodule Mindrian.Chat.ConversationTest do
   describe "reject_tool_call/3" do
     test "rejects tool and cascades to subsequent pending tools" do
       conv =
-        Conversation.new("conv-1")
+        conversation_fixture()
         |> Map.put(:status, :awaiting_approval)
         |> Map.put(:messages, [
           %{
@@ -601,7 +622,7 @@ defmodule Mindrian.Chat.ConversationTest do
 
     test "only rejects tool and subsequent, preserves earlier approved" do
       conv =
-        Conversation.new("conv-1")
+        conversation_fixture()
         |> Map.put(:status, :awaiting_approval)
         |> Map.put(:messages, [
           %{
@@ -661,7 +682,7 @@ defmodule Mindrian.Chat.ConversationTest do
 
     test "works without a rejection reason" do
       conv =
-        Conversation.new("conv-1")
+        conversation_fixture()
         |> Map.put(:status, :awaiting_approval)
         |> Map.put(:messages, [
           %{
@@ -686,7 +707,7 @@ defmodule Mindrian.Chat.ConversationTest do
   describe "complete_tool_call/3" do
     test "marks tool as completed with result" do
       conv =
-        Conversation.new("conv-1")
+        conversation_fixture()
         |> Map.put(:status, :running)
         |> Map.put(:messages, [
           %{
@@ -711,7 +732,7 @@ defmodule Mindrian.Chat.ConversationTest do
 
     test "rejects when tool not in executing status" do
       conv =
-        Conversation.new("conv-1")
+        conversation_fixture()
         |> Map.put(:status, :running)
         |> Map.put(:messages, [
           %{
@@ -735,7 +756,7 @@ defmodule Mindrian.Chat.ConversationTest do
   describe "fail_tool_call/3" do
     test "marks tool as failed with error" do
       conv =
-        Conversation.new("conv-1")
+        conversation_fixture()
         |> Map.put(:status, :running)
         |> Map.put(:messages, [
           %{
@@ -762,7 +783,7 @@ defmodule Mindrian.Chat.ConversationTest do
   describe "cancel/1" do
     test "cancels streaming agent message and transitions to idle" do
       conv =
-        Conversation.new("conv-1")
+        conversation_fixture()
         |> Map.put(:status, :running)
         |> Map.put(:messages, [
           %{id: "msg-1", role: :user, content: "Hello"},
@@ -786,7 +807,7 @@ defmodule Mindrian.Chat.ConversationTest do
 
     test "cancels pending tool calls when awaiting approval" do
       conv =
-        Conversation.new("conv-1")
+        conversation_fixture()
         |> Map.put(:status, :awaiting_approval)
         |> Map.put(:messages, [
           %{
@@ -815,7 +836,7 @@ defmodule Mindrian.Chat.ConversationTest do
 
     test "cancels approved (not yet executing) tool calls" do
       conv =
-        Conversation.new("conv-1")
+        conversation_fixture()
         |> Map.put(:status, :running)
         |> Map.put(:messages, [
           %{
@@ -844,7 +865,7 @@ defmodule Mindrian.Chat.ConversationTest do
 
     test "cancels both streaming message and pending tool calls" do
       conv =
-        Conversation.new("conv-1")
+        conversation_fixture()
         |> Map.put(:status, :awaiting_approval)
         |> Map.put(:messages, [
           %{id: "agent-1", role: :agent, content: "Let me help", status: :streaming},
@@ -873,7 +894,7 @@ defmodule Mindrian.Chat.ConversationTest do
     end
 
     test "rejects when idle" do
-      conv = Conversation.new("conv-1")
+      conv = conversation_fixture()
 
       assert {:error, {:invalid_status, current: :idle, expected: [:running, :awaiting_approval]}} =
                Conversation.cancel(conv)
@@ -882,7 +903,7 @@ defmodule Mindrian.Chat.ConversationTest do
 
   describe "set_error/2" do
     test "sets pending error and emits event" do
-      conv = Conversation.new("conv-1")
+      conv = conversation_fixture()
 
       assert {:ok, new_conv, events} = Conversation.set_error(conv, "Connection lost")
 
@@ -892,7 +913,7 @@ defmodule Mindrian.Chat.ConversationTest do
 
     test "works in any status" do
       for status <- [:idle, :running, :awaiting_approval] do
-        conv = %{Conversation.new("conv-1") | status: status}
+        conv = %{conversation_fixture() | status: status}
 
         assert {:ok, new_conv, _events} = Conversation.set_error(conv, "Error")
         assert new_conv.pending_error == "Error"
@@ -903,7 +924,7 @@ defmodule Mindrian.Chat.ConversationTest do
   describe "to_map/1" do
     test "serializes conversation to JSON-compatible map" do
       conv =
-        Conversation.new("conv-1")
+        conversation_fixture(id: "conv-1")
         |> Map.put(:status, :running)
         |> Map.put(:messages, [
           %{id: "msg-1", role: :user, content: "Hello"},
@@ -925,7 +946,7 @@ defmodule Mindrian.Chat.ConversationTest do
 
     test "serializes tool call messages" do
       conv =
-        Conversation.new("conv-1")
+        conversation_fixture(id: "conv-1")
         |> Map.put(:messages, [
           %{
             id: "tool-1",
@@ -960,7 +981,7 @@ defmodule Mindrian.Chat.ConversationTest do
 
   describe "full conversation flow" do
     test "user message -> agent response -> complete_run" do
-      conv = Conversation.new("conv-1")
+      conv = conversation_fixture()
 
       # User sends message
       {:ok, conv, _} = Conversation.send_message(conv, "msg-1", "Hello")
@@ -986,7 +1007,7 @@ defmodule Mindrian.Chat.ConversationTest do
     end
 
     test "tool call approval and execution flow" do
-      conv = Conversation.new("conv-1")
+      conv = conversation_fixture()
 
       # User sends message
       {:ok, conv, _} = Conversation.send_message(conv, "msg-1", "Create a doc")
@@ -1029,7 +1050,7 @@ defmodule Mindrian.Chat.ConversationTest do
     end
 
     test "tool call rejection with cascade" do
-      conv = Conversation.new("conv-1")
+      conv = conversation_fixture()
 
       # User sends message
       {:ok, conv, _} = Conversation.send_message(conv, "msg-1", "Do three things")
@@ -1076,7 +1097,7 @@ defmodule Mindrian.Chat.ConversationTest do
     end
 
     test "cancel approved but not yet executed tools" do
-      conv = Conversation.new("conv-1")
+      conv = conversation_fixture()
 
       {:ok, conv, _} = Conversation.send_message(conv, "msg-1", "Do things")
       {:ok, conv, _} = Conversation.request_tool_call(conv, "tool-1", "op", %{}, "desc")

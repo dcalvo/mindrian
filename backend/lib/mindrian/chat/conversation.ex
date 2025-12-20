@@ -52,25 +52,27 @@ defmodule Mindrian.Chat.Conversation do
   `request_approved_tool_call/5`, `await_approval/1`, `complete_run/1`
   """
 
+  alias Mindrian.Accounts.Scope
   alias Mindrian.Chat.{Event, Message}
 
   @type status :: :idle | :running | :awaiting_approval
 
   @type t :: %__MODULE__{
           id: String.t(),
+          scope: Scope.t() | nil,
           status: status(),
           messages: [Message.t()],
           pending_error: String.t() | nil
         }
 
-  defstruct [:id, status: :idle, messages: [], pending_error: nil]
+  defstruct [:id, :scope, status: :idle, messages: [], pending_error: nil]
 
   @doc """
-  Create a new conversation with the given ID.
+  Create a new conversation with the given ID and scope.
   """
-  @spec new(String.t()) :: t()
-  def new(id) do
-    %__MODULE__{id: id}
+  @spec new(String.t(), Scope.t()) :: t()
+  def new(id, scope) do
+    %__MODULE__{id: id, scope: scope}
   end
 
   # ---------------------------------------------------------------------------

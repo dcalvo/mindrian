@@ -9,6 +9,7 @@ defmodule Mindrian.Chat.Driver do
 
   Events yielded from the enumerable:
 
+  - `{:run_started, run_id}` - Run started (first event, provides run_id for cancel)
   - `{:text_chunk, content}` - Text content chunk (driver should filter empty chunks)
   - `:text_end` - Text segment complete
   - `{:tool_started, id, name, args}` - Auto-approved tool execution started
@@ -31,7 +32,8 @@ defmodule Mindrian.Chat.Driver do
   alias Mindrian.Chat.Conversation
 
   @type event ::
-          {:text_chunk, content :: String.t()}
+          {:run_started, run_id :: String.t()}
+          | {:text_chunk, content :: String.t()}
           | :text_end
           | {:tool_started, id :: String.t(), name :: String.t(), args :: map()}
           | {:tool_completed, id :: String.t(), result :: term()}
@@ -58,12 +60,12 @@ defmodule Mindrian.Chat.Driver do
   @doc """
   Start a new run for the conversation.
 
-  Returns `{:ok, run_id, enumerable}` where:
-  - `run_id` is the identifier for this run (for continue/cancel)
-  - `enumerable` yields events as the run progresses
+  Returns `{:ok, enumerable}` where the enumerable yields events.
+  The first event must be `{:run_started, run_id}` which provides
+  the run identifier needed for continue/cancel operations.
   """
   @callback run(conversation :: Conversation.t()) ::
-              {:ok, run_id :: String.t(), Enumerable.t(event())}
+              {:ok, Enumerable.t(event())}
 
   @doc """
   Continue a paused run after user approval/rejection decisions.

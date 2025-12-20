@@ -8,7 +8,7 @@ defmodule Mindrian.Chat.ConversationServer do
   ## Starting a Server
 
       {:ok, pid} = ConversationServer.start_link(
-        conversation_id: "conv-123",
+        scope: scope,
         driver: Mindrian.Chat.Drivers.AgnoDriver
       )
 
@@ -37,8 +37,6 @@ defmodule Mindrian.Chat.ConversationServer do
 
   alias Mindrian.Chat.{Conversation, Event}
 
-  @registry Mindrian.ConversationServerRegistry
-
   defstruct [
     :conversation,
     :run_id,
@@ -55,24 +53,11 @@ defmodule Mindrian.Chat.ConversationServer do
   Start a ConversationServer.
 
   Options:
-  - `:conversation_id` (required) - unique ID for this conversation
+  - `:scope` (required) - Scope with user and session_id
   - `:driver` (required) - driver module implementing `Mindrian.Chat.Driver`
   """
   def start_link(opts) do
-    conversation_id = Keyword.fetch!(opts, :conversation_id)
-    name = {:via, Registry, {@registry, conversation_id}}
-    GenServer.start_link(__MODULE__, opts, name: name)
-  end
-
-  @doc """
-  Get the ConversationServer pid for a conversation ID.
-  Returns `{:ok, pid}` or `{:error, :not_found}`.
-  """
-  def whereis(conversation_id) do
-    case Registry.lookup(@registry, conversation_id) do
-      [{pid, _}] -> {:ok, pid}
-      [] -> {:error, :not_found}
-    end
+    GenServer.start_link(__MODULE__, opts)
   end
 
   @doc """
@@ -116,11 +101,13 @@ defmodule Mindrian.Chat.ConversationServer do
 
   @impl true
   def init(opts) do
-    conversation_id = Keyword.fetch!(opts, :conversation_id)
+    scope = Keyword.fetch!(opts, :scope)
     driver = Keyword.fetch!(opts, :driver)
 
+    conversation_id = scope.session_id
+
     state = %__MODULE__{
-      conversation: Conversation.new(conversation_id),
+      conversation: Conversation.new(conversation_id, scope),
       driver: driver,
       topic: "conversation:#{conversation_id}"
     }
@@ -140,13 +127,15 @@ defmodule Mindrian.Chat.ConversationServer do
 
         # Start the driver run
         case state.driver.run(conv) do
-          {:ok, run_id, enumerable} ->
-            state = %{state | run_id: run_id}
+          {:ok, enumerable} ->
+            # run_id will come from {:run_started, run_id} event
             state = spawn_driver_task(state, enumerable)
             {:reply, :ok, state}
 
           {:error, reason} ->
-            {:ok, conv, error_events} = Conversation.set_error(conv, "Driver failed: #{inspect(reason)}")
+            {:ok, conv, error_events} =
+              Conversation.set_error(conv, "Driver failed: #{inspect(reason)}")
+
             {:ok, conv, idle_events} = Conversation.complete_run(conv)
             state = %{state | conversation: conv}
             broadcast_events(state, error_events ++ idle_events)
@@ -258,6 +247,11 @@ defmodule Mindrian.Chat.ConversationServer do
   # ---------------------------------------------------------------------------
   # Driver Event Processing
   # ---------------------------------------------------------------------------
+
+  defp handle_driver_event({:run_started, run_id}, state) do
+    # Store the run_id for cancel/continue operations
+    %{state | run_id: run_id}
+  end
 
   defp handle_driver_event({:text_chunk, content}, state) do
     if Conversation.streaming?(state.conversation) do
