@@ -19,6 +19,42 @@ This is a web application written using the Phoenix web framework.
 custom classes must fully style the input
 
 
+## Elixir Idioms
+### Task Spawning in GenServers
+
+When a GenServer needs to spawn a task that might fail, use `Task.Supervisor.async_nolink/3`, not `Task.async/1` or raw `spawn`.
+
+**Why:**
+- `Task.async/1` links to the caller—task crash kills the GenServer
+- Raw `spawn` + manual monitor leaves dangling processes if the GenServer dies
+- `Task.Supervisor.async_nolink/3` gives you: no crash propagation, supervised cleanup, consistent `:DOWN` messages, and `Task.shutdown/2` support
+
+**Pattern:**
+```elixir
+# In application.ex supervision tree
+{Task.Supervisor, name: MyApp.TaskSupervisor}
+
+# In GenServer
+task = Task.Supervisor.async_nolink(MyApp.TaskSupervisor, fn -> do_work() end)
+%{state | task: task}
+
+# Handle completion
+def handle_info({ref, result}, %{task: %{ref: ref}} = state) do
+  Process.demonitor(ref, [:flush])
+  # handle success
+  {:noreply, %{state | task: nil}}
+end
+
+# Handle failure
+def handle_info({:DOWN, ref, :process, _pid, reason}, %{task: %{ref: ref}} = state) do
+  # handle crash
+  {:noreply, %{state | task: nil}}
+end
+```
+
+**Reference:** https://hexdocs.pm/elixir/Task.html#module-dynamically-supervised-tasks
+
+
 <!-- phoenix-gen-auth-start -->
 ## Authentication
 

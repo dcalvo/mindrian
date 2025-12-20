@@ -19,8 +19,8 @@ defmodule Mindrian.Chat.Event do
 
   alias Mindrian.Chat.Message
 
+  # Conversation status changes
   @type t ::
-          # Conversation status changes
           {:status_changed, :idle | :running | :awaiting_approval}
 
           # Agent message streaming

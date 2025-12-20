@@ -375,7 +375,8 @@ defmodule Mindrian.Collaboration.DocServer do
   # Structure: <blockContainer id="..."><paragraph ...>TEXT</paragraph></blockContainer>
   defp create_block_container(block_type, block_id, content) do
     # Normalize block_type - agent might send "blockGroup" but we need actual types
-    actual_type = if block_type in ["blockGroup", "blockContainer"], do: "paragraph", else: block_type
+    actual_type =
+      if block_type in ["blockGroup", "blockContainer"], do: "paragraph", else: block_type
 
     # Parse markdown bold and convert to delta format
     text_prelim = parse_markdown_to_prelim(content)

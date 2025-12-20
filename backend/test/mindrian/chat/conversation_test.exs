@@ -55,7 +55,9 @@ defmodule Mindrian.Chat.ConversationTest do
 
       assert {:ok, new_conv, events} = Conversation.start_agent_message(conv)
 
-      assert [%{id: message_id, role: :agent, content: "", status: :streaming}] = new_conv.messages
+      assert [%{id: message_id, role: :agent, content: "", status: :streaming}] =
+               new_conv.messages
+
       assert is_binary(message_id)
       assert events == [{:agent_started, message_id}]
     end
@@ -270,16 +272,25 @@ defmodule Mindrian.Chat.ConversationTest do
       conv = %{Conversation.new("conv-1") | status: :running}
 
       assert {:ok, new_conv, events} =
-               Conversation.request_approved_tool_call(conv, "tool-1", "Read", %{"path" => "f.ex"}, "Read f.ex")
+               Conversation.request_approved_tool_call(
+                 conv,
+                 "tool-1",
+                 "Read",
+                 %{"path" => "f.ex"},
+                 "Read f.ex"
+               )
 
-      assert [%{id: "tool-1", role: :tool_call, name: "Read", status: :approved}] = new_conv.messages
+      assert [%{id: "tool-1", role: :tool_call, name: "Read", status: :approved}] =
+               new_conv.messages
+
       assert events == [{:tool_call_approved, "tool-1"}]
     end
 
     test "auto-approved tools don't block await_approval" do
       conv = %{Conversation.new("conv-1") | status: :running}
 
-      {:ok, conv, _} = Conversation.request_approved_tool_call(conv, "tool-1", "Read", %{}, "Read")
+      {:ok, conv, _} =
+        Conversation.request_approved_tool_call(conv, "tool-1", "Read", %{}, "Read")
 
       # No pending approvals, so await_approval fails
       assert {:error, :no_pending_approvals} = Conversation.await_approval(conv)

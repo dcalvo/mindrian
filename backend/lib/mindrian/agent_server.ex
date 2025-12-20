@@ -104,5 +104,4 @@ defmodule Mindrian.AgentServer do
     Application.get_env(:mindrian, :agent_directory) ||
       Path.expand("../agent", File.cwd!())
   end
-
 end

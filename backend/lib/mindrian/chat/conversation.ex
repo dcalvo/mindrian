@@ -423,6 +423,14 @@ defmodule Mindrian.Chat.Conversation do
   end
 
   @doc """
+  Returns true if there's an agent message currently streaming.
+  """
+  @spec streaming?(t()) :: boolean()
+  def streaming?(%{messages: messages}) do
+    find_streaming_message(messages) != nil
+  end
+
+  @doc """
   Set a pending error for UI display. Does not change conversation status.
   """
   @spec set_error(t(), String.t()) :: {:ok, t(), [Event.t()]}
