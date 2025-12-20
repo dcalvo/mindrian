@@ -1,4 +1,4 @@
-defmodule Mindrian.Agent.Tool do
+defmodule Mindrian.Chat.Tool do
   @moduledoc """
   Behaviour for AI agent tools.
 
@@ -12,8 +12,8 @@ defmodule Mindrian.Agent.Tool do
 
   ## Example
 
-      defmodule MyApp.Agent.Tools.CreateDocument do
-        use Mindrian.Agent.Tool
+      defmodule MyApp.Chat.Tools.CreateDocument do
+        use Mindrian.Chat.Tool
 
         @impl true
         def name, do: "create_document"
@@ -69,7 +69,7 @@ defmodule Mindrian.Agent.Tool do
   """
   defmacro __using__(_opts) do
     quote do
-      @behaviour Mindrian.Agent.Tool
+      @behaviour Mindrian.Chat.Tool
 
       @doc """
       Returns the tool definition in Anthropic API format.

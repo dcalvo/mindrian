@@ -1,8 +1,8 @@
-defmodule Mindrian.Agent.Tools.EditDocument do
+defmodule Mindrian.Chat.Tools.EditDocument do
   @moduledoc """
   Tool for editing document content through block-level operations.
   """
-  use Mindrian.Agent.Tool
+  use Mindrian.Chat.Tool
 
   alias Mindrian.Documents
   alias Mindrian.Collaboration.DocServer

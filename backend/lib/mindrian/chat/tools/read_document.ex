@@ -1,8 +1,8 @@
-defmodule Mindrian.Agent.Tools.ReadDocument do
+defmodule Mindrian.Chat.Tools.ReadDocument do
   @moduledoc """
   Tool for reading document content.
   """
-  use Mindrian.Agent.Tool
+  use Mindrian.Chat.Tool
 
   alias Mindrian.Documents
   alias Mindrian.Collaboration.DocServer

@@ -1,8 +1,8 @@
-defmodule Mindrian.Agent.Tools.DeleteDocument do
+defmodule Mindrian.Chat.Tools.DeleteDocument do
   @moduledoc """
   Tool for deleting documents from the user's workspace.
   """
-  use Mindrian.Agent.Tool
+  use Mindrian.Chat.Tool
 
   alias Mindrian.Documents
 

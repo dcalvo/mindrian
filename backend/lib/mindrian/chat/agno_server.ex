@@ -1,6 +1,6 @@
-defmodule Mindrian.AgentServer do
+defmodule Mindrian.Chat.AgnoServer do
   @moduledoc """
-  Supervises the Python agent process.
+  Supervises the Agno Python agent process.
 
   Starts the Agno-based agent server using uv and uvicorn.
   The agent runs on port 8000 by default.
@@ -18,19 +18,19 @@ defmodule Mindrian.AgentServer do
   def init(_opts) do
     # Only start if enabled in config
     if Application.get_env(:mindrian, :start_agent_server, false) do
-      {:ok, %{port: nil}, {:continue, :start_agent}}
+      {:ok, %{port: nil}, {:continue, :start_agno}}
     else
-      Logger.info("AgentServer disabled, not starting Python agent")
+      Logger.info("AgnoServer disabled, not starting Agno agent")
       :ignore
     end
   end
 
   @impl true
-  def handle_continue(:start_agent, state) do
+  def handle_continue(:start_agno, state) do
     agent_dir = agent_directory()
     port_number = System.get_env("AGENT_PORT", @default_port)
 
-    Logger.info("Starting Python agent on port #{port_number}")
+    Logger.info("Starting Agno agent on port #{port_number}")
 
     uv_path = System.find_executable("uv") || "/usr/local/bin/uv"
 
@@ -64,27 +64,27 @@ defmodule Mindrian.AgentServer do
     # Log agent output
     data
     |> String.split("\n", trim: true)
-    |> Enum.each(&Logger.info("[agent] #{&1}"))
+    |> Enum.each(&Logger.info("[agno] #{&1}"))
 
     {:noreply, state}
   end
 
   @impl true
   def handle_info({port, {:exit_status, status}}, %{port: port} = state) do
-    Logger.error("Python agent exited with status #{status}")
+    Logger.error("Agno agent exited with status #{status}")
     # Let the supervisor restart us
-    {:stop, {:agent_exited, status}, state}
+    {:stop, {:agno_exited, status}, state}
   end
 
   @impl true
   def handle_info(msg, state) do
-    Logger.debug("AgentServer received unexpected message: #{inspect(msg)}")
+    Logger.debug("AgnoServer received unexpected message: #{inspect(msg)}")
     {:noreply, state}
   end
 
   @impl true
   def terminate(_reason, %{port: port}) when is_port(port) do
-    Logger.info("Stopping Python agent")
+    Logger.info("Stopping Agno agent")
 
     # Port may already be closed if we're terminating due to exit_status
     try do

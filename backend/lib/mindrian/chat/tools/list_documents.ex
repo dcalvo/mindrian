@@ -1,8 +1,8 @@
-defmodule Mindrian.Agent.Tools.ListDocuments do
+defmodule Mindrian.Chat.Tools.ListDocuments do
   @moduledoc """
   Tool for listing all documents belonging to a user.
   """
-  use Mindrian.Agent.Tool
+  use Mindrian.Chat.Tool
 
   alias Mindrian.Documents
 

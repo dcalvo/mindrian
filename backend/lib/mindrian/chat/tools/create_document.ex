@@ -1,8 +1,8 @@
-defmodule Mindrian.Agent.Tools.CreateDocument do
+defmodule Mindrian.Chat.Tools.CreateDocument do
   @moduledoc """
   Tool for creating new documents in the user's workspace.
   """
-  use Mindrian.Agent.Tool
+  use Mindrian.Chat.Tool
 
   alias Mindrian.Documents
 

@@ -10,7 +10,7 @@ defmodule MindrianWeb.API.AgentToolsController do
   alias Mindrian.Accounts
   alias Mindrian.Accounts.Scope
 
-  alias Mindrian.Agent.Tools.{
+  alias Mindrian.Chat.Tools.{
     ListDocuments,
     CreateDocument,
     ReadDocument,
