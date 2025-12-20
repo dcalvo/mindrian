@@ -24,6 +24,9 @@ config :mindrian,
   ecto_repos: [Mindrian.Repo],
   generators: [timestamp_type: :utc_datetime, binary_id: true]
 
+# Default Agno URL (overridden in dev.exs and runtime.exs)
+config :mindrian, :agno_url, "http://localhost:8000"
+
 # Configures the endpoint
 config :mindrian, MindrianWeb.Endpoint,
   url: [host: "localhost"],

@@ -3,15 +3,11 @@ defmodule MindrianWeb.DocumentsChannel do
   require Logger
 
   @impl true
-  def join("documents:" <> user_id, _payload, socket) do
-    socket_user_id = socket.assigns[:user_id]
-
-    # Allow join if socket has matching user_id OR if socket is unauthenticated
-    # TODO: Proper channel authentication requires fixing session reading in UserSocket
-    if socket_user_id == nil or to_string(socket_user_id) == user_id do
-      {:ok, assign(socket, :user_id, user_id)}
+  def join("documents:" <> requested_user_id, _payload, socket) do
+    if to_string(socket.assigns.user_id) == requested_user_id do
+      {:ok, socket}
     else
-      {:error, %{reason: "unauthorized"}}
+      {:error, %{reason: "forbidden"}}
     end
   end
 

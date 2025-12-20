@@ -50,6 +50,19 @@ defmodule Mindrian.AccountsFixtures do
     Scope.for_user(user)
   end
 
+  @doc """
+  Creates a scope with a mock user (no database access).
+  Useful for unit tests that don't need real DB users.
+  """
+  def mock_scope_fixture(attrs \\ %{}) do
+    user = %Mindrian.Accounts.User{
+      id: attrs[:id] || Ecto.UUID.generate(),
+      email: attrs[:email] || "test@example.com"
+    }
+
+    Scope.for_user(user)
+  end
+
   def set_password(user) do
     {:ok, {user, _expired_tokens}} =
       Accounts.update_user_password(user, %{password: valid_user_password()})

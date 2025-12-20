@@ -15,6 +15,12 @@ defmodule Mindrian.Application do
       MindrianWeb.Presence,
       # Registry for DocServer processes (one per document)
       {Registry, keys: :unique, name: Mindrian.DocServerRegistry},
+      # Registry for ConversationServer processes (one per conversation)
+      {Registry, keys: :unique, name: Mindrian.ConversationServerRegistry},
+      # Task supervisor for ConversationServer driver tasks
+      {Task.Supervisor, name: Mindrian.DriverTaskSupervisor},
+      # Agno agent server (controlled by :start_agent_server config)
+      Mindrian.Chat.AgnoServer,
       # Start to serve requests, typically the last entry
       MindrianWeb.Endpoint
     ]

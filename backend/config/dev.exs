@@ -83,3 +83,12 @@ config :phoenix_live_view,
 
 # Disable swoosh api client as it is only required for production adapters.
 config :swoosh, :api_client, false
+
+# Agno microservice URL for agent relay
+config :mindrian, :agno_url, "http://localhost:8000"
+
+# Use real Agno driver in dev
+config :mindrian, :chat_driver, Mindrian.Chat.Drivers.AgnoDriver
+
+# Don't auto-start agent server in dev (run separately with ./run-agent)
+config :mindrian, :start_agent_server, false
