@@ -2,9 +2,9 @@ defmodule Mindrian.Chat.ConversationServerTest do
   # Run tests synchronously to avoid Mox conflicts
   use ExUnit.Case, async: false
 
+  import Mindrian.AccountsFixtures
   import Mox
 
-  alias Mindrian.Accounts.Scope
   alias Mindrian.Chat.ConversationServer
   alias Mindrian.Chat.MockDriver
 
@@ -16,17 +16,17 @@ defmodule Mindrian.Chat.ConversationServerTest do
   setup do
     # Stub cancel for cleanup when tests end with running streams
     stub(MockDriver, :cancel, fn _ -> :ok end)
+    # Stub continue for tests that don't need it
+    stub(MockDriver, :continue, fn _run_id, _conv_id, _scope, _tools -> {:ok, []} end)
 
-    # Generate unique session ID for each test
-    session_id = "session-#{System.unique_integer([:positive])}"
-    # Create a mock user struct (minimal fields needed)
-    user = %Mindrian.Accounts.User{id: Ecto.UUID.generate(), email: "test@example.com"}
-    scope = Scope.for_chat(user, session_id)
-    %{scope: scope, session_id: session_id}
+    # Generate unique conversation ID for each test
+    conversation_id = "conv-#{System.unique_integer([:positive])}"
+    scope = mock_scope_fixture()
+    %{scope: scope, conversation_id: conversation_id}
   end
 
   describe "happy path: send -> text -> complete" do
-    test "processes a simple text response", %{scope: scope} do
+    test "processes a simple text response", %{scope: scope, conversation_id: conversation_id} do
       events = [
         {:run_started, "run-1"},
         {:text_chunk, "Hello"},
@@ -39,9 +39,9 @@ defmodule Mindrian.Chat.ConversationServerTest do
         {:ok, events}
       end)
 
-      {:ok, pid} = start_server(scope)
+      {:ok, pid} = start_server(scope, conversation_id)
 
-      assert :ok = ConversationServer.send_message(pid, "Hi")
+      assert :ok = ConversationServer.send_message(pid, "msg-1", "Hi")
 
       # Wait for events to process
       :timer.sleep(10)
@@ -60,7 +60,7 @@ defmodule Mindrian.Chat.ConversationServerTest do
   end
 
   describe "auto-executed tool" do
-    test "tool_started -> tool_completed -> text -> complete", %{scope: scope} do
+    test "tool_started -> tool_completed -> text -> complete", %{scope: scope, conversation_id: conversation_id} do
       events = [
         {:run_started, "run-1"},
         {:tool_started, "tool-1", "read_file", %{"path" => "/tmp/test.txt"}},
@@ -74,8 +74,8 @@ defmodule Mindrian.Chat.ConversationServerTest do
         {:ok, events}
       end)
 
-      {:ok, pid} = start_server(scope)
-      :ok = ConversationServer.send_message(pid, "Read the file")
+      {:ok, pid} = start_server(scope, conversation_id)
+      :ok = ConversationServer.send_message(pid, "msg-1", "Read the file")
 
       :timer.sleep(10)
 
@@ -91,7 +91,7 @@ defmodule Mindrian.Chat.ConversationServerTest do
       assert tool_call.result == %{content: "file contents"}
     end
 
-    test "tool_started -> tool_failed continues gracefully", %{scope: scope} do
+    test "tool_started -> tool_failed continues gracefully", %{scope: scope, conversation_id: conversation_id} do
       events = [
         {:run_started, "run-1"},
         {:tool_started, "tool-1", "read_file", %{"path" => "/nonexistent"}},
@@ -105,8 +105,8 @@ defmodule Mindrian.Chat.ConversationServerTest do
         {:ok, events}
       end)
 
-      {:ok, pid} = start_server(scope)
-      :ok = ConversationServer.send_message(pid, "Read it")
+      {:ok, pid} = start_server(scope, conversation_id)
+      :ok = ConversationServer.send_message(pid, "msg-1", "Read it")
 
       :timer.sleep(10)
 
@@ -120,7 +120,7 @@ defmodule Mindrian.Chat.ConversationServerTest do
   end
 
   describe "confirmation approved" do
-    test "paused -> approve -> tool executes -> complete", %{scope: scope} do
+    test "paused -> approve -> tool executes -> complete", %{scope: scope, conversation_id: conversation_id} do
       run_events = [
         {:run_started, "run-1"},
         {:paused, "run-1",
@@ -147,7 +147,7 @@ defmodule Mindrian.Chat.ConversationServerTest do
         {:ok, run_events}
       end)
 
-      expect(MockDriver, :continue, fn "run-1", _scope, tools ->
+      expect(MockDriver, :continue, fn "run-1", _conv_id, _scope, tools ->
         assert length(tools) == 1
         [tool] = tools
         assert tool.tool_call_id == "tool-1"
@@ -155,8 +155,8 @@ defmodule Mindrian.Chat.ConversationServerTest do
         {:ok, continue_events}
       end)
 
-      {:ok, pid} = start_server(scope)
-      :ok = ConversationServer.send_message(pid, "Delete it")
+      {:ok, pid} = start_server(scope, conversation_id)
+      :ok = ConversationServer.send_message(pid, "msg-1", "Delete it")
 
       :timer.sleep(10)
 
@@ -177,7 +177,7 @@ defmodule Mindrian.Chat.ConversationServerTest do
   end
 
   describe "confirmation rejected" do
-    test "paused -> reject -> text continues -> complete", %{scope: scope} do
+    test "paused -> reject -> text continues -> complete", %{scope: scope, conversation_id: conversation_id} do
       run_events = [
         {:run_started, "run-1"},
         {:paused, "run-1",
@@ -197,7 +197,7 @@ defmodule Mindrian.Chat.ConversationServerTest do
         {:ok, run_events}
       end)
 
-      expect(MockDriver, :continue, fn "run-1", _scope, tools ->
+      expect(MockDriver, :continue, fn "run-1", _conv_id, _scope, tools ->
         assert length(tools) == 1
         [tool] = tools
         assert tool.tool_call_id == "tool-1"
@@ -205,8 +205,8 @@ defmodule Mindrian.Chat.ConversationServerTest do
         {:ok, continue_events}
       end)
 
-      {:ok, pid} = start_server(scope)
-      :ok = ConversationServer.send_message(pid, "Delete it")
+      {:ok, pid} = start_server(scope, conversation_id)
+      :ok = ConversationServer.send_message(pid, "msg-1", "Delete it")
 
       :timer.sleep(10)
 
@@ -228,7 +228,7 @@ defmodule Mindrian.Chat.ConversationServerTest do
   end
 
   describe "partial approval" do
-    test "approve A, reject B -> A executes, B/C/D cascade rejected", %{scope: scope} do
+    test "approve A, reject B -> A executes, B/C/D cascade rejected", %{scope: scope, conversation_id: conversation_id} do
       run_events = [
         {:run_started, "run-1"},
         {:paused, "run-1",
@@ -253,7 +253,7 @@ defmodule Mindrian.Chat.ConversationServerTest do
         {:ok, run_events}
       end)
 
-      expect(MockDriver, :continue, fn "run-1", _scope, tools ->
+      expect(MockDriver, :continue, fn "run-1", _conv_id, _scope, tools ->
         # Should have A approved, B/C/D rejected
         assert length(tools) == 4
         tool_a = Enum.find(tools, &(&1.tool_call_id == "tool-a"))
@@ -267,8 +267,8 @@ defmodule Mindrian.Chat.ConversationServerTest do
         {:ok, continue_events}
       end)
 
-      {:ok, pid} = start_server(scope)
-      :ok = ConversationServer.send_message(pid, "Do all the things")
+      {:ok, pid} = start_server(scope, conversation_id)
+      :ok = ConversationServer.send_message(pid, "msg-1", "Do all the things")
 
       :timer.sleep(10)
 
@@ -301,7 +301,7 @@ defmodule Mindrian.Chat.ConversationServerTest do
   end
 
   describe "cancel" do
-    test "cancel mid-stream", %{scope: scope} do
+    test "cancel mid-stream", %{scope: scope, conversation_id: conversation_id} do
       # Use a stream that yields slowly
       events =
         Stream.concat([
@@ -319,8 +319,8 @@ defmodule Mindrian.Chat.ConversationServerTest do
 
       expect(MockDriver, :cancel, fn "run-1" -> :ok end)
 
-      {:ok, pid} = start_server(scope)
-      :ok = ConversationServer.send_message(pid, "Tell me a story")
+      {:ok, pid} = start_server(scope, conversation_id)
+      :ok = ConversationServer.send_message(pid, "msg-1", "Tell me a story")
 
       # Wait for first chunk then cancel
       :timer.sleep(20)
@@ -334,7 +334,7 @@ defmodule Mindrian.Chat.ConversationServerTest do
       assert agent_msg.status == :cancelled
     end
 
-    test "cancel while paused", %{scope: scope} do
+    test "cancel while paused", %{scope: scope, conversation_id: conversation_id} do
       run_events = [
         {:run_started, "run-1"},
         {:paused, "run-1",
@@ -349,8 +349,8 @@ defmodule Mindrian.Chat.ConversationServerTest do
 
       expect(MockDriver, :cancel, fn "run-1" -> :ok end)
 
-      {:ok, pid} = start_server(scope)
-      :ok = ConversationServer.send_message(pid, "Do something dangerous")
+      {:ok, pid} = start_server(scope, conversation_id)
+      :ok = ConversationServer.send_message(pid, "msg-1", "Do something dangerous")
 
       :timer.sleep(10)
 
@@ -368,20 +368,20 @@ defmodule Mindrian.Chat.ConversationServerTest do
   end
 
   describe "error handling" do
-    test "driver run failure sets error", %{scope: scope} do
+    test "driver run failure sets error", %{scope: scope, conversation_id: conversation_id} do
       expect(MockDriver, :run, fn _conv ->
         {:error, "Connection refused"}
       end)
 
-      {:ok, pid} = start_server(scope)
-      assert {:error, "Connection refused"} = ConversationServer.send_message(pid, "Hi")
+      {:ok, pid} = start_server(scope, conversation_id)
+      assert {:error, "Connection refused"} = ConversationServer.send_message(pid, "msg-1", "Hi")
 
       conv = ConversationServer.get_conversation(pid)
       assert conv.status == :idle
       assert conv.pending_error =~ "Connection refused"
     end
 
-    test "driver error event sets conversation error", %{scope: scope} do
+    test "driver error event sets conversation error", %{scope: scope, conversation_id: conversation_id} do
       events = [
         {:run_started, "run-1"},
         {:text_chunk, "Starting..."},
@@ -392,8 +392,8 @@ defmodule Mindrian.Chat.ConversationServerTest do
         {:ok, events}
       end)
 
-      {:ok, pid} = start_server(scope)
-      :ok = ConversationServer.send_message(pid, "Hi")
+      {:ok, pid} = start_server(scope, conversation_id)
+      :ok = ConversationServer.send_message(pid, "msg-1", "Hi")
 
       :timer.sleep(10)
 
@@ -402,7 +402,7 @@ defmodule Mindrian.Chat.ConversationServerTest do
       assert conv.pending_error == "Connection lost"
     end
 
-    test "task crash sets conversation error", %{scope: scope} do
+    test "task crash sets conversation error", %{scope: scope, conversation_id: conversation_id} do
       # Stream that crashes mid-way
       events =
         Stream.concat([
@@ -414,8 +414,8 @@ defmodule Mindrian.Chat.ConversationServerTest do
         {:ok, events}
       end)
 
-      {:ok, pid} = start_server(scope)
-      :ok = ConversationServer.send_message(pid, "Hi")
+      {:ok, pid} = start_server(scope, conversation_id)
+      :ok = ConversationServer.send_message(pid, "msg-1", "Hi")
 
       :timer.sleep(50)
 
@@ -425,7 +425,7 @@ defmodule Mindrian.Chat.ConversationServerTest do
   end
 
   describe "invalid operations" do
-    test "send_message when not idle returns error", %{scope: scope} do
+    test "send_message when not idle returns error", %{scope: scope, conversation_id: conversation_id} do
       # Use a slow stream to keep running
       events =
         Stream.concat([
@@ -441,16 +441,16 @@ defmodule Mindrian.Chat.ConversationServerTest do
         {:ok, events}
       end)
 
-      {:ok, pid} = start_server(scope)
-      :ok = ConversationServer.send_message(pid, "First")
+      {:ok, pid} = start_server(scope, conversation_id)
+      :ok = ConversationServer.send_message(pid, "msg-1", "First")
 
       :timer.sleep(10)
 
       # Try to send another message while running
-      assert {:error, {:not_your_turn, _}} = ConversationServer.send_message(pid, "Second")
+      assert {:error, {:not_your_turn, _}} = ConversationServer.send_message(pid, "msg-2", "Second")
     end
 
-    test "approve when not awaiting returns error", %{scope: scope} do
+    test "approve when not awaiting returns error", %{scope: scope, conversation_id: conversation_id} do
       events = [
         {:run_started, "run-1"},
         :complete
@@ -460,8 +460,8 @@ defmodule Mindrian.Chat.ConversationServerTest do
         {:ok, events}
       end)
 
-      {:ok, pid} = start_server(scope)
-      :ok = ConversationServer.send_message(pid, "Hi")
+      {:ok, pid} = start_server(scope, conversation_id)
+      :ok = ConversationServer.send_message(pid, "msg-1", "Hi")
 
       :timer.sleep(10)
 
@@ -471,10 +471,11 @@ defmodule Mindrian.Chat.ConversationServerTest do
   end
 
   # Helper to start a server with the mock driver
-  defp start_server(scope) do
+  defp start_server(scope, conversation_id) do
     ConversationServer.start_link(
       scope: scope,
-      driver: MockDriver
+      driver: MockDriver,
+      conversation_id: conversation_id
     )
   end
 end

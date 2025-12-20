@@ -60,17 +60,20 @@ defmodule Mindrian.Chat.Driver do
   @doc """
   Start a new run for the conversation.
 
-  Returns `{:ok, enumerable}` where the enumerable yields events.
+  Returns `{:ok, enumerable}` where the enumerable yields events,
+  or `{:error, reason}` if the run cannot be started.
+
   The first event must be `{:run_started, run_id}` which provides
   the run identifier needed for continue/cancel operations.
   """
   @callback run(conversation :: Conversation.t()) ::
-              {:ok, Enumerable.t(event())}
+              {:ok, Enumerable.t(event())} | {:error, term()}
 
   @doc """
   Continue a paused run after user approval/rejection decisions.
 
-  `scope` provides user and session context for the continuation.
+  `conversation_id` is the session/conversation identifier.
+  `scope` provides user context for the continuation.
   `tools` is a list of tool decisions with `confirmed: true | false`.
   Approved tools (confirmed: true) will be executed.
   Rejected tools (confirmed: false) will be skipped.
@@ -79,6 +82,7 @@ defmodule Mindrian.Chat.Driver do
   """
   @callback continue(
               run_id :: String.t(),
+              conversation_id :: String.t(),
               scope :: Mindrian.Accounts.Scope.t(),
               tools :: [tool_decision()]
             ) ::

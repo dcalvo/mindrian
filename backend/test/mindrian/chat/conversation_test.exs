@@ -1,26 +1,20 @@
 defmodule Mindrian.Chat.ConversationTest do
   use ExUnit.Case, async: true
 
-  alias Mindrian.Accounts.{Scope, User}
-  alias Mindrian.Chat.Conversation
+  import Mindrian.AccountsFixtures
 
-  # Helper to create a test scope with optional overrides
-  defp test_scope(attrs \\ %{}) do
-    user = attrs[:user] || %User{id: Ecto.UUID.generate(), email: "test@example.com"}
-    session_id = attrs[:session_id] || "test-session"
-    Scope.for_chat(user, session_id)
-  end
+  alias Mindrian.Chat.Conversation
 
   # Helper to create a conversation fixture with optional overrides
   defp conversation_fixture(attrs \\ %{}) do
     id = attrs[:id] || "conv-#{System.unique_integer([:positive])}"
-    scope = attrs[:scope] || test_scope()
+    scope = attrs[:scope] || mock_scope_fixture()
     Conversation.new(id, scope)
   end
 
   describe "new/2" do
     test "creates an idle conversation with no messages" do
-      scope = test_scope()
+      scope = mock_scope_fixture()
       conv = Conversation.new("conv-1", scope)
 
       assert conv.id == "conv-1"

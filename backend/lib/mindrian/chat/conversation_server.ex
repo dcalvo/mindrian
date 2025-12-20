@@ -9,13 +9,14 @@ defmodule Mindrian.Chat.ConversationServer do
 
       {:ok, pid} = ConversationServer.start_link(
         scope: scope,
-        driver: Mindrian.Chat.Drivers.AgnoDriver
+        driver: Mindrian.Chat.Drivers.AgnoDriver,
+        conversation_id: "conv-123"
       )
 
   ## User Actions
 
-      # Send a message
-      ConversationServer.send_message(pid, "Hello!")
+      # Send a message (message_id from client for optimistic updates)
+      ConversationServer.send_message(pid, "msg-123", "Hello!")
 
       # Approve a tool call
       ConversationServer.approve_tool_call(pid, "tool-1")
@@ -53,8 +54,9 @@ defmodule Mindrian.Chat.ConversationServer do
   Start a ConversationServer.
 
   Options:
-  - `:scope` (required) - Scope with user and session_id
+  - `:scope` (required) - Scope with user
   - `:driver` (required) - driver module implementing `Mindrian.Chat.Driver`
+  - `:conversation_id` (required) - unique identifier for this conversation
   """
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts)
@@ -63,8 +65,8 @@ defmodule Mindrian.Chat.ConversationServer do
   @doc """
   Send a user message. Triggers an agent run.
   """
-  def send_message(server, content) do
-    GenServer.call(server, {:send_message, content})
+  def send_message(server, message_id, content) do
+    GenServer.call(server, {:send_message, message_id, content})
   end
 
   @doc """
@@ -103,8 +105,7 @@ defmodule Mindrian.Chat.ConversationServer do
   def init(opts) do
     scope = Keyword.fetch!(opts, :scope)
     driver = Keyword.fetch!(opts, :driver)
-
-    conversation_id = scope.session_id
+    conversation_id = Keyword.fetch!(opts, :conversation_id)
 
     state = %__MODULE__{
       conversation: Conversation.new(conversation_id, scope),
@@ -117,9 +118,7 @@ defmodule Mindrian.Chat.ConversationServer do
   end
 
   @impl true
-  def handle_call({:send_message, content}, _from, state) do
-    message_id = generate_id()
-
+  def handle_call({:send_message, message_id, content}, _from, state) do
     case Conversation.send_message(state.conversation, message_id, content) do
       {:ok, conv, events} ->
         state = %{state | conversation: conv}
@@ -449,7 +448,7 @@ defmodule Mindrian.Chat.ConversationServer do
 
       if tools != [] do
         # Continue the driver with tool decisions
-        case state.driver.continue(state.run_id, conv.scope, tools) do
+        case state.driver.continue(state.run_id, conv.id, conv.scope, tools) do
           {:ok, enumerable} ->
             spawn_driver_task(state, enumerable)
 
@@ -512,6 +511,4 @@ defmodule Mindrian.Chat.ConversationServer do
       MindrianWeb.Endpoint.broadcast(state.topic, "event", payload)
     end
   end
-
-  defp generate_id, do: Nanoid.generate()
 end

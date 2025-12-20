@@ -16,15 +16,15 @@ defmodule MindrianWeb.ChatChannelTest do
     user = user_fixture()
     token = Phoenix.Token.sign(@endpoint, "user socket", user.id)
     {:ok, socket} = connect(MindrianWeb.UserSocket, %{"token" => token})
-    session_id = "session-#{System.unique_integer([:positive])}"
-    %{socket: socket, user: user, session_id: session_id}
+    conversation_id = "conv-#{System.unique_integer([:positive])}"
+    %{socket: socket, user: user, conversation_id: conversation_id}
   end
 
   describe "join/3" do
-    test "returns conversation state on join", %{socket: socket, session_id: session_id} do
-      {:ok, reply, _socket} = subscribe_and_join(socket, ChatChannel, "chat:#{session_id}")
+    test "returns conversation state on join", %{socket: socket, conversation_id: conversation_id} do
+      {:ok, reply, _socket} = subscribe_and_join(socket, ChatChannel, "chat:#{conversation_id}")
 
-      assert reply.id == session_id
+      assert reply.id == conversation_id
       assert reply.status == :idle
       assert reply.messages == []
       assert reply.pending_error == nil
@@ -32,7 +32,7 @@ defmodule MindrianWeb.ChatChannelTest do
   end
 
   describe "send_message" do
-    test "triggers driver and returns ok", %{socket: socket, session_id: session_id} do
+    test "triggers driver and returns ok", %{socket: socket, conversation_id: conversation_id} do
       events = [
         {:run_started, "run-1"},
         {:text_chunk, "Hello!"},
@@ -44,9 +44,9 @@ defmodule MindrianWeb.ChatChannelTest do
         {:ok, events}
       end)
 
-      {:ok, _reply, socket} = subscribe_and_join(socket, ChatChannel, "chat:#{session_id}")
+      {:ok, _reply, socket} = subscribe_and_join(socket, ChatChannel, "chat:#{conversation_id}")
 
-      ref = push(socket, "send_message", %{"content" => "Hi"})
+      ref = push(socket, "send_message", %{"id" => "msg-1", "content" => "Hi"})
       assert_reply ref, :ok
 
       # Wait for events to process and be broadcast
@@ -56,7 +56,7 @@ defmodule MindrianWeb.ChatChannelTest do
       assert_push "event", %{type: "status_changed", status: "running"}
     end
 
-    test "returns error when not idle", %{socket: socket, session_id: session_id} do
+    test "returns error when not idle", %{socket: socket, conversation_id: conversation_id} do
       # Use a slow stream to keep running
       events =
         Stream.concat([
@@ -72,22 +72,22 @@ defmodule MindrianWeb.ChatChannelTest do
         {:ok, events}
       end)
 
-      {:ok, _reply, socket} = subscribe_and_join(socket, ChatChannel, "chat:#{session_id}")
+      {:ok, _reply, socket} = subscribe_and_join(socket, ChatChannel, "chat:#{conversation_id}")
 
       # First message starts the run
-      ref1 = push(socket, "send_message", %{"content" => "First"})
+      ref1 = push(socket, "send_message", %{"id" => "msg-1", "content" => "First"})
       assert_reply ref1, :ok
 
       :timer.sleep(20)
 
       # Second message should fail
-      ref2 = push(socket, "send_message", %{"content" => "Second"})
+      ref2 = push(socket, "send_message", %{"id" => "msg-2", "content" => "Second"})
       assert_reply ref2, :error, %{code: "not_your_turn"}
     end
   end
 
   describe "approve_tool_call" do
-    test "approves tool and continues run", %{socket: socket, session_id: session_id} do
+    test "approves tool and continues run", %{socket: socket, conversation_id: conversation_id} do
       run_events = [
         {:run_started, "run-1"},
         {:paused, "run-1",
@@ -109,16 +109,16 @@ defmodule MindrianWeb.ChatChannelTest do
         {:ok, run_events}
       end)
 
-      expect(MockDriver, :continue, fn "run-1", _scope, tools ->
+      expect(MockDriver, :continue, fn "run-1", _conv_id, _scope, tools ->
         assert length(tools) == 1
         [tool] = tools
         assert tool.confirmed == true
         {:ok, continue_events}
       end)
 
-      {:ok, _reply, socket} = subscribe_and_join(socket, ChatChannel, "chat:#{session_id}")
+      {:ok, _reply, socket} = subscribe_and_join(socket, ChatChannel, "chat:#{conversation_id}")
 
-      ref = push(socket, "send_message", %{"content" => "Delete it"})
+      ref = push(socket, "send_message", %{"id" => "msg-1", "content" => "Delete it"})
       assert_reply ref, :ok
 
       :timer.sleep(20)
@@ -127,8 +127,8 @@ defmodule MindrianWeb.ChatChannelTest do
       assert_reply ref, :ok
     end
 
-    test "returns error when not awaiting approval", %{socket: socket, session_id: session_id} do
-      {:ok, _reply, socket} = subscribe_and_join(socket, ChatChannel, "chat:#{session_id}")
+    test "returns error when not awaiting approval", %{socket: socket, conversation_id: conversation_id} do
+      {:ok, _reply, socket} = subscribe_and_join(socket, ChatChannel, "chat:#{conversation_id}")
 
       ref = push(socket, "approve_tool_call", %{"tool_id" => "nonexistent"})
       assert_reply ref, :error, %{code: "invalid_status"}
@@ -136,7 +136,7 @@ defmodule MindrianWeb.ChatChannelTest do
   end
 
   describe "reject_tool_call" do
-    test "rejects tool with reason", %{socket: socket, session_id: session_id} do
+    test "rejects tool with reason", %{socket: socket, conversation_id: conversation_id} do
       run_events = [
         {:run_started, "run-1"},
         {:paused, "run-1",
@@ -156,16 +156,16 @@ defmodule MindrianWeb.ChatChannelTest do
         {:ok, run_events}
       end)
 
-      expect(MockDriver, :continue, fn "run-1", _scope, tools ->
+      expect(MockDriver, :continue, fn "run-1", _conv_id, _scope, tools ->
         assert length(tools) == 1
         [tool] = tools
         assert tool.confirmed == false
         {:ok, continue_events}
       end)
 
-      {:ok, _reply, socket} = subscribe_and_join(socket, ChatChannel, "chat:#{session_id}")
+      {:ok, _reply, socket} = subscribe_and_join(socket, ChatChannel, "chat:#{conversation_id}")
 
-      ref = push(socket, "send_message", %{"content" => "Do something dangerous"})
+      ref = push(socket, "send_message", %{"id" => "msg-1", "content" => "Do something dangerous"})
       assert_reply ref, :ok
 
       :timer.sleep(20)
@@ -176,7 +176,7 @@ defmodule MindrianWeb.ChatChannelTest do
   end
 
   describe "cancel" do
-    test "cancels running operation", %{socket: socket, session_id: session_id} do
+    test "cancels running operation", %{socket: socket, conversation_id: conversation_id} do
       events =
         Stream.concat([
           [{:run_started, "run-1"}, {:text_chunk, "Starting..."}],
@@ -193,9 +193,9 @@ defmodule MindrianWeb.ChatChannelTest do
 
       expect(MockDriver, :cancel, fn "run-1" -> :ok end)
 
-      {:ok, _reply, socket} = subscribe_and_join(socket, ChatChannel, "chat:#{session_id}")
+      {:ok, _reply, socket} = subscribe_and_join(socket, ChatChannel, "chat:#{conversation_id}")
 
-      ref = push(socket, "send_message", %{"content" => "Tell me a story"})
+      ref = push(socket, "send_message", %{"id" => "msg-1", "content" => "Tell me a story"})
       assert_reply ref, :ok
 
       :timer.sleep(30)
@@ -206,10 +206,10 @@ defmodule MindrianWeb.ChatChannelTest do
   end
 
   describe "lifecycle" do
-    test "server dies when channel terminates", %{socket: socket, session_id: session_id} do
+    test "server dies when channel terminates", %{socket: socket, conversation_id: conversation_id} do
       stub(MockDriver, :run, fn _conv -> {:ok, [:complete]} end)
 
-      {:ok, _reply, socket} = subscribe_and_join(socket, ChatChannel, "chat:#{session_id}")
+      {:ok, _reply, socket} = subscribe_and_join(socket, ChatChannel, "chat:#{conversation_id}")
 
       server_pid = socket.assigns.server
       assert Process.alive?(server_pid)

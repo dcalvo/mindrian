@@ -8,11 +8,11 @@ defmodule MindrianWeb.ChatChannel do
 
   ## Topic Format
 
-      "chat:" <> session_id
+      "chat:" <> conversation_id
 
   ## Incoming Messages
 
-      - "send_message" %{"content" => string} - Send a user message
+      - "send_message" %{"id" => string, "content" => string} - Send a user message
       - "approve_tool_call" %{"tool_id" => string} - Approve a tool call
       - "reject_tool_call" %{"tool_id" => string, "reason" => string?} - Reject a tool call
       - "cancel" %{} - Cancel the current run
@@ -31,7 +31,7 @@ defmodule MindrianWeb.ChatChannel do
   alias Mindrian.Chat.ConversationServer
 
   @impl true
-  def join("chat:" <> session_id, _payload, socket) do
+  def join("chat:" <> conversation_id, _payload, socket) do
     user_id = socket.assigns.user_id
 
     # Load user from database
@@ -40,13 +40,17 @@ defmodule MindrianWeb.ChatChannel do
         {:error, %{reason: "user_not_found"}}
 
       user ->
-        scope = Scope.for_chat(user, session_id)
+        scope = Scope.for_user(user)
         driver = Application.get_env(:mindrian, :chat_driver)
 
-        case ConversationServer.start_link(scope: scope, driver: driver) do
+        case ConversationServer.start_link(
+               scope: scope,
+               driver: driver,
+               conversation_id: conversation_id
+             ) do
           {:ok, pid} ->
             # Subscribe to conversation events
-            topic = "conversation:#{session_id}"
+            topic = "conversation:#{conversation_id}"
             Phoenix.PubSub.subscribe(Mindrian.PubSub, topic)
 
             # Get initial conversation state
@@ -55,7 +59,7 @@ defmodule MindrianWeb.ChatChannel do
             socket =
               socket
               |> assign(:server, pid)
-              |> assign(:session_id, session_id)
+              |> assign(:conversation_id, conversation_id)
 
             {:ok, conversation_to_reply(conv), socket}
 
@@ -71,8 +75,8 @@ defmodule MindrianWeb.ChatChannel do
   # ---------------------------------------------------------------------------
 
   @impl true
-  def handle_in("send_message", %{"content" => content}, socket) do
-    case ConversationServer.send_message(socket.assigns.server, content) do
+  def handle_in("send_message", %{"id" => message_id, "content" => content}, socket) do
+    case ConversationServer.send_message(socket.assigns.server, message_id, content) do
       :ok ->
         {:reply, :ok, socket}
 

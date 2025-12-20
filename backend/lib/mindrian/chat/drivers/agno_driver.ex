@@ -2,8 +2,9 @@ defmodule Mindrian.Chat.Drivers.AgnoDriver do
   @moduledoc """
   Driver connecting ConversationServer to the Agno AI agent service.
 
-  Uses SSE streaming to receive events from Agno and translates them
-  to the Driver event format.
+  Implements the `Mindrian.Chat.Driver` behaviour. Uses SSE streaming to
+  receive events from Agno and translates them to the standard Driver
+  event format. See `Mindrian.Chat.Driver` for the complete event specification.
 
   ## Configuration
 
@@ -36,12 +37,12 @@ defmodule Mindrian.Chat.Drivers.AgnoDriver do
     if user_message == nil do
       {:error, "No user message to send"}
     else
-      Logger.info("AgnoDriver: starting run for session=#{conv.scope.session_id}")
+      Logger.info("AgnoDriver: starting run for session=#{conv.id}")
 
       form_data = [
         {"message", user_message.content},
         {"stream", "true"},
-        {"session_id", conv.scope.session_id},
+        {"session_id", conv.id},
         {"user_id", conv.scope.user.id},
         {"dependencies", Jason.encode!(%{document_id: nil})}
       ]
@@ -51,7 +52,7 @@ defmodule Mindrian.Chat.Drivers.AgnoDriver do
   end
 
   @impl true
-  def continue(run_id, scope, tools) do
+  def continue(run_id, conversation_id, scope, tools) do
     url = "#{agno_url()}/agents/#{@agent_id}/runs/#{run_id}/continue"
 
     # Build tool execution list
@@ -78,7 +79,7 @@ defmodule Mindrian.Chat.Drivers.AgnoDriver do
     form_data = [
       {"tools", Jason.encode!(tool_executions)},
       {"stream", "true"},
-      {"session_id", scope.session_id},
+      {"session_id", conversation_id},
       {"user_id", scope.user.id}
     ]
 

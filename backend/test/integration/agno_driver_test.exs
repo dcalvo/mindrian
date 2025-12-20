@@ -24,15 +24,15 @@ defmodule Mindrian.Chat.Drivers.AgnoDriverIntegrationTest do
 
     # Create a test user and scope
     user = %User{id: Ecto.UUID.generate(), email: "integration-test@example.com"}
-    session_id = "integration-#{System.unique_integer([:positive])}"
-    scope = Scope.for_chat(user, session_id)
+    conversation_id = "integration-#{System.unique_integer([:positive])}"
+    scope = Scope.for_user(user)
 
     # Create a conversation with a user message
     conv =
-      Conversation.new(session_id, scope)
+      Conversation.new(conversation_id, scope)
       |> add_user_message("Hello, this is an integration test.")
 
-    %{conv: conv, session_id: session_id}
+    %{conv: conv, conversation_id: conversation_id, scope: scope}
   end
 
   describe "run/1" do
@@ -56,14 +56,15 @@ defmodule Mindrian.Chat.Drivers.AgnoDriverIntegrationTest do
     end
 
     @tag timeout: @timeout
-    test "streams tool execution events with ping tool", %{session_id: session_id} do
+    test "streams tool execution events with ping tool", %{conversation_id: conversation_id} do
       # Create a conversation that triggers the ping tool
       # Requires agent running with MINDRIAN_TESTING=true
       user = %User{id: Ecto.UUID.generate(), email: "tool-test@example.com"}
-      scope = Scope.for_chat(user, session_id <> "-tool")
+      scope = Scope.for_user(user)
+      conv_id = conversation_id <> "-tool"
 
       conv =
-        Conversation.new(session_id <> "-tool", scope)
+        Conversation.new(conv_id, scope)
         |> add_user_message(
           "Please use the ping tool with the message 'hello from integration test'"
         )
@@ -82,14 +83,15 @@ defmodule Mindrian.Chat.Drivers.AgnoDriverIntegrationTest do
     end
 
     @tag timeout: @timeout
-    test "continues run after tool approval", %{session_id: session_id} do
+    test "continues run after tool approval", %{conversation_id: conversation_id} do
       # Create a conversation that triggers the ping tool
       # Requires agent running with MINDRIAN_TESTING=true
       user = %User{id: Ecto.UUID.generate(), email: "tool-test@example.com"}
-      scope = Scope.for_chat(user, session_id <> "-continue")
+      scope = Scope.for_user(user)
+      conv_id = conversation_id <> "-continue"
 
       conv =
-        Conversation.new(session_id <> "-continue", scope)
+        Conversation.new(conv_id, scope)
         |> add_user_message("Please use the ping tool with message 'test approval flow'")
 
       {:ok, stream} = AgnoDriver.run(conv)
@@ -115,7 +117,7 @@ defmodule Mindrian.Chat.Drivers.AgnoDriverIntegrationTest do
         confirmed: true
       }
 
-      {:ok, continue_stream} = AgnoDriver.continue(run_id, scope, [tool_decision])
+      {:ok, continue_stream} = AgnoDriver.continue(run_id, conv_id, scope, [tool_decision])
       continue_events = Enum.to_list(continue_stream)
       continue_event_types = Enum.map(continue_events, &event_type/1)
       Logger.info("Continue event types: #{inspect(continue_event_types)}")

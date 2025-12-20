@@ -42,14 +42,18 @@ defmodule Mindrian.Chat.Conversation do
 
   ## Function Categories
 
-  **User actions**: `send_message`, `approve_tool_call`, `reject_tool_call`, `cancel`
+  **User actions**: `send_message/3`, `approve_tool_call/2`, `reject_tool_call/3`, `cancel/1`
 
-  **Driver actions** (called by backend orchestration): `execute_approved_tool`,
-  `complete_tool_call`, `fail_tool_call`, `next_approved_tool`
+  **Driver actions** (called by backend orchestration): `execute_approved_tool/2`,
+  `complete_tool_call/3`, `fail_tool_call/3`, `next_approved_tool/1`
 
   **Agent actions** (called when LLM produces output): `start_agent_message/1`,
   `append_chunk/2`, `complete_agent_message/1`, `request_tool_call/5`,
   `request_approved_tool_call/5`, `await_approval/1`, `complete_run/1`
+
+  **Queries**: `streaming?/1`
+
+  **Utilities**: `set_error/2`, `to_map/1`
   """
 
   alias Mindrian.Accounts.Scope
@@ -82,6 +86,12 @@ defmodule Mindrian.Chat.Conversation do
   @doc """
   User sends a message. Only valid when idle.
   Transitions to :running and clears any pending error.
+
+  ## Parameters
+
+  - `conv` - The conversation state
+  - `message_id` - Unique identifier for this message (client-generated for optimistic updates)
+  - `content` - The message text
   """
   @spec send_message(t(), String.t(), String.t()) ::
           {:ok, t(), [Event.t()]} | {:error, term()}

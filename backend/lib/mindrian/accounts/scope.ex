@@ -19,27 +19,20 @@ defmodule Mindrian.Accounts.Scope do
   alias Mindrian.Accounts.User
 
   @type t :: %__MODULE__{
-          user: User.t() | nil,
-          session_id: String.t() | nil
+          user: User.t() | nil
         }
 
-  defstruct user: nil, session_id: nil
+  defstruct user: nil
 
   @doc """
   Creates a scope for the given user.
 
   Returns nil if no user is given.
   """
+  @spec for_user(User.t() | nil) :: t() | nil
   def for_user(%User{} = user) do
     %__MODULE__{user: user}
   end
 
   def for_user(nil), do: nil
-
-  @doc """
-  Creates a scope with user and session_id for chat conversations.
-  """
-  def for_chat(%User{} = user, session_id) when is_binary(session_id) do
-    %__MODULE__{user: user, session_id: session_id}
-  end
 end
