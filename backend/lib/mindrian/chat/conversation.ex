@@ -321,7 +321,13 @@ defmodule Mindrian.Chat.Conversation do
     tool_call = %{Message.tool_call(id, name, arguments, description) | status: :approved}
     new_conv = %{conv | messages: messages ++ [tool_call]}
 
-    events = complete_events ++ [{:tool_call_approved, id}]
+    events =
+      complete_events ++
+        [
+          {:tool_call_requested, tool_call},
+          {:tool_call_approved, id}
+        ]
+
     {:ok, new_conv, events}
   end
 

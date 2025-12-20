@@ -291,10 +291,10 @@ defmodule Mindrian.Chat.ConversationTest do
                  "Read f.ex"
                )
 
-      assert [%{id: "tool-1", role: :tool_call, name: "Read", status: :approved}] =
+      assert [%{id: "tool-1", role: :tool_call, name: "Read", status: :approved} = tool_call] =
                new_conv.messages
 
-      assert events == [{:tool_call_approved, "tool-1"}]
+      assert events == [{:tool_call_requested, tool_call}, {:tool_call_approved, "tool-1"}]
     end
 
     test "auto-approved tools don't block await_approval" do

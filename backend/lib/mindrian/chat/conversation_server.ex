@@ -299,27 +299,46 @@ defmodule Mindrian.Chat.ConversationServer do
   end
 
   defp handle_driver_event({:tool_started, id, name, args}, state) do
-    # Auto-approved tool - add and immediately execute
-    # Use tool name as description since Agno doesn't provide it
-    description = "Execute #{name}"
+    # Check if tool already exists (e.g., was added via :paused and approved by user)
+    tool_exists? =
+      Enum.any?(state.conversation.messages, fn msg ->
+        msg.role == :tool_call && msg.id == id
+      end)
 
-    case Conversation.request_approved_tool_call(state.conversation, id, name, args, description) do
-      {:ok, conv, events} ->
-        broadcast_events(state, events)
+    conv =
+      if tool_exists? do
+        # Tool was already added via :paused handler, just use existing conversation
+        state.conversation
+      else
+        # Auto-approved tool - add it now
+        description = "Execute #{name}"
 
-        case Conversation.execute_approved_tool(conv, id) do
-          {:ok, conv, exec_events} ->
-            broadcast_events(state, exec_events)
-            %{state | conversation: conv}
+        case Conversation.request_approved_tool_call(
+               state.conversation,
+               id,
+               name,
+               args,
+               description
+             ) do
+          {:ok, conv, events} ->
+            broadcast_events(state, events)
+            conv
 
           {:error, reason} ->
-            Logger.warning("Failed to execute tool #{id}: #{inspect(reason)}")
-            %{state | conversation: conv}
+            Logger.warning("Failed to add tool call #{id}: #{inspect(reason)}")
+            state.conversation
         end
+      end
+
+    # Execute the tool
+    case Conversation.execute_approved_tool(conv, id) do
+      {:ok, conv, exec_events} ->
+        broadcast_events(state, exec_events)
+        %{state | conversation: conv}
 
       {:error, reason} ->
-        Logger.warning("Failed to add tool call #{id}: #{inspect(reason)}")
-        state
+        Logger.warning("Failed to execute tool #{id}: #{inspect(reason)}")
+        %{state | conversation: conv}
     end
   end
 
@@ -351,9 +370,21 @@ defmodule Mindrian.Chat.ConversationServer do
     # Run paused for approval - add tool calls and await
     state = %{state | run_id: run_id}
 
-    # Add each pending tool
+    # Filter out tools that already exist in this conversation (Agno may re-send
+    # already-executed tools in pause events). Within a single run, each tool ID
+    # should only appear once.
+    existing_tool_ids =
+      state.conversation.messages
+      |> Enum.filter(&(&1.role == :tool_call))
+      |> Enum.map(& &1.id)
+      |> MapSet.new()
+
+    new_tools =
+      Enum.reject(tools, fn tool -> MapSet.member?(existing_tool_ids, tool.id) end)
+
+    # Add each new pending tool
     conv =
-      Enum.reduce(tools, state.conversation, fn tool, conv ->
+      Enum.reduce(new_tools, state.conversation, fn tool, conv ->
         case Conversation.request_tool_call(
                conv,
                tool.id,
@@ -371,14 +402,14 @@ defmodule Mindrian.Chat.ConversationServer do
         end
       end)
 
-    # Transition to awaiting_approval
+    # Transition to awaiting_approval (only if there are pending tools)
     case Conversation.await_approval(conv) do
       {:ok, conv, events} ->
         broadcast_events(state, events)
         %{state | conversation: conv}
 
       {:error, :no_pending_approvals} ->
-        Logger.warning("Paused but no pending approvals")
+        # All tools were already processed, stay in running state
         %{state | conversation: conv}
 
       {:error, reason} ->

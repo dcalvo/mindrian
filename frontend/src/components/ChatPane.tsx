@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import {
   useChat,
@@ -24,7 +24,10 @@ export function ChatPane() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Derive computed values from conversation
-  const messages = conversation?.messages ?? [];
+  const messages = useMemo(
+    () => conversation?.messages ?? [],
+    [conversation?.messages]
+  );
   const status = conversation?.status ?? "idle";
 
   // Find streaming message (agent message with status "streaming")

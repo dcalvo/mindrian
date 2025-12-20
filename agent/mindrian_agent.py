@@ -58,7 +58,7 @@ tools = document_tools + (testing_tools if TESTING else [])
 agent = Agent(
     id="mindrian-agent",
     name="Mindrian Agent",
-    model=Claude(id="claude-sonnet-4-5", api_key=api_key),
+    model=Claude(id="claude-haiku-4-5", api_key=api_key),
     db=db,
     tools=tools,
     instructions=SYSTEM_PROMPT,

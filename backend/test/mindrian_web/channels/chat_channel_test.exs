@@ -127,7 +127,10 @@ defmodule MindrianWeb.ChatChannelTest do
       assert_reply ref, :ok
     end
 
-    test "returns error when not awaiting approval", %{socket: socket, conversation_id: conversation_id} do
+    test "returns error when not awaiting approval", %{
+      socket: socket,
+      conversation_id: conversation_id
+    } do
       {:ok, _reply, socket} = subscribe_and_join(socket, ChatChannel, "chat:#{conversation_id}")
 
       ref = push(socket, "approve_tool_call", %{"tool_id" => "nonexistent"})
@@ -165,7 +168,9 @@ defmodule MindrianWeb.ChatChannelTest do
 
       {:ok, _reply, socket} = subscribe_and_join(socket, ChatChannel, "chat:#{conversation_id}")
 
-      ref = push(socket, "send_message", %{"id" => "msg-1", "content" => "Do something dangerous"})
+      ref =
+        push(socket, "send_message", %{"id" => "msg-1", "content" => "Do something dangerous"})
+
       assert_reply ref, :ok
 
       :timer.sleep(20)
@@ -206,7 +211,10 @@ defmodule MindrianWeb.ChatChannelTest do
   end
 
   describe "lifecycle" do
-    test "server dies when channel terminates", %{socket: socket, conversation_id: conversation_id} do
+    test "server dies when channel terminates", %{
+      socket: socket,
+      conversation_id: conversation_id
+    } do
       stub(MockDriver, :run, fn _conv -> {:ok, [:complete]} end)
 
       {:ok, _reply, socket} = subscribe_and_join(socket, ChatChannel, "chat:#{conversation_id}")

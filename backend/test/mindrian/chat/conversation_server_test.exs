@@ -60,7 +60,10 @@ defmodule Mindrian.Chat.ConversationServerTest do
   end
 
   describe "auto-executed tool" do
-    test "tool_started -> tool_completed -> text -> complete", %{scope: scope, conversation_id: conversation_id} do
+    test "tool_started -> tool_completed -> text -> complete", %{
+      scope: scope,
+      conversation_id: conversation_id
+    } do
       events = [
         {:run_started, "run-1"},
         {:tool_started, "tool-1", "read_file", %{"path" => "/tmp/test.txt"}},
@@ -91,7 +94,10 @@ defmodule Mindrian.Chat.ConversationServerTest do
       assert tool_call.result == %{content: "file contents"}
     end
 
-    test "tool_started -> tool_failed continues gracefully", %{scope: scope, conversation_id: conversation_id} do
+    test "tool_started -> tool_failed continues gracefully", %{
+      scope: scope,
+      conversation_id: conversation_id
+    } do
       events = [
         {:run_started, "run-1"},
         {:tool_started, "tool-1", "read_file", %{"path" => "/nonexistent"}},
@@ -120,7 +126,10 @@ defmodule Mindrian.Chat.ConversationServerTest do
   end
 
   describe "confirmation approved" do
-    test "paused -> approve -> tool executes -> complete", %{scope: scope, conversation_id: conversation_id} do
+    test "paused -> approve -> tool executes -> complete", %{
+      scope: scope,
+      conversation_id: conversation_id
+    } do
       run_events = [
         {:run_started, "run-1"},
         {:paused, "run-1",
@@ -177,7 +186,10 @@ defmodule Mindrian.Chat.ConversationServerTest do
   end
 
   describe "confirmation rejected" do
-    test "paused -> reject -> text continues -> complete", %{scope: scope, conversation_id: conversation_id} do
+    test "paused -> reject -> text continues -> complete", %{
+      scope: scope,
+      conversation_id: conversation_id
+    } do
       run_events = [
         {:run_started, "run-1"},
         {:paused, "run-1",
@@ -228,7 +240,10 @@ defmodule Mindrian.Chat.ConversationServerTest do
   end
 
   describe "partial approval" do
-    test "approve A, reject B -> A executes, B/C/D cascade rejected", %{scope: scope, conversation_id: conversation_id} do
+    test "approve A, reject B -> A executes, B/C/D cascade rejected", %{
+      scope: scope,
+      conversation_id: conversation_id
+    } do
       run_events = [
         {:run_started, "run-1"},
         {:paused, "run-1",
@@ -381,7 +396,10 @@ defmodule Mindrian.Chat.ConversationServerTest do
       assert conv.pending_error =~ "Connection refused"
     end
 
-    test "driver error event sets conversation error", %{scope: scope, conversation_id: conversation_id} do
+    test "driver error event sets conversation error", %{
+      scope: scope,
+      conversation_id: conversation_id
+    } do
       events = [
         {:run_started, "run-1"},
         {:text_chunk, "Starting..."},
@@ -425,7 +443,10 @@ defmodule Mindrian.Chat.ConversationServerTest do
   end
 
   describe "invalid operations" do
-    test "send_message when not idle returns error", %{scope: scope, conversation_id: conversation_id} do
+    test "send_message when not idle returns error", %{
+      scope: scope,
+      conversation_id: conversation_id
+    } do
       # Use a slow stream to keep running
       events =
         Stream.concat([
@@ -447,10 +468,14 @@ defmodule Mindrian.Chat.ConversationServerTest do
       :timer.sleep(10)
 
       # Try to send another message while running
-      assert {:error, {:not_your_turn, _}} = ConversationServer.send_message(pid, "msg-2", "Second")
+      assert {:error, {:not_your_turn, _}} =
+               ConversationServer.send_message(pid, "msg-2", "Second")
     end
 
-    test "approve when not awaiting returns error", %{scope: scope, conversation_id: conversation_id} do
+    test "approve when not awaiting returns error", %{
+      scope: scope,
+      conversation_id: conversation_id
+    } do
       events = [
         {:run_started, "run-1"},
         :complete

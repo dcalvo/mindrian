@@ -1,14 +1,20 @@
 import Markdown from "react-markdown";
-import type { Message, UserMessage, AgentMessage } from "../hooks/useChat";
+import type {
+  Message,
+  UserMessage,
+  AgentMessage,
+  ToolCallMessage,
+} from "../hooks/useChat";
+import { ToolCallDisplay } from "./ToolCallDisplay";
 
 interface ChatMessageProps {
   message: Message;
 }
 
 export function ChatMessage({ message }: ChatMessageProps) {
-  // Only render user and agent messages (tool calls handled separately)
+  // Render tool calls with dedicated component
   if (message.role === "tool_call") {
-    return null;
+    return <ToolCallDisplay tool={message as ToolCallMessage} />;
   }
 
   const isUser = message.role === "user";
