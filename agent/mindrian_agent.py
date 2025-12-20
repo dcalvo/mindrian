@@ -18,7 +18,10 @@ from agno.db.sqlite import SqliteDb  # noqa: E402
 from agno.models.anthropic import Claude  # noqa: E402
 from agno.os import AgentOS  # noqa: E402
 
-from tools import document_tools  # noqa: E402
+from tools import document_tools, testing_tools  # noqa: E402
+
+# Include testing tools when MINDRIAN_TESTING=true
+TESTING = os.getenv("MINDRIAN_TESTING", "").lower() == "true"
 
 # TODO: Switch to PostgresDb after Agno fixes datetime serialization bug
 # https://github.com/agno-agi/agno/issues/5661 (reported 2025-12-18)
@@ -48,13 +51,16 @@ document management tasks."""
 # Get API key from environment
 api_key = os.getenv("ANTHROPIC_API_KEY")
 
+# Build tools list - include testing tools when MINDRIAN_TESTING=true
+tools = document_tools + (testing_tools if TESTING else [])
+
 # Create the agent
 agent = Agent(
     id="mindrian-agent",
     name="Mindrian Agent",
     model=Claude(id="claude-sonnet-4-5", api_key=api_key),
     db=db,
-    tools=document_tools,
+    tools=tools,
     instructions=SYSTEM_PROMPT,
     add_history_to_context=True,
     num_history_runs=10,
