@@ -1,25 +1,52 @@
 import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
-import { useChat } from "../hooks/useChat";
+import {
+  useChat,
+  type AgentMessage,
+  type ToolCallMessage,
+} from "../hooks/useChat";
 import { ChatMessage } from "./ChatMessage";
 import { ToolApproval } from "./ToolApproval";
 import "./ChatPane.css";
 
 export function ChatPane() {
+  const [conversationId] = useState(() => crypto.randomUUID());
   const {
-    messages,
-    streamingMessage,
-    pendingTool,
-    status,
+    conversation,
     error,
     sendMessage,
-    approveToolRequest,
-    rejectToolRequest,
+    approveToolCall,
+    rejectToolCall,
     cancel,
-  } = useChat();
+  } = useChat(conversationId);
 
   const [input, setInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Derive computed values from conversation
+  const messages = conversation?.messages ?? [];
+  const status = conversation?.status ?? "idle";
+
+  // Find streaming message (agent message with status "streaming")
+  const streamingMessage = messages.find(
+    (m): m is AgentMessage => m.role === "agent" && m.status === "streaming"
+  );
+
+  // Find pending tool (tool_call with status "pending_approval")
+  const pendingTool = messages.find(
+    (m): m is ToolCallMessage =>
+      m.role === "tool_call" && m.status === "pending_approval"
+  );
+
+  // Filter out streaming messages and pending tools from the main list
+  const displayMessages = messages.filter(
+    (m) =>
+      !(m.role === "agent" && (m as AgentMessage).status === "streaming") &&
+      !(
+        m.role === "tool_call" &&
+        (m as ToolCallMessage).status === "pending_approval"
+      )
+  );
 
   // Auto-scroll to bottom when new messages arrive or streaming updates
   useEffect(() => {
@@ -47,14 +74,10 @@ export function ChatPane() {
 
   const getStatusText = () => {
     switch (status) {
-      case "thinking":
-        return "Thinking...";
-      case "streaming":
-        return null; // Don't show status text while streaming - the message itself shows progress
+      case "running":
+        return streamingMessage ? null : "Thinking...";
       case "awaiting_approval":
         return "Waiting for approval";
-      case "executing":
-        return "Executing tool...";
       default:
         return null;
     }
@@ -74,14 +97,14 @@ export function ChatPane() {
       {error && <div className="chat-error">{error}</div>}
 
       <div className="chat-messages">
-        {messages.length === 0 && !streamingMessage && !pendingTool && (
+        {displayMessages.length === 0 && !streamingMessage && !pendingTool && (
           <div className="chat-empty">
             Start a conversation with the AI assistant. It can help you create,
             read, and edit your documents.
           </div>
         )}
 
-        {messages.map((message) => (
+        {displayMessages.map((message) => (
           <ChatMessage key={message.id} message={message} />
         ))}
 
@@ -89,12 +112,6 @@ export function ChatPane() {
           <div className="chat-message assistant streaming">
             <div className="chat-message-header">
               <span className="chat-message-role">Assistant</span>
-              <span className="chat-message-time">
-                {streamingMessage.startTime.toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </span>
             </div>
             <div className="chat-message-content">
               <ReactMarkdown>{streamingMessage.content}</ReactMarkdown>
@@ -110,8 +127,8 @@ export function ChatPane() {
         {pendingTool ? (
           <ToolApproval
             tool={pendingTool}
-            onApprove={() => approveToolRequest(pendingTool.requestId)}
-            onReject={() => rejectToolRequest(pendingTool.requestId)}
+            onApprove={() => approveToolCall(pendingTool.id)}
+            onReject={(reason) => rejectToolCall(pendingTool.id, reason)}
           />
         ) : (
           <>

@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from "react";
-import type { ToolRequest } from "../contexts/chat";
+import type { ToolCallMessage } from "../hooks/useChat";
 
 interface ToolApprovalProps {
-  tool: ToolRequest;
+  tool: ToolCallMessage;
   onApprove: () => void;
   onReject: (message?: string) => void;
 }
@@ -53,7 +53,7 @@ export function ToolApproval({ tool, onApprove, onReject }: ToolApprovalProps) {
           onClick={onApprove}
         >
           <span className="tool-prompt-indicator">
-            {selected === 0 ? "❯" : " "}
+            {selected === 0 ? ">" : " "}
           </span>
           <span>1. Yes</span>
         </div>
@@ -62,7 +62,7 @@ export function ToolApproval({ tool, onApprove, onReject }: ToolApprovalProps) {
           onClick={() => inputRef.current?.focus()}
         >
           <span className="tool-prompt-indicator">
-            {selected === 1 ? "❯" : " "}
+            {selected === 1 ? ">" : " "}
           </span>
           <span>2. </span>
           <input
