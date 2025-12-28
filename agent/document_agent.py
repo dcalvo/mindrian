@@ -17,15 +17,12 @@ from agno.agent import Agent  # noqa: E402
 from agno.db.sqlite import SqliteDb  # noqa: E402
 from agno.models.anthropic import Claude  # noqa: E402
 from agno.os import AgentOS  # noqa: E402
+from testing import TESTING
 
 from tools import document_tools, testing_tools  # noqa: E402
 
-# Include testing tools when MINDRIAN_TESTING=true
-TESTING = os.getenv("MINDRIAN_TESTING", "").lower() == "true"
-
-# TODO: Switch to PostgresDb after Agno fixes datetime serialization bug
-# https://github.com/agno-agi/agno/issues/5661 (reported 2025-12-18)
-db = SqliteDb(db_file="tmp/agent.db")
+# document agent memory
+db = SqliteDb(db_file="tmp/document_agent.db")
 
 # System prompt for the Mindrian agent
 SYSTEM_PROMPT = """You are a helpful AI assistant for Mindrian, a deep-research \
