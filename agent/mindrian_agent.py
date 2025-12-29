@@ -19,7 +19,7 @@ Delegate tasks based on the user's request."""
 
 # Create team
 mindrian_team = Team(
-    name="Mindrian Team",
+    name="mindrian-team",
     members=[document_agent, intelligent_agent],
     model=Claude(id="claude-haiku-4-5", api_key=api_key),
     instructions=TEAM_PROMPT
