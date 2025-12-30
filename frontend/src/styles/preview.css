@@ -2,17 +2,17 @@
 
 /* ===== CSS Variables ===== */
 :root {
-  --preview-bg: #ffffff;
-  --preview-bg-secondary: #fafafa;
-  --preview-text-primary: #191919;
-  --preview-text-secondary: #6b6b6b;
-  --preview-text-tertiary: #9b9b9b;
-  --preview-border: rgba(0, 0, 0, 0.08);
-  --preview-border-hover: rgba(0, 0, 0, 0.15);
+  --preview-bg: #f3f3f7;
+  --preview-bg-secondary: #ffffff;
+  --preview-text-primary: #1a1a1b;
+  --preview-text-secondary: #64748b;
+  --preview-text-tertiary: #94a3b8;
+  --preview-border: rgba(0, 0, 0, 0.05);
+  --preview-border-hover: rgba(0, 0, 0, 0.1);
   --preview-accent: #000000;
-  --preview-accent-soft: rgba(0, 0, 0, 0.05);
-  --preview-blur-1: rgba(200, 200, 200, 0.4);
-  --preview-blur-2: rgba(180, 180, 180, 0.3);
+  --preview-accent-soft: rgba(0, 0, 0, 0.03);
+  --preview-blur-1: rgba(200, 200, 220, 0.4);
+  --preview-blur-2: rgba(180, 180, 200, 0.3);
   --preview-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
   --preview-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
   --preview-shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.12);
@@ -97,21 +97,23 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 14px;
-  color: var(--preview-text-secondary);
+  padding: 10px 18px;
+  color: var(--preview-text-primary);
   font-size: 14px;
   font-weight: 500;
   background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(10px);
-  border: 1px solid var(--preview-border);
-  border-radius: var(--preview-radius-md);
+  backdrop-filter: blur(12px);
+  border: none;
+  border-radius: var(--preview-radius-lg);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
 }
 
 .back-button:hover {
-  color: var(--preview-text-primary);
-  border-color: var(--preview-border-hover);
+  background: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
 }
 
 /* ===== Main Content ===== */
@@ -205,9 +207,10 @@
   gap: 16px;
   width: 100%;
   padding: 20px 24px;
-  background: var(--preview-bg);
-  border: 1px solid var(--preview-border);
+  background: #ffffff;
+  border: none;
   border-radius: var(--preview-radius-lg);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
   cursor: pointer;
   text-align: left;
   transition: all 0.2s ease;
@@ -278,7 +281,7 @@
   content: "";
   flex: 1;
   height: 1px;
-  background: var(--preview-border);
+  background: rgba(0, 0, 0, 0.05);
 }
 
 /* Chat Action Container */
@@ -294,16 +297,18 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 12px 10px 16px;
-  background: var(--preview-bg);
-  border: 1px solid var(--preview-border);
+  padding: 12px 14px 12px 20px;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(10px);
+  border: none;
   border-radius: var(--preview-radius-xl);
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
 }
 
 .chat-input-wrapper-new:focus-within {
-  border-color: var(--preview-text-primary);
-  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+  background: #ffffff;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
 }
 
 .chat-icon {
@@ -360,23 +365,21 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 10px 14px;
-  background: var(--preview-bg);
-  border: 1px solid var(--preview-border);
+  padding: 8px 16px;
+  background: transparent;
+  border: none;
   border-radius: var(--preview-radius-xl);
   cursor: pointer;
   font-family: inherit;
   font-size: 14px;
-  font-weight: 500;
-  color: var(--preview-text-secondary);
+  font-weight: 600;
   white-space: nowrap;
-  transition: all 0.15s ease;
+  transition: all 0.2s ease;
   height: 100%;
 }
 
 .agent-selector:hover {
-  border-color: var(--preview-border-hover);
-  background: var(--preview-bg-secondary);
+  background: rgba(0, 0, 0, 0.03);
 }
 
 .agent-name {
@@ -387,15 +390,18 @@
 
 .agent-dropdown {
   position: absolute;
-  top: calc(100% + 8px);
+  top: calc(100% + 12px);
   right: 0;
-  min-width: 220px;
-  background: var(--preview-bg);
-  border: 1px solid var(--preview-border);
+  min-width: 240px;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: var(--preview-radius-lg);
-  box-shadow: var(--preview-shadow-lg);
+  box-shadow:
+    0 15px 35px rgba(0, 0, 0, 0.1),
+    0 5px 15px rgba(0, 0, 0, 0.05);
   overflow: hidden;
   z-index: 100;
+  padding: 6px;
 }
 
 .agent-option {
@@ -407,24 +413,33 @@
   background: transparent;
   border: none;
   cursor: pointer;
+  border-radius: var(--preview-radius-md);
   text-align: left;
   font-family: inherit;
-  transition: background 0.15s ease;
+  transition: all 0.2s ease;
+}
+
+.agent-option:hover {
+  background: rgba(0, 0, 0, 0.03);
 }
 
 .agent-option.selected {
-  background: var(--preview-accent-soft);
+  background: rgba(0, 0, 0, 0.05);
 }
 
 .agent-option-name {
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--preview-text-primary);
 }
 
 .agent-option-desc {
   font-size: 12px;
   color: var(--preview-text-tertiary);
+}
+
+.agent-option.selected .agent-option-name {
+  color: inherit; /* Will be set by inline style if needed */
 }
 
 /* ===== Workspaces Section ===== */
@@ -453,21 +468,25 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 16px;
-  background: var(--preview-bg);
-  border: 1px solid var(--preview-border);
+  padding: 24px;
+  background: linear-gradient(135deg, #18181b 0%, #09090b 100%);
+  border: none;
   border-radius: var(--preview-radius-lg);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition:
+    transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.4s ease;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
 }
 
 .workspace-card:hover {
-  border-color: var(--preview-border-hover);
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
 }
 
 .workspace-icon {
-  width: 48px;
-  height: 48px;
+  width: 52px;
+  height: 52px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -479,14 +498,14 @@
 .workspace-info {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
   min-width: 0;
 }
 
 .workspace-name {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
-  color: var(--preview-text-primary);
+  color: #ffffff;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -495,9 +514,9 @@
 .workspace-meta {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   font-size: 12px;
-  color: var(--preview-text-tertiary);
+  color: rgba(255, 255, 255, 0.4);
 }
 
 /* ===== Responsive Design ===== */
