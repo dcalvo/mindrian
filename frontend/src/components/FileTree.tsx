@@ -120,6 +120,22 @@ export function FileTree({ width }: FileTreeProps) {
   const handleDelete: DeleteHandler<TreeNode> = useCallback(
     async ({ ids }) => {
       try {
+        // Check if currently open document is being deleted (directly or via parent)
+        if (currentDocumentId) {
+          const ancestry = new Set<string>();
+          let current = documents.find((d) => d.id === currentDocumentId);
+          while (current) {
+            ancestry.add(current.id);
+            if (!current.parent_id) break;
+            const pId = current.parent_id;
+            current = documents.find((d) => d.id === pId);
+          }
+
+          if (ids.some((id) => ancestry.has(id))) {
+            navigate({ to: "/" });
+          }
+        }
+
         for (const id of ids) {
           await removeDocument(id);
         }
@@ -127,7 +143,7 @@ export function FileTree({ width }: FileTreeProps) {
         console.error("Failed to delete:", err);
       }
     },
-    [removeDocument]
+    [removeDocument, currentDocumentId, documents, navigate]
   );
 
   // Create new document at root
