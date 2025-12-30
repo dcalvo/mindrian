@@ -40,8 +40,8 @@ export const ParticleBackground = () => {
         }
 
         p.pixelDensity(1);
-        // Dark grey subtle particles
-        p.stroke(40, 40, 40, 80);
+        // Dark subtle particles for light background
+        p.stroke(0, 0, 0, 40);
         p.strokeWeight(2);
 
         // Initialize points

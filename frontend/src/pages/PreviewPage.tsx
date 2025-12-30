@@ -5,22 +5,37 @@ import {
   Plus,
   MessageSquare,
   ChevronDown,
-  Send,
+  ArrowUp,
   ArrowLeft,
   FileText,
+  Briefcase,
+  TrendingUp,
+  Code,
+  BookOpen,
+  ChevronRight,
 } from "lucide-react";
 import { ParticleBackground } from "../components/ParticleBackground";
 import "../styles/preview.css";
 
 export function PreviewLanding() {
   const agents = [
-    { id: "claude", name: "Claude", description: "Anthropic's assistant" },
-    { id: "gpt4", name: "GPT-4", description: "OpenAI's reasoning model" },
-    { id: "gemini", name: "Gemini", description: "Google's multimodal AI" },
     {
-      id: "mindrian",
-      name: "Mindrian",
-      description: "Your personal assistant",
+      id: "larry",
+      name: "Larry",
+      description: "Creative Strategist",
+      color: "#3b82f6",
+    },
+    {
+      id: "sagir",
+      name: "Sagir",
+      description: "Technical Expert",
+      color: "#10b981",
+    },
+    {
+      id: "Calvo",
+      name: "Calvo",
+      description: "Business Advisor",
+      color: "#8b5cf6",
     },
   ];
 
@@ -28,35 +43,39 @@ export function PreviewLanding() {
     {
       id: 1,
       name: "Product Design",
-      icon: "📐",
+      icon: Briefcase,
       documentCount: 24,
-      color: "#FF6B6B",
+      bgColor: "#000000",
+      iconColor: "#ffffff",
     },
     {
       id: 2,
       name: "Marketing Strategy",
-      icon: "📊",
+      icon: TrendingUp,
       documentCount: 15,
-      color: "#4ECDC4",
+      bgColor: "#ffffff",
+      iconColor: "#000000",
     },
     {
       id: 3,
       name: "Engineering Docs",
-      icon: "⚙️",
+      icon: Code,
       documentCount: 42,
-      color: "#95E1D3",
+      bgColor: "#000000",
+      iconColor: "#ffffff",
     },
     {
       id: 4,
       name: "Personal Notes",
-      icon: "📝",
+      icon: BookOpen,
       documentCount: 31,
-      color: "#F3A683",
+      bgColor: "#ffffff",
+      iconColor: "#000000",
     },
   ];
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [selectedAgent, setSelectedAgent] = useState(agents[3]);
+  const [selectedAgent, setSelectedAgent] = useState(agents[0]);
   const [chatInput, setChatInput] = useState("");
 
   const containerVariants: Variants = {
@@ -168,12 +187,8 @@ export function PreviewLanding() {
           <div className="chat-action-container">
             <motion.div
               className="chat-input-wrapper-new"
-              whileHover={{ boxShadow: "0 4px 20px rgba(0, 0, 0, 0.08)" }}
+              whileHover={{ boxShadow: `0 8px 30px rgba(0, 0, 0, 0.08)` }}
             >
-              <div className="chat-icon">
-                <MessageSquare size={18} />
-              </div>
-
               <input
                 type="text"
                 className="chat-input"
@@ -182,68 +197,78 @@ export function PreviewLanding() {
                 onChange={(e) => setChatInput(e.target.value)}
               />
 
+              {/* Agent Dropdown - now inside the input container */}
+              <div className="agent-dropdown-container">
+                <motion.button
+                  className="agent-selector"
+                  style={{ color: selectedAgent.color }}
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  whileHover={{ backgroundColor: "rgba(0, 0, 0, 0.04)" }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <span className="agent-name">{selectedAgent.name}</span>
+                  <motion.div
+                    animate={{ rotate: isDropdownOpen ? 180 : 0 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                    style={{ color: selectedAgent.color }}
+                  >
+                    <ChevronDown size={14} />
+                  </motion.div>
+                </motion.button>
+
+                <AnimatePresence>
+                  {isDropdownOpen && (
+                    <motion.div
+                      className="agent-dropdown"
+                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 300,
+                        damping: 25,
+                      }}
+                    >
+                      {agents.map((agent) => (
+                        <motion.button
+                          key={agent.id}
+                          className={`agent-option ${selectedAgent.id === agent.id ? "selected" : ""}`}
+                          style={
+                            selectedAgent.id === agent.id
+                              ? { color: agent.color }
+                              : {}
+                          }
+                          onClick={() => {
+                            setSelectedAgent(agent);
+                            setIsDropdownOpen(false);
+                          }}
+                          whileHover={{
+                            backgroundColor: "rgba(0, 0, 0, 0.04)",
+                          }}
+                        >
+                          <span className="agent-option-name">
+                            {agent.name}
+                          </span>
+                          <span className="agent-option-desc">
+                            {agent.description}
+                          </span>
+                        </motion.button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
               <motion.button
                 className="send-button-inline"
+                style={{ backgroundColor: selectedAgent.color }}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 disabled={!chatInput.trim()}
               >
-                <Send size={16} />
+                <ChevronRight size={16} />
               </motion.button>
             </motion.div>
-
-            {/* Agent Dropdown - now outside and next to input */}
-            <div className="agent-dropdown-container">
-              <motion.button
-                className="agent-selector"
-                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                whileHover={{ backgroundColor: "rgba(0, 0, 0, 0.05)" }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <span className="agent-name">{selectedAgent.name}</span>
-                <motion.div
-                  animate={{ rotate: isDropdownOpen ? 180 : 0 }}
-                  transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                >
-                  <ChevronDown size={16} />
-                </motion.div>
-              </motion.button>
-
-              <AnimatePresence>
-                {isDropdownOpen && (
-                  <motion.div
-                    className="agent-dropdown"
-                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                    transition={{
-                      type: "spring",
-                      stiffness: 300,
-                      damping: 25,
-                    }}
-                  >
-                    {agents.map((agent) => (
-                      <motion.button
-                        key={agent.id}
-                        className={`agent-option ${selectedAgent.id === agent.id ? "selected" : ""}`}
-                        onClick={() => {
-                          setSelectedAgent(agent);
-                          setIsDropdownOpen(false);
-                        }}
-                        whileHover={{
-                          backgroundColor: "rgba(0, 0, 0, 0.04)",
-                        }}
-                      >
-                        <span className="agent-option-name">{agent.name}</span>
-                        <span className="agent-option-desc">
-                          {agent.description}
-                        </span>
-                      </motion.button>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
           </div>
         </motion.div>
 
@@ -260,25 +285,21 @@ export function PreviewLanding() {
               <motion.div
                 key={workspace.id}
                 className="workspace-card"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
                 transition={{
                   delay: 1.4 + index * 0.1,
-                  type: "spring",
-                  stiffness: 100,
-                  damping: 15,
+                  duration: 0.5,
                 }}
-                whileHover={{
-                  scale: 1.03,
-                  boxShadow: "0 8px 30px rgba(0, 0, 0, 0.12)",
-                }}
-                whileTap={{ scale: 0.98 }}
               >
                 <div
                   className="workspace-icon"
-                  style={{ backgroundColor: workspace.color }}
+                  style={{
+                    backgroundColor: workspace.bgColor,
+                    boxShadow: `0 8px 20px ${workspace.bgColor}33`,
+                  }}
                 >
-                  <span>{workspace.icon}</span>
+                  <workspace.icon size={28} color={workspace.iconColor} />
                 </div>
                 <div className="workspace-info">
                   <h3 className="workspace-name">{workspace.name}</h3>
