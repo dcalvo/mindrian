@@ -18,10 +18,10 @@ export const ParticleBackground = () => {
     }[] = [];
 
     // Dense particle count for the cube volume
-    const particleCount = 4000;
-    const attraction = 0.03; // Stronger pull to keep the cube shape crisp
+    const particleCount = 2000;
+    const attraction = 0.04; // Stronger pull to keep the cube shape crisp
     const damping = 0.9; // More friction
-    const repelStrength = 3; // Much subtler repulsion (was 10)
+    const repelStrength = 2; // Much subtler repulsion (was 10)
 
     const sketch = (p: p5) => {
       p.setup = () => {
@@ -41,8 +41,8 @@ export const ParticleBackground = () => {
 
         p.pixelDensity(1);
         // Dark subtle particles for light background
-        p.stroke(0, 0, 0, 40);
-        p.strokeWeight(2);
+        p.stroke(0, 0, 0, 60);
+        p.strokeWeight(2.5);
 
         // Initialize points
         for (let i = 0; i < particleCount; i++) {
