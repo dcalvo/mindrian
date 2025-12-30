@@ -34,7 +34,7 @@ app = agent_os.get_app()
 # Add health check endpoint
 @app.get("/health")
 async def health():
-    return {"status": "ok", "agent": "mindrian-agent"}
+    return {"status": "ok", "team": "mindrian-team"}
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "8000"))

@@ -1,2 +1,5 @@
 # Runtime data
 tmp/
+
+# don't neeed the agent ui code in the repo
+agent-ui
