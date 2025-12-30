@@ -261,6 +261,11 @@ export function FileTree({ width }: FileTreeProps) {
             onMove={handleMove}
             onDelete={handleDelete}
             onActivate={handleActivate}
+            disableDrop={({ parentNode, dragNodes }) => {
+              return dragNodes.some(
+                (node) => node.parent?.id === parentNode.id
+              );
+            }}
           >
             {(props) => (
               <FileNode
