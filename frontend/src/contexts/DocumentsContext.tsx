@@ -22,6 +22,7 @@ import {
 } from "../lib/api";
 import { getSocket } from "../lib/socket";
 import { DocumentsContext } from "./documents";
+import { toast } from "sonner";
 
 export function DocumentsProvider({ children }: { children: ReactNode }) {
   const [folders, setFolders] = useState<Folder[]>([]);
@@ -231,13 +232,35 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
       position: number,
       isFolder: boolean
     ): Promise<FileSystemItem> => {
+      // Optimistic update
       if (isFolder) {
-        return await apiMoveFolder(id, parentId, position);
+        setFolders((prev) =>
+          prev.map((f) =>
+            f.id === id ? { ...f, parent_folder_id: parentId, position } : f
+          )
+        );
       } else {
-        return await apiMoveDocument(id, parentId, position);
+        setDocuments((prev) =>
+          prev.map((d) =>
+            d.id === id ? { ...d, folder_id: parentId, position } : d
+          )
+        );
+      }
+
+      try {
+        if (isFolder) {
+          return await apiMoveFolder(id, parentId, position);
+        } else {
+          return await apiMoveDocument(id, parentId, position);
+        }
+      } catch (err) {
+        // Revert on error
+        await refetch();
+        toast.error("Failed to move item.");
+        throw err;
       }
     },
-    []
+    [refetch]
   );
 
   const removeItem = useCallback(async (id: string) => {

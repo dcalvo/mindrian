@@ -121,12 +121,13 @@ export function FileTree({ width }: FileTreeProps) {
   const handleMove: MoveHandler<TreeNode> = useCallback(
     async ({ dragIds, parentId, index, dragNodes }) => {
       try {
-        for (let i = 0; i < dragIds.length; i++) {
-          const id = dragIds[i];
-          const node = dragNodes[i];
-          const isFolder = node.data.type === "folder";
-          await moveItem(id, parentId, index + i, isFolder);
-        }
+        await Promise.all(
+          dragIds.map((id, i) => {
+            const node = dragNodes[i];
+            const isFolder = node.data.type === "folder";
+            return moveItem(id, parentId, index + i, isFolder);
+          })
+        );
       } catch (err) {
         console.error("Failed to move:", err);
       }
