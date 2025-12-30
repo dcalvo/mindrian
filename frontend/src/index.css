@@ -54,3 +54,20 @@ body {
 .login-prompt button:hover {
   background: #555;
 }
+
+.preview-link {
+  margin-top: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  color: #666;
+  text-decoration: none;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.preview-link:hover {
+  color: #333;
+  border-color: #333;
+  background: rgba(0, 0, 0, 0.02);
+}
