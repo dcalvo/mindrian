@@ -7,19 +7,24 @@ import {
 } from "react";
 import type { Channel } from "phoenix";
 import {
-  listDocuments,
+  listAll,
   createDocument,
   createFolder,
   updateDocument,
+  updateFolder,
   moveDocument as apiMoveDocument,
-  deleteDocument,
+  moveFolder as apiMoveFolder,
+  deleteItem,
   getMe,
   type Document,
+  type Folder,
+  type FileSystemItem,
 } from "../lib/api";
 import { getSocket } from "../lib/socket";
 import { DocumentsContext } from "./documents";
 
 export function DocumentsProvider({ children }: { children: ReactNode }) {
+  const [folders, setFolders] = useState<Folder[]>([]);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -30,18 +35,39 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
 
     const setup = async () => {
       try {
-        // Fetch user to get user_id for channel subscription
         const user = await getMe();
         if (cancelled) return;
 
-        // Subscribe to real-time updates BEFORE fetching documents
-        // This prevents missing events that occur during the fetch
         const socket = getSocket();
         const channel = socket.channel(`documents:${user.id}`);
 
+        // Folder events
+        channel.on("folder_created", ({ folder }) => {
+          setFolders((prev) => {
+            if (prev.some((f) => f.id === folder.id)) return prev;
+            return [...prev, folder];
+          });
+        });
+
+        channel.on("folder_updated", ({ folder }) => {
+          setFolders((prev) =>
+            prev.map((f) => (f.id === folder.id ? folder : f))
+          );
+        });
+
+        channel.on("folder_moved", ({ folder }) => {
+          setFolders((prev) =>
+            prev.map((f) => (f.id === folder.id ? folder : f))
+          );
+        });
+
+        channel.on("folder_deleted", ({ id }) => {
+          setFolders((prev) => prev.filter((f) => f.id !== id));
+        });
+
+        // Document events
         channel.on("document_created", ({ document }) => {
           setDocuments((prev) => {
-            // Avoid duplicates (in case this client created it or event arrived during fetch)
             if (prev.some((d) => d.id === document.id)) return prev;
             return [...prev, document];
           });
@@ -63,7 +89,6 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
           setDocuments((prev) => prev.filter((d) => d.id !== id));
         });
 
-        // Wait for channel join to complete before proceeding
         await new Promise<void>((resolve, reject) => {
           channel
             .join()
@@ -82,11 +107,11 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        // Fetch initial documents after channel is fully joined
-        const docs = await listDocuments();
+        const data = await listAll();
         if (cancelled) return;
 
-        setDocuments(docs);
+        setFolders(data.folders);
+        setDocuments(data.documents);
         setLoading(false);
         setError(null);
       } catch (err) {
@@ -114,8 +139,9 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     setError(null);
     try {
-      const docs = await listDocuments();
-      setDocuments(docs);
+      const data = await listAll();
+      setFolders(data.folders);
+      setDocuments(data.documents);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load documents");
     } finally {
@@ -123,16 +149,32 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const getUniqueName = useCallback(
-    (baseName: string, parentId: string | null, isFolder: boolean) => {
-      // Filter for siblings of the same type (folder/file) to check for name collisions
-      // Note: The user request implies checking against same type, or maybe all types?
-      // Usually file systems allow a file and folder to have same name, but some don't.
-      // The user said "renaming a folder to another folder... (same for document)" implies type-specific check.
-      const siblings = documents.filter(
-        (d) => d.parent_id === parentId && d.is_folder === isFolder
+  const getUniqueFolderName = useCallback(
+    (baseName: string, parentFolderId: string | null) => {
+      const siblings = folders.filter(
+        (f) => f.parent_folder_id === parentFolderId
       );
+      const siblingNames = new Set(siblings.map((f) => f.title.toLowerCase()));
 
+      if (!siblingNames.has(baseName.toLowerCase())) {
+        return baseName;
+      }
+
+      let counter = 1;
+      while (true) {
+        const newName = `${baseName} (${counter})`;
+        if (!siblingNames.has(newName.toLowerCase())) {
+          return newName;
+        }
+        counter++;
+      }
+    },
+    [folders]
+  );
+
+  const getUniqueDocumentName = useCallback(
+    (baseName: string, folderId: string | null) => {
+      const siblings = documents.filter((d) => d.folder_id === folderId);
       const siblingNames = new Set(siblings.map((d) => d.title.toLowerCase()));
 
       if (!siblingNames.has(baseName.toLowerCase())) {
@@ -151,58 +193,70 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
     [documents]
   );
 
-  // These functions just make API calls - state updates come via channel broadcasts
   const addDocument = useCallback(
-    async (title: string = "Untitled", parentId?: string | null) => {
-      const uniqueTitle = getUniqueName(
-        title,
-        parentId || null,
-        false // isFolder
-      );
-      return await createDocument(uniqueTitle, parentId);
+    async (title: string = "Untitled", folderId?: string | null) => {
+      const uniqueTitle = getUniqueDocumentName(title, folderId || null);
+      return await createDocument(uniqueTitle, folderId);
     },
-    [getUniqueName]
+    [getUniqueDocumentName]
   );
 
   const addFolder = useCallback(
-    async (title: string = "New Folder", parentId?: string | null) => {
-      const uniqueTitle = getUniqueName(
-        title,
-        parentId || null,
-        true // isFolder
-      );
-      return await createFolder(uniqueTitle, parentId);
+    async (title: string = "New Folder", parentFolderId?: string | null) => {
+      const uniqueTitle = getUniqueFolderName(title, parentFolderId || null);
+      return await createFolder(uniqueTitle, parentFolderId);
     },
-    [getUniqueName]
+    [getUniqueFolderName]
   );
 
-  const renameDocument = useCallback(async (id: string, title: string) => {
-    return await updateDocument(id, title);
-  }, []);
-
-  const moveDocument = useCallback(
-    async (id: string, parentId: string | null, position: number) => {
-      return await apiMoveDocument(id, parentId, position);
+  const renameItem = useCallback(
+    async (
+      id: string,
+      title: string,
+      isFolder: boolean
+    ): Promise<FileSystemItem> => {
+      if (isFolder) {
+        return await updateFolder(id, title);
+      } else {
+        return await updateDocument(id, title);
+      }
     },
     []
   );
 
-  const removeDocument = useCallback(async (id: string) => {
-    await deleteDocument(id);
+  const moveItem = useCallback(
+    async (
+      id: string,
+      parentId: string | null,
+      position: number,
+      isFolder: boolean
+    ): Promise<FileSystemItem> => {
+      if (isFolder) {
+        return await apiMoveFolder(id, parentId, position);
+      } else {
+        return await apiMoveDocument(id, parentId, position);
+      }
+    },
+    []
+  );
+
+  const removeItem = useCallback(async (id: string) => {
+    await deleteItem(id);
   }, []);
 
   return (
     <DocumentsContext.Provider
       value={{
+        folders,
         documents,
         loading,
         error,
         refetch,
         addDocument,
         addFolder,
-        renameDocument,
-        moveDocument,
-        removeDocument,
+        renameItem,
+        moveItem,
+        removeItem,
       }}
     >
       {children}

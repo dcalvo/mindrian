@@ -48,7 +48,7 @@ export function FileNode({
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!node.data.isFolder) {
+    if (node.data.type !== "folder") {
       node.select();
       node.activate();
     } else {
@@ -95,7 +95,7 @@ export function FileNode({
       }}
     >
       {/* Chevron for folders */}
-      {node.data.isFolder ? (
+      {node.data.type === "folder" ? (
         <span
           className={`file-node-chevron ${node.isOpen ? "open" : ""}`}
           onClick={(e) => {
@@ -112,8 +112,14 @@ export function FileNode({
       )}
 
       {/* Icon */}
-      <span className={`file-node-icon ${node.data.isFolder ? "folder" : ""}`}>
-        {node.data.isFolder ? <Folder size={16} /> : <FileText size={16} />}
+      <span
+        className={`file-node-icon ${node.data.type === "folder" ? "folder" : ""}`}
+      >
+        {node.data.type === "folder" ? (
+          <Folder size={16} />
+        ) : (
+          <FileText size={16} />
+        )}
       </span>
 
       {/* Title */}
@@ -134,7 +140,7 @@ export function FileNode({
       {/* Actions (hover) */}
       {!isEditing && (
         <div className="file-node-actions">
-          {node.data.isFolder && (
+          {node.data.type === "folder" && (
             <button
               className="file-node-action"
               onClick={(e) => {
@@ -148,7 +154,7 @@ export function FileNode({
             </button>
           )}
 
-          {!node.data.isFolder && (
+          {node.data.type !== "folder" && (
             <button
               className="file-node-action"
               onClick={(e) => {

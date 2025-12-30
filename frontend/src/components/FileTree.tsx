@@ -22,23 +22,27 @@ export function FileTree({ width }: FileTreeProps) {
   const params = useParams({ strict: false }) as { documentId?: string };
   const currentDocumentId = params.documentId;
   const {
+    folders,
     documents,
     loading,
     error,
     addDocument,
     addFolder,
-    renameDocument,
-    moveDocument,
-    removeDocument,
+    renameItem,
+    moveItem,
+    removeItem,
   } = useDocuments();
 
-  // Transform flat documents to tree structure
-  const treeData = useMemo(() => buildTree(documents), [documents]);
+  // Transform folders + documents to tree structure
+  const treeData = useMemo(
+    () => buildTree({ folders, documents }),
+    [folders, documents]
+  );
 
   // Handle navigation when a document is activated
   const handleActivate = useCallback(
     (node: { data: TreeNode }) => {
-      if (!node.data.isFolder) {
+      if (node.data.type !== "folder") {
         navigate({
           to: "/document/$documentId",
           params: { documentId: node.data.id },
@@ -58,10 +62,21 @@ export function FileTree({ width }: FileTreeProps) {
             to: "/document/$documentId",
             params: { documentId: doc.id },
           });
-          return doc;
+          return {
+            id: doc.id,
+            name: doc.title,
+            type: "document" as const,
+            data: doc,
+          };
         } else {
           const folder = await addFolder("New Folder", parentId);
-          return folder;
+          return {
+            id: folder.id,
+            name: folder.title,
+            type: "folder" as const,
+            children: [],
+            data: folder,
+          };
         }
       } catch (err) {
         console.error("Failed to create:", err);
@@ -77,11 +92,11 @@ export function FileTree({ width }: FileTreeProps) {
       // Prevent renaming to existing name in same folder (same type only)
       const parent = node.parent;
       if (parent && parent.children) {
-        const isFolder = node.data.isFolder;
+        const isFolder = node.data.type === "folder";
         const hasDuplicate = parent.children.some(
           (sibling) =>
             sibling.id !== id &&
-            sibling.data.isFolder === isFolder &&
+            sibling.data.type === node.data.type &&
             sibling.data.name.toLowerCase() === name.trim().toLowerCase()
         );
 
@@ -94,26 +109,29 @@ export function FileTree({ width }: FileTreeProps) {
       }
 
       try {
-        await renameDocument(id, name);
+        await renameItem(id, name, node.data.type === "folder");
       } catch (err) {
         console.error("Failed to rename:", err);
       }
     },
-    [renameDocument]
+    [renameItem]
   );
 
   // Handle moving (drag-drop)
   const handleMove: MoveHandler<TreeNode> = useCallback(
-    async ({ dragIds, parentId, index }) => {
+    async ({ dragIds, parentId, index, dragNodes }) => {
       try {
-        for (const id of dragIds) {
-          await moveDocument(id, parentId, index);
+        for (let i = 0; i < dragIds.length; i++) {
+          const id = dragIds[i];
+          const node = dragNodes[i];
+          const isFolder = node.data.type === "folder";
+          await moveItem(id, parentId, index + i, isFolder);
         }
       } catch (err) {
         console.error("Failed to move:", err);
       }
     },
-    [moveDocument]
+    [moveItem]
   );
 
   // Handle deletion
@@ -122,28 +140,33 @@ export function FileTree({ width }: FileTreeProps) {
       try {
         // Check if currently open document is being deleted (directly or via parent)
         if (currentDocumentId) {
-          const ancestry = new Set<string>();
-          let current = documents.find((d) => d.id === currentDocumentId);
-          while (current) {
-            ancestry.add(current.id);
-            if (!current.parent_id) break;
-            const pId = current.parent_id;
-            current = documents.find((d) => d.id === pId);
-          }
+          // Build ancestry for current document
+          const currentDoc = documents.find((d) => d.id === currentDocumentId);
+          if (currentDoc) {
+            const ancestry = new Set<string>([currentDocumentId]);
 
-          if (ids.some((id) => ancestry.has(id))) {
-            navigate({ to: "/" });
+            // Add folder ancestry
+            let folderId = currentDoc.folder_id;
+            while (folderId) {
+              ancestry.add(folderId);
+              const folder = folders.find((f) => f.id === folderId);
+              folderId = folder?.parent_folder_id ?? null;
+            }
+
+            if (ids.some((id) => ancestry.has(id))) {
+              navigate({ to: "/" });
+            }
           }
         }
 
         for (const id of ids) {
-          await removeDocument(id);
+          await removeItem(id);
         }
       } catch (err) {
         console.error("Failed to delete:", err);
       }
     },
-    [removeDocument, currentDocumentId, documents, navigate]
+    [removeItem, currentDocumentId, documents, folders, navigate]
   );
 
   // Create new document at root
@@ -243,7 +266,6 @@ export function FileTree({ width }: FileTreeProps) {
                 {...props}
                 onNavigate={() => {}}
                 onDelete={(ids: string[]) => {
-                  // Passing empty nodes, workaround for type mismatch
                   handleDelete({ ids, nodes: [] });
                 }}
                 onCreateFile={async (parentId: string) => {

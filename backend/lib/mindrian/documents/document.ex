@@ -7,19 +7,18 @@ defmodule Mindrian.Documents.Document do
   schema "documents" do
     field :title, :string, default: "Untitled"
     field :position, :integer, default: 0
-    field :is_folder, :boolean, default: false
 
     belongs_to :user, Mindrian.Accounts.User
-    belongs_to :parent, __MODULE__
+    belongs_to :folder, Mindrian.Documents.Folder
 
     timestamps(type: :utc_datetime)
   end
 
   def changeset(document, attrs) do
     document
-    |> cast(attrs, [:title, :parent_id, :position, :is_folder])
+    |> cast(attrs, [:title, :folder_id, :position])
     |> validate_required([:title])
     |> validate_length(:title, min: 1, max: 255)
-    |> foreign_key_constraint(:parent_id)
+    |> foreign_key_constraint(:folder_id)
   end
 end

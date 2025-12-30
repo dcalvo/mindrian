@@ -6,19 +6,39 @@ export interface User {
   socket_token: string;
 }
 
-export interface Document {
+// =============================================================================
+// FILE SYSTEM TYPES
+// =============================================================================
+
+export interface Folder {
   id: string;
   title: string;
-  parent_id: string | null;
+  parent_folder_id: string | null;
   position: number;
-  is_folder: boolean;
+  type: "folder";
   created_at: string;
   updated_at: string;
 }
 
+export interface Document {
+  id: string;
+  title: string;
+  folder_id: string | null;
+  position: number;
+  type: "document";
+  created_at: string;
+  updated_at: string;
+}
+
+export type FileSystemItem = Folder | Document;
+
 export interface ApiError {
   error: string;
 }
+
+// =============================================================================
+// API HELPERS
+// =============================================================================
 
 async function fetchApi<T>(
   endpoint: string,
@@ -41,6 +61,10 @@ async function fetchApi<T>(
   return response.json();
 }
 
+// =============================================================================
+// USER API
+// =============================================================================
+
 export async function getMe(): Promise<User> {
   return fetchApi<User>("/me");
 }
@@ -49,56 +73,77 @@ export async function checkHealth(): Promise<{ status: string }> {
   return fetchApi<{ status: string }>("/health");
 }
 
-// Document API
+// =============================================================================
+// FILE SYSTEM API
+// =============================================================================
 
-interface DocumentsResponse {
+interface ListResponse {
+  folders: Folder[];
   documents: Document[];
+}
+
+interface FolderResponse {
+  folder: Folder;
 }
 
 interface DocumentResponse {
   document: Document;
 }
 
-export async function listDocuments(): Promise<Document[]> {
-  const response = await fetchApi<DocumentsResponse>("/documents");
-  return response.documents;
+/**
+ * Lists all folders and documents for the current user.
+ */
+export async function listAll(): Promise<ListResponse> {
+  return fetchApi<ListResponse>("/documents");
 }
 
+/**
+ * Gets a single document by ID.
+ */
 export async function getDocument(id: string): Promise<Document> {
   const response = await fetchApi<DocumentResponse>(`/documents/${id}`);
   return response.document;
 }
 
+/**
+ * Creates a new document.
+ */
 export async function createDocument(
   title?: string,
-  parentId?: string | null
+  folderId?: string | null
 ): Promise<Document> {
   const response = await fetchApi<DocumentResponse>("/documents", {
     method: "POST",
     body: JSON.stringify({
-      document: { title: title || "Untitled", parent_id: parentId || null },
+      document: { title: title || "Untitled", folder_id: folderId || null },
     }),
   });
   return response.document;
 }
 
+/**
+ * Creates a new folder.
+ */
 export async function createFolder(
   title?: string,
-  parentId?: string | null
-): Promise<Document> {
-  const response = await fetchApi<DocumentResponse>("/documents", {
+  parentFolderId?: string | null
+): Promise<Folder> {
+  const response = await fetchApi<FolderResponse>("/documents", {
     method: "POST",
     body: JSON.stringify({
       document: {
         title: title || "New Folder",
-        parent_id: parentId || null,
+        parent_folder_id: parentFolderId || null,
         is_folder: true,
       },
     }),
   });
-  return response.document;
+  return response.folder;
 }
 
+/**
+ * Updates a document's title.
+ */
 export async function updateDocument(
   id: string,
   title: string
@@ -110,19 +155,53 @@ export async function updateDocument(
   return response.document;
 }
 
+/**
+ * Updates a folder's title.
+ */
+export async function updateFolder(id: string, title: string): Promise<Folder> {
+  const response = await fetchApi<FolderResponse>(`/documents/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ document: { title } }),
+  });
+  return response.folder;
+}
+
+/**
+ * Moves a document to a new folder and/or position.
+ */
 export async function moveDocument(
   id: string,
-  parentId: string | null,
+  folderId: string | null,
   position: number
 ): Promise<Document> {
   const response = await fetchApi<DocumentResponse>(`/documents/${id}/move`, {
     method: "PUT",
-    body: JSON.stringify({ document: { parent_id: parentId, position } }),
+    body: JSON.stringify({ document: { folder_id: folderId, position } }),
   });
   return response.document;
 }
 
-export async function deleteDocument(id: string): Promise<void> {
+/**
+ * Moves a folder to a new parent folder and/or position.
+ */
+export async function moveFolder(
+  id: string,
+  parentFolderId: string | null,
+  position: number
+): Promise<Folder> {
+  const response = await fetchApi<FolderResponse>(`/documents/${id}/move`, {
+    method: "PUT",
+    body: JSON.stringify({
+      document: { parent_folder_id: parentFolderId, position },
+    }),
+  });
+  return response.folder;
+}
+
+/**
+ * Deletes a document or folder by ID.
+ */
+export async function deleteItem(id: string): Promise<void> {
   const response = await fetch(`${API_BASE}/documents/${id}`, {
     method: "DELETE",
     credentials: "include",
@@ -130,6 +209,9 @@ export async function deleteDocument(id: string): Promise<void> {
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
-    throw new Error(error.error || "Failed to delete document");
+    throw new Error(error.error || "Failed to delete item");
   }
 }
+
+// Keep old function name for backwards compatibility
+export const deleteDocument = deleteItem;

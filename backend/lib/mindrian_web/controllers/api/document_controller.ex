@@ -2,26 +2,32 @@ defmodule MindrianWeb.API.DocumentController do
   use MindrianWeb, :controller
 
   alias Mindrian.Documents
-  alias Mindrian.Documents.Document
+  alias Mindrian.Documents.{Document, Folder}
 
+  @doc """
+  Lists all folders and documents for the current user.
+  """
   def index(conn, _params) do
-    documents = Documents.list_documents(conn.assigns.current_scope)
-    render(conn, :index, documents: documents)
+    data = Documents.list_all(conn.assigns.current_scope)
+    render(conn, :index, folders: data.folders, documents: data.documents)
   end
 
-  def create(conn, %{"document" => document_params}) do
+  @doc """
+  Creates a document or folder based on the is_folder param.
+  """
+  def create(conn, %{"document" => params}) do
     create_fn =
-      if document_params["is_folder"] do
+      if params["is_folder"] do
         &Documents.create_folder/2
       else
         &Documents.create_document/2
       end
 
-    case create_fn.(conn.assigns.current_scope, document_params) do
-      {:ok, document} ->
+    case create_fn.(conn.assigns.current_scope, params) do
+      {:ok, item} ->
         conn
         |> put_status(:created)
-        |> render(:show, document: document)
+        |> render(:show, item: item)
 
       {:error, changeset} ->
         conn
@@ -35,36 +41,7 @@ defmodule MindrianWeb.API.DocumentController do
       {:ok, document} ->
         conn
         |> put_status(:created)
-        |> render(:show, document: document)
-
-      {:error, changeset} ->
-        conn
-        |> put_status(:unprocessable_entity)
-        |> render(:error, changeset: changeset)
-    end
-  end
-
-  def show(conn, %{"id" => id}) do
-    case Documents.get_document(conn.assigns.current_scope, id) do
-      nil ->
-        conn
-        |> put_status(:not_found)
-        |> json(%{error: "Document not found"})
-
-      document ->
-        render(conn, :show, document: document)
-    end
-  end
-
-  def update(conn, %{"id" => id, "document" => document_params}) do
-    with %Document{} = document <- Documents.get_document(conn.assigns.current_scope, id),
-         {:ok, document} <- Documents.update_document(document, document_params) do
-      render(conn, :show, document: document)
-    else
-      nil ->
-        conn
-        |> put_status(:not_found)
-        |> json(%{error: "Document not found"})
+        |> render(:show, item: document)
 
       {:error, changeset} ->
         conn
@@ -74,22 +51,56 @@ defmodule MindrianWeb.API.DocumentController do
   end
 
   @doc """
-  Move a document/folder to new parent and/or position.
+  Shows a single document or folder by ID.
   """
-  def move(conn, %{"id" => id, "document" => move_params}) do
-    case Documents.move_document(conn.assigns.current_scope, id, move_params) do
-      {:ok, document} ->
-        render(conn, :show, document: document)
+  def show(conn, %{"id" => id}) do
+    scope = conn.assigns.current_scope
 
-      {:error, :circular_reference} ->
-        conn
-        |> put_status(:unprocessable_entity)
-        |> json(%{error: "Cannot move a folder into itself or its descendants"})
+    case Documents.get_document(scope, id) do
+      %Document{} = document ->
+        render(conn, :show, item: document)
 
       nil ->
-        conn
-        |> put_status(:not_found)
-        |> json(%{error: "Document not found"})
+        # Try finding as folder
+        case Documents.get_folder(scope, id) do
+          %Folder{} = folder ->
+            render(conn, :show, item: folder)
+
+          nil ->
+            conn
+            |> put_status(:not_found)
+            |> json(%{error: "Item not found"})
+        end
+    end
+  end
+
+  @doc """
+  Updates a document or folder by ID.
+  """
+  def update(conn, %{"id" => id, "document" => params}) do
+    scope = conn.assigns.current_scope
+
+    case Documents.get_document(scope, id) do
+      %Document{} = document ->
+        do_update_document(conn, document, params)
+
+      nil ->
+        case Documents.get_folder(scope, id) do
+          %Folder{} = folder ->
+            do_update_folder(conn, folder, params)
+
+          nil ->
+            conn
+            |> put_status(:not_found)
+            |> json(%{error: "Item not found"})
+        end
+    end
+  end
+
+  defp do_update_document(conn, document, params) do
+    case Documents.update_document(document, params) do
+      {:ok, updated} ->
+        render(conn, :show, item: updated)
 
       {:error, changeset} ->
         conn
@@ -98,20 +109,113 @@ defmodule MindrianWeb.API.DocumentController do
     end
   end
 
-  def delete(conn, %{"id" => id}) do
-    with %Document{} = document <- Documents.get_document(conn.assigns.current_scope, id),
-         {:ok, _document} <- Documents.delete_document(document) do
-      send_resp(conn, :no_content, "")
-    else
+  defp do_update_folder(conn, folder, params) do
+    case Documents.update_folder(folder, params) do
+      {:ok, updated} ->
+        render(conn, :show, item: updated)
+
+      {:error, changeset} ->
+        conn
+        |> put_status(:unprocessable_entity)
+        |> render(:error, changeset: changeset)
+    end
+  end
+
+  @doc """
+  Move a document or folder to new parent/position.
+  """
+  def move(conn, %{"id" => id, "document" => move_params}) do
+    scope = conn.assigns.current_scope
+
+    # Determine if it's a folder or document
+    case Documents.get_document(scope, id) do
+      %Document{} ->
+        do_move_document(conn, scope, id, move_params)
+
+      nil ->
+        case Documents.get_folder(scope, id) do
+          %Folder{} ->
+            do_move_folder(conn, scope, id, move_params)
+
+          nil ->
+            conn
+            |> put_status(:not_found)
+            |> json(%{error: "Item not found"})
+        end
+    end
+  end
+
+  defp do_move_document(conn, scope, id, params) do
+    case Documents.move_document(scope, id, params) do
+      {:ok, document} ->
+        render(conn, :show, item: document)
+
+      {:error, changeset} when is_struct(changeset, Ecto.Changeset) ->
+        conn
+        |> put_status(:unprocessable_entity)
+        |> render(:error, changeset: changeset)
+
       nil ->
         conn
         |> put_status(:not_found)
         |> json(%{error: "Document not found"})
+    end
+  end
 
-      {:error, _} ->
+  defp do_move_folder(conn, scope, id, params) do
+    case Documents.move_folder(scope, id, params) do
+      {:ok, folder} ->
+        render(conn, :show, item: folder)
+
+      {:error, :circular_reference} ->
         conn
-        |> put_status(:internal_server_error)
-        |> json(%{error: "Failed to delete document"})
+        |> put_status(:unprocessable_entity)
+        |> json(%{error: "Cannot move a folder into itself or its descendants"})
+
+      {:error, changeset} when is_struct(changeset, Ecto.Changeset) ->
+        conn
+        |> put_status(:unprocessable_entity)
+        |> render(:error, changeset: changeset)
+
+      nil ->
+        conn
+        |> put_status(:not_found)
+        |> json(%{error: "Folder not found"})
+    end
+  end
+
+  @doc """
+  Deletes a document or folder by ID.
+  """
+  def delete(conn, %{"id" => id}) do
+    scope = conn.assigns.current_scope
+
+    case Documents.get_document(scope, id) do
+      %Document{} = document ->
+        case Documents.delete_document(document) do
+          {:ok, _} -> send_resp(conn, :no_content, "")
+          {:error, _} ->
+            conn
+            |> put_status(:internal_server_error)
+            |> json(%{error: "Failed to delete document"})
+        end
+
+      nil ->
+        case Documents.get_folder(scope, id) do
+          %Folder{} = folder ->
+            case Documents.delete_folder(folder) do
+              {:ok, _} -> send_resp(conn, :no_content, "")
+              {:error, _} ->
+                conn
+                |> put_status(:internal_server_error)
+                |> json(%{error: "Failed to delete folder"})
+            end
+
+          nil ->
+            conn
+            |> put_status(:not_found)
+            |> json(%{error: "Item not found"})
+        end
     end
   end
 end
