@@ -20,7 +20,7 @@ defmodule Mindrian.Documents do
   def list_folders(%Scope{user: user}) do
     from(f in Folder,
       where: f.user_id == ^user.id,
-      order_by: [asc: f.parent_folder_id, asc: f.position, desc: f.updated_at]
+      order_by: [asc: f.position, desc: f.updated_at]
     )
     |> Repo.all()
   end
@@ -31,7 +31,7 @@ defmodule Mindrian.Documents do
   def list_documents(%Scope{user: user}) do
     from(d in Document,
       where: d.user_id == ^user.id,
-      order_by: [asc: d.folder_id, asc: d.position, desc: d.updated_at]
+      order_by: [asc: d.position, desc: d.updated_at]
     )
     |> Repo.all()
   end

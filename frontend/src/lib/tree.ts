@@ -61,25 +61,15 @@ export function buildTree({ folders, documents }: BuildTreeInput): TreeNode[] {
     }
   }
 
-  // Sort by position
-  const sortByPosition = (nodes: TreeNode[]): TreeNode[] => {
+  // Sort by name
+  const sortByName = (nodes: TreeNode[]): TreeNode[] => {
     return nodes
-      .sort((a, b) => {
-        const posA =
-          a.data.type === "folder"
-            ? (a.data as Folder).position
-            : (a.data as Document).position;
-        const posB =
-          b.data.type === "folder"
-            ? (b.data as Folder).position
-            : (b.data as Document).position;
-        return posA - posB;
-      })
+      .sort((a, b) => a.name.localeCompare(b.name))
       .map((node) => ({
         ...node,
-        children: node.children ? sortByPosition(node.children) : undefined,
+        children: node.children ? sortByName(node.children) : undefined,
       }));
   };
 
-  return sortByPosition(roots);
+  return sortByName(roots);
 }
