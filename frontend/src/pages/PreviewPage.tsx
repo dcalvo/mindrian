@@ -9,6 +9,7 @@ import {
   ArrowLeft,
   FileText,
 } from "lucide-react";
+import { ParticleBackground } from "../components/ParticleBackground";
 import "../styles/preview.css";
 
 export function PreviewLanding() {
@@ -82,83 +83,10 @@ export function PreviewLanding() {
     },
   };
 
-  // Static particles with deterministic positions
-  const particles = [
-    { id: 0, x: 15, y: 20, size: 3, duration: 2.5, delay: 0 },
-    { id: 1, x: 85, y: 10, size: 4, duration: 3, delay: 0.3 },
-    { id: 2, x: 45, y: 70, size: 2.5, duration: 2.8, delay: 0.6 },
-    { id: 3, x: 75, y: 35, size: 5, duration: 3.5, delay: 0.9 },
-    { id: 4, x: 25, y: 60, size: 3.5, duration: 2.2, delay: 1.2 },
-    { id: 5, x: 90, y: 75, size: 2, duration: 4, delay: 1.5 },
-    { id: 6, x: 10, y: 45, size: 4.5, duration: 2.7, delay: 1.8 },
-    { id: 7, x: 60, y: 15, size: 3, duration: 3.2, delay: 0.2 },
-    { id: 8, x: 35, y: 85, size: 2.5, duration: 2.9, delay: 0.5 },
-    { id: 9, x: 70, y: 55, size: 4, duration: 3.3, delay: 0.8 },
-    { id: 10, x: 50, y: 25, size: 3.5, duration: 2.6, delay: 1.1 },
-    { id: 11, x: 20, y: 90, size: 2, duration: 3.8, delay: 1.4 },
-    { id: 12, x: 80, y: 50, size: 5, duration: 2.4, delay: 1.7 },
-    { id: 13, x: 40, y: 30, size: 3, duration: 3.1, delay: 0.4 },
-    { id: 14, x: 65, y: 80, size: 4.5, duration: 2.3, delay: 0.7 },
-    { id: 15, x: 30, y: 40, size: 2.5, duration: 3.6, delay: 1 },
-    { id: 16, x: 95, y: 65, size: 3.5, duration: 2.5, delay: 1.3 },
-    { id: 17, x: 5, y: 75, size: 4, duration: 3.4, delay: 1.6 },
-    { id: 18, x: 55, y: 5, size: 2, duration: 2.8, delay: 1.9 },
-    { id: 19, x: 75, y: 95, size: 3, duration: 3.7, delay: 0.1 },
-  ];
-
   return (
     <div className="preview-container">
-      {/* Animated background elements */}
-      <div className="preview-bg">
-        <motion.div
-          className="bg-blur bg-blur-1"
-          animate={{
-            scale: [1, 1.2, 1],
-            opacity: [0.3, 0.5, 0.3],
-          }}
-          transition={{
-            duration: 8,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
-        <motion.div
-          className="bg-blur bg-blur-2"
-          animate={{
-            scale: [1.2, 1, 1.2],
-            opacity: [0.2, 0.4, 0.2],
-          }}
-          transition={{
-            duration: 10,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
-
-        {/* Fading particles */}
-        {particles.map((particle) => (
-          <motion.div
-            key={particle.id}
-            className="particle"
-            style={{
-              left: `${particle.x}%`,
-              top: `${particle.y}%`,
-              width: particle.size,
-              height: particle.size,
-            }}
-            animate={{
-              opacity: [0, 0.6, 0],
-              scale: [0, 1, 0],
-            }}
-            transition={{
-              duration: particle.duration,
-              repeat: Infinity,
-              delay: particle.delay,
-              ease: "easeInOut",
-            }}
-          />
-        ))}
-      </div>
+      {/* Physics-based Particle Background */}
+      <ParticleBackground />
 
       {/* Back button */}
       <Link to="/" className="back-link">
@@ -179,19 +107,6 @@ export function PreviewLanding() {
         initial="hidden"
         animate="visible"
       >
-        {/* Logo/Brand mark */}
-        <motion.div className="brand-mark" variants={itemVariants}>
-          <div className="brand-icon">
-            <motion.div
-              className="brand-inner"
-              animate={{ rotate: 360 }}
-              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-            >
-              <div className="brand-square" />
-            </motion.div>
-          </div>
-        </motion.div>
-
         {/* Welcome text */}
         <motion.div className="welcome-section" variants={itemVariants}>
           <h1 className="welcome-title">
