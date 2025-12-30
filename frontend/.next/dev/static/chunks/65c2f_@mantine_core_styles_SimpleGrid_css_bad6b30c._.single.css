@@ -1,0 +1,12 @@
+/* [project]/Desktop/internship/mindrian/frontend/node_modules/.pnpm/@mantine+core@8.3.9_@mantin_256766127a986e3f936241ee36aebb44/node_modules/@mantine/core/styles/SimpleGrid.css [app-client] (css) */
+.m_925c2d2c {
+  container: simple-grid / inline-size;
+}
+
+.m_2415a157 {
+  grid-template-columns: repeat(var(--sg-cols), minmax(0, 1fr));
+  gap: var(--sg-spacing-y) var(--sg-spacing-x);
+  display: grid;
+}
+
+/*# sourceMappingURL=65c2f_%40mantine_core_styles_SimpleGrid_css_bad6b30c._.single.css.map*/

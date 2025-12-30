@@ -1,0 +1,16 @@
+/* [project]/Desktop/internship/mindrian/frontend/node_modules/.pnpm/@mantine+core@8.3.9_@mantin_256766127a986e3f936241ee36aebb44/node_modules/@mantine/core/styles/AspectRatio.css [app-client] (css) */
+.m_71ac47fc {
+  --ar-ratio: 1;
+  max-width: 100%;
+}
+
+.m_71ac47fc > :where(:not(style)) {
+  aspect-ratio: var(--ar-ratio);
+  width: 100%;
+}
+
+.m_71ac47fc > :where(img, video) {
+  object-fit: cover;
+}
+
+/*# sourceMappingURL=65c2f_%40mantine_core_styles_AspectRatio_css_bad6b30c._.single.css.map*/

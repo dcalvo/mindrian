@@ -1,0 +1,22 @@
+/* [project]/Desktop/internship/mindrian/frontend/node_modules/.pnpm/@mantine+core@8.3.9_@mantin_256766127a986e3f936241ee36aebb44/node_modules/@mantine/core/styles/Overlay.css [app-client] (css) */
+.m_9814e45f {
+  background: var(--overlay-bg, #0009);
+  -webkit-backdrop-filter: var(--overlay-filter);
+  backdrop-filter: var(--overlay-filter);
+  border-radius: var(--overlay-radius, 0);
+  z-index: var(--overlay-z-index);
+  position: absolute;
+  inset: 0;
+}
+
+.m_9814e45f:where([data-fixed]) {
+  position: fixed;
+}
+
+.m_9814e45f:where([data-center]) {
+  justify-content: center;
+  align-items: center;
+  display: flex;
+}
+
+/*# sourceMappingURL=65c2f_%40mantine_core_styles_Overlay_css_bad6b30c._.single.css.map*/

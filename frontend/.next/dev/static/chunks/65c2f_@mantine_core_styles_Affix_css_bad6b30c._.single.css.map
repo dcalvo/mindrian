@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 1, "column": 0}, "map": {"version":3,"sources":["turbopack:///[project]/Desktop/internship/mindrian/frontend/node_modules/.pnpm/@mantine+core@8.3.9_@mantin_256766127a986e3f936241ee36aebb44/node_modules/@mantine/core/styles/Affix.css"],"sourcesContent":[".m_7f854edf {\n  position: fixed;\n  z-index: var(--affix-z-index);\n  inset-inline-start: var(--affix-left);\n  inset-inline-end: var(--affix-right);\n  top: var(--affix-top);\n  bottom: var(--affix-bottom);\n}\n"],"names":[],"mappings":"AAAA","ignoreList":[0]}}]
+}

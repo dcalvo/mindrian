@@ -1,0 +1,16 @@
+/* [project]/Desktop/internship/mindrian/frontend/node_modules/.pnpm/@mantine+core@8.3.9_@mantin_256766127a986e3f936241ee36aebb44/node_modules/@mantine/core/styles/PinInput.css [app-client] (css) */
+.m_f1cb205a {
+  --pin-input-size-xs: 30px;
+  --pin-input-size-sm: 36px;
+  --pin-input-size-md: 42px;
+  --pin-input-size-lg: 50px;
+  --pin-input-size-xl: 60px;
+  --pin-input-size: var(--pin-input-size-sm);
+}
+
+.m_cb288ead {
+  width: var(--pin-input-size);
+  height: var(--pin-input-size);
+}
+
+/*# sourceMappingURL=65c2f_%40mantine_core_styles_PinInput_css_bad6b30c._.single.css.map*/

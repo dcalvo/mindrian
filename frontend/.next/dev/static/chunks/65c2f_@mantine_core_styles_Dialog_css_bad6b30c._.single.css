@@ -1,0 +1,21 @@
+/* [project]/Desktop/internship/mindrian/frontend/node_modules/.pnpm/@mantine+core@8.3.9_@mantin_256766127a986e3f936241ee36aebb44/node_modules/@mantine/core/styles/Dialog.css [app-client] (css) */
+.m_e2125a27 {
+  --dialog-size-xs: 160px;
+  --dialog-size-sm: 200px;
+  --dialog-size-md: 340px;
+  --dialog-size-lg: 400px;
+  --dialog-size-xl: 500px;
+  --dialog-size: var(--dialog-size-md);
+  width: var(--dialog-size);
+  max-width: calc(100vw - var(--mantine-spacing-xl) * 2);
+  min-height: 50px;
+  position: relative;
+}
+
+.m_5abab665 {
+  top: calc(var(--mantine-spacing-md) / 2);
+  position: absolute;
+  inset-inline-end: calc(var(--mantine-spacing-md) / 2);
+}
+
+/*# sourceMappingURL=65c2f_%40mantine_core_styles_Dialog_css_bad6b30c._.single.css.map*/

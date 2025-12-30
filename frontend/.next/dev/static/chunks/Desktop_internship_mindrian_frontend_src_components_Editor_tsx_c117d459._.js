@@ -1,0 +1,28 @@
+(globalThis.TURBOPACK_CHUNK_LISTS || (globalThis.TURBOPACK_CHUNK_LISTS = [])).push({
+    script: typeof document === "object" ? document.currentScript : undefined,
+    chunks: [
+  "static/chunks/8771b__pnpm_b2804701._.js",
+  "static/chunks/e7c7e_prosemirror-view_dist_index_a179d1e6.js",
+  "static/chunks/9603b_y-prosemirror_src_d6aad276._.js",
+  "static/chunks/47d8f_lib0_cc1b516d._.js",
+  "static/chunks/765dc_yjs_dist_yjs_mjs_383aa8b2._.js",
+  "static/chunks/c9b74_@blocknote_core_dist_bb03283b._.js",
+  "static/chunks/f28da_@tiptap_core_dist_eca1070c._.js",
+  "static/chunks/1cccc_property-information_9d797cb3._.js",
+  "static/chunks/613aa_parse5_dist_e9a23f12._.js",
+  "static/chunks/80607_hast-util-to-mdast_lib_391e4b92._.js",
+  "static/chunks/e20fa_mdast-util-to-markdown_lib_f28066b3._.js",
+  "static/chunks/66f32_micromark-core-commonmark_dev_lib_d3e633bb._.js",
+  "static/chunks/7769d_@floating-ui_react_dist_4af4eb7b._.js",
+  "static/chunks/2f1c8_micromark_dev_lib_6caa0238._.js",
+  "static/chunks/a7c91_@blocknote_react_dist_blocknote-react_06c762f9.js",
+  "static/chunks/65c2f_@mantine_core_esm_core_df61bacf._.js",
+  "static/chunks/65c2f_@mantine_core_esm_components_ce9b2716._.js",
+  "static/chunks/65c2f_@mantine_core_esm_utils_Floating_832df4f7._.js",
+  "static/chunks/0d40a_@blocknote_mantine_dist_blocknote-mantine_a2423f58.js",
+  "static/chunks/8771b__pnpm_ce0b0d3c._.js",
+  "static/chunks/Desktop_internship_mindrian_frontend_src_components_97cb40f9._.js",
+  "static/chunks/8771b__pnpm_9c42698a._.css"
+],
+    source: "dynamic"
+});
