@@ -212,6 +212,3 @@ export async function deleteItem(id: string): Promise<void> {
     throw new Error(error.error || "Failed to delete item");
   }
 }
-
-// Keep old function name for backwards compatibility
-export const deleteDocument = deleteItem;
