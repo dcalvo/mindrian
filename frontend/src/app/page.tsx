@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import AIContextDisplay from "@/components/AIContextDisplay";
+import BlocknoteWithSlash from "@/components/BlockNoteWithSlash";
 
 const Editor = dynamic(() => import("@/components/Editor"), {
   ssr: false,

@@ -1,0 +1,58 @@
+import { BlockNoteEditor } from "@blocknote/core";
+import {
+  filterSuggestionItems,
+  insertOrUpdateBlockForSlashMenu,
+} from "@blocknote/core/extensions";
+import "@blocknote/core/fonts/inter.css";
+import { BlockNoteView } from "@blocknote/mantine";
+import "@blocknote/mantine/style.css";
+import type { DefaultReactSuggestionItem } from "@blocknote/react";
+import {
+  getDefaultReactSlashMenuItems,
+  SuggestionMenuController,
+  useCreateBlockNote,
+} from "@blocknote/react";
+import { HiOutlineGlobeAlt } from "react-icons/hi";
+import SlashAgent from "./SlashAgent";
+
+// Custom Slash Menu item to insert a block after the current one.
+const insertHelloWorldItem = (editor: BlockNoteEditor) => ({
+  title: "Insert Hello World",
+  onItemClick: () =>
+    // If the block containing the text caret is empty, `insertOrUpdateBlock`
+    // changes its type to the provided block. Otherwise, it inserts the new
+    // block below and moves the text caret to it. We use this function with
+    // a block containing 'Hello World' in bold.
+    insertOrUpdateBlockForSlashMenu(editor, {
+      type: "paragraph",
+      content: [{ type: "text", text: "Hello World", styles: { bold: true } }],
+    }),
+  aliases: ["helloworld", "hw"],
+  group: "Other",
+  icon: <HiOutlineGlobeAlt size={18} />,
+  subtext: "Used to insert a block with 'Hello World' below.",
+});
+
+// List containing all default Slash Menu Items, as well as our custom one.
+const getCustomSlashMenuItems = (
+  editor: BlockNoteEditor,
+): DefaultReactSuggestionItem[] => [
+  ...getDefaultReactSlashMenuItems(editor),
+  SlashAgent(editor),
+];
+
+export default function BlocknoteWithSlash( editor: BlockNoteEditor) {
+
+  // Renders the editor instance.
+  return (
+    <BlockNoteView editor={editor} slashMenu={false}>
+      <SuggestionMenuController
+        triggerCharacter={"/"}
+        // Replaces the default Slash Menu items with our custom ones.
+        getItems={async (query) =>
+          filterSuggestionItems(getCustomSlashMenuItems(editor), query)
+        }
+      />
+    </BlockNoteView>
+  );
+}

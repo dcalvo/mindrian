@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import {
   TextAlignButton,
   ColorStyleButton,
@@ -13,11 +14,18 @@ import {
   FileCaptionButton,
   FileReplaceButton,
   useCreateBlockNote,
+  getDefaultReactSlashMenuItems,
+  SuggestionMenuController,
 } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
 import "@blocknote/mantine/style.css";
+import { filterSuggestionItems } from "@blocknote/core/extensions";
 import { BlueButton } from "./BlueButton";
 import AIContextButton from "./AIContextButton";
+import SlashAgent from "./SlashAgent";
+import type { DefaultReactSuggestionItem } from "@blocknote/react";
+
+
 
 export default function Editor() {
   // Creates a new editor instance.
@@ -78,9 +86,19 @@ export default function Editor() {
     ],
   });
 
+  // Helper function to get custom slash menu items including our SlashAgent
+  const getCustomSlashMenuItems = (): DefaultReactSuggestionItem[] => [
+    ...getDefaultReactSlashMenuItems(editor),
+    SlashAgent(editor),
+  ];
+
   // Renders the editor instance using a React component.
   return (
-    <BlockNoteView editor={editor} formattingToolbar={false}>
+    <BlockNoteView 
+      editor={editor} 
+      formattingToolbar={false}
+      slashMenu={false}
+    >
       <FormattingToolbarController
         formattingToolbar={() => (
           <FormattingToolbar>
@@ -123,15 +141,15 @@ export default function Editor() {
               key={"textAlignRightButton"}
             />
             <ColorStyleButton key={"colorStyleButton"} />
-            {/* Probably not needed for now */}
-            {/* <NestBlockButton key={"nestBlockButton"} />
-            <UnnestBlockButton key={"unnestBlockButton"} />
-            <CreateLinkButton key={"createLinkButton"} /> */}
-
-            {/* TODO: @Gabrielle: Add a custom button for AI Contextualization */}
             <AIContextButton key={"aiContextButton"} />
           </FormattingToolbar>
         )}
+      />
+      <SuggestionMenuController
+        triggerCharacter={"/"}
+        getItems={async (query: string) =>
+          filterSuggestionItems(getCustomSlashMenuItems(), query)
+        }
       />
     </BlockNoteView>
   );
