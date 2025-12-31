@@ -9,6 +9,7 @@ import { WorkspacesListView } from "../components/WorkspacesListView";
 import { PreviewNavbar } from "../components/PreviewNavbar";
 import { PreviewHomeView } from "../components/PreviewHomeView";
 import { PreviewChatView } from "../components/PreviewChatView";
+import { ExtensionsView } from "../components/ExtensionsView";
 import { usePreviewChat } from "../hooks/usePreviewChat";
 import "../styles/preview.css";
 
@@ -92,6 +93,10 @@ function PreviewLandingContent() {
           exitChatMode();
           setView("workspaces-list");
         }}
+        onExtensionsClick={() => {
+          exitChatMode();
+          setView("extensions-list");
+        }}
       />
 
       {/* Back button */}
@@ -120,7 +125,7 @@ function PreviewLandingContent() {
 
       {/* Main content */}
       <motion.div
-        className={`preview-content ${isChatMode ? "chat-active" : ""}`}
+        className={`preview-content ${isChatMode ? "chat-active" : ""} view-${currentView}`}
         variants={containerVariants}
         initial="hidden"
         animate="visible"
@@ -158,6 +163,8 @@ function PreviewLandingContent() {
               key="workspaces-list"
               itemVariants={itemVariants}
             />
+          ) : currentView === "extensions-list" ? ( // Added ExtensionsView
+            <ExtensionsView key="extensions-list" itemVariants={itemVariants} />
           ) : currentView === "create-workspace" ? (
             <CreateWorkspaceView key="create-workspace" />
           ) : currentView === "workspace-detail" ? (

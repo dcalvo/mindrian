@@ -9,6 +9,7 @@ import {
   TrendingUp,
   Code,
   BookOpen,
+  FileText,
   type LucideIcon,
 } from "lucide-react";
 
@@ -16,7 +17,21 @@ export type PreviewView =
   | "home"
   | "create-workspace"
   | "workspace-detail"
-  | "workspaces-list";
+  | "workspaces-list"
+  | "extensions-list";
+
+export interface PreviewExtension {
+  id: string;
+  name: string;
+  description: string;
+  fullDescription: string;
+  icon: LucideIcon;
+  author: string;
+  downloads: string;
+  rating: number;
+  color: string;
+  isInstalled?: boolean;
+}
 
 export interface PreviewWorkspace {
   id: number | string;
@@ -31,6 +46,7 @@ export interface PreviewWorkspace {
 
 interface PreviewContextType {
   workspaces: PreviewWorkspace[];
+  extensions: PreviewExtension[];
   currentView: PreviewView;
   activeWorkspaceId: number | string | null;
   addWorkspace: (
@@ -41,7 +57,61 @@ interface PreviewContextType {
   activeWorkspace: PreviewWorkspace | null;
 }
 
+const defaultExtensions: PreviewExtension[] = [
+  {
+    id: "bank-of-ideas",
+    name: "Bank of Ideas",
+    author: "Mindrian Team",
+    description: "Bank ideas from workspaces into visual charts.",
+    fullDescription:
+      "A powerful visualization tool that allows you to 'bank' thoughts, ideas, and snippets from any workspace session directly into a dynamic, interactive visual chart. Perfect for brainstorming, mind mapping, and keeping track of creative sparks across multiple projects.",
+    icon: TrendingUp,
+    downloads: "12k",
+    rating: 4.8,
+    color: "#8b5cf6",
+    isInstalled: true,
+  },
+  {
+    id: "code-sync",
+    name: "Code Sync",
+    author: "DevTools Inc",
+    description: "Real-time synchronization for engineering docs.",
+    fullDescription:
+      "Automatically sync your engineering documentation with your codebase. Supports GitHub, GitLab, and Bitbucket integration to ensure your docs are always up to date with your latest commits.",
+    icon: Code,
+    downloads: "5.4k",
+    rating: 4.5,
+    color: "#3b82f6",
+  },
+  {
+    id: "markdown-pro",
+    name: "Markdown Pro",
+    author: "TypeCraft",
+    description: "Advanced markdown editor with live preview.",
+    fullDescription:
+      "Enhance your writing experience with a professional-grade markdown editor. Features side-by-side preview, custom themes, and export to PDF/HTML.",
+    icon: FileText,
+    downloads: "28k",
+    rating: 4.9,
+    color: "#10b981",
+    isInstalled: true,
+  },
+  {
+    id: "asset-library",
+    name: "Asset Library",
+    author: "DesignFlow",
+    description: "Centralized asset management for designers.",
+    fullDescription:
+      "Organize your design assets in one place. Drag and drop functionality, auto-tagging, and direct integration with Figma and Adobe Creative Cloud.",
+    icon: Briefcase,
+    downloads: "8.2k",
+    rating: 4.6,
+    color: "#f59e0b",
+  },
+];
+
 const defaultWorkspaces: PreviewWorkspace[] = [
+  // ... existing workspaces
   {
     id: 1,
     name: "Product Design",
@@ -95,6 +165,7 @@ export const PreviewProvider: React.FC<{ children: ReactNode }> = ({
 }) => {
   const [workspaces, setWorkspaces] =
     useState<PreviewWorkspace[]>(defaultWorkspaces);
+  const [extensions] = useState<PreviewExtension[]>(defaultExtensions);
   const [currentView, setCurrentView] = useState<PreviewView>("home");
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<
     number | string | null
@@ -118,7 +189,11 @@ export const PreviewProvider: React.FC<{ children: ReactNode }> = ({
 
   const setView = (view: PreviewView) => {
     setCurrentView(view);
-    if (view === "home" || view === "workspaces-list") {
+    if (
+      view === "home" ||
+      view === "workspaces-list" ||
+      view === "extensions-list"
+    ) {
       setActiveWorkspaceId(null);
     }
   };
@@ -135,6 +210,7 @@ export const PreviewProvider: React.FC<{ children: ReactNode }> = ({
     <PreviewContext.Provider
       value={{
         workspaces,
+        extensions,
         currentView,
         activeWorkspaceId,
         addWorkspace,
