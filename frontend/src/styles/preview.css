@@ -998,3 +998,105 @@
     transform: translateY(10px);
   }
 }
+/* ===== Workspaces List View (Full Screen) ===== */
+.workspaces-list-view {
+  max-width: 1000px !important;
+  margin: 0 auto;
+  padding-bottom: 80px;
+}
+
+.workspaces-grid.full-grid {
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  gap: 32px;
+}
+
+.workspaces-list-view .workspace-card {
+  padding: 32px;
+  gap: 20px;
+}
+
+.workspaces-list-view .workspace-icon {
+  width: 64px;
+  height: 64px;
+}
+
+.workspaces-list-view .workspace-name {
+  font-size: 20px;
+}
+
+.workspaces-list-view .workspace-meta {
+  font-size: 14px;
+  gap: 8px;
+}
+
+.workspace-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-top: 8px;
+}
+
+/* Collaborator Avatars */
+.workspace-collaborators {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  padding-left: 20px;
+}
+
+.collab-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: white;
+  border: 3px solid #18181b; /* Matches workspace card dark bg */
+  margin-left: -12px;
+  transition: all 0.2s ease;
+  cursor: help;
+}
+
+.collab-avatar:first-child {
+  margin-left: 0;
+}
+
+.collab-avatar:hover {
+  transform: translateY(-4px) scale(1.1);
+  z-index: 10;
+}
+
+/* Section Header for Home */
+.section-header .workspaces-title {
+  font-size: 14px;
+  color: var(--preview-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.see-all-btn:hover {
+  color: var(--preview-text-primary);
+  opacity: 1 !important;
+}
+
+/* Responsive Overrides */
+@media (min-width: 641px) {
+  .preview-content.view-workspaces-list {
+    max-width: 1000px;
+  }
+}
+
+@media (max-width: 900px) {
+  .workspaces-grid.full-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .workspaces-grid.full-grid {
+    grid-template-columns: 1fr;
+  }
+}

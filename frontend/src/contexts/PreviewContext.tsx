@@ -12,7 +12,11 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-export type PreviewView = "home" | "create-workspace" | "workspace-detail";
+export type PreviewView =
+  | "home"
+  | "create-workspace"
+  | "workspace-detail"
+  | "workspaces-list";
 
 export interface PreviewWorkspace {
   id: number | string;
@@ -21,6 +25,8 @@ export interface PreviewWorkspace {
   documentCount: number;
   bgColor: string;
   iconColor: string;
+  lastUpdated: string;
+  collaborators?: { name: string; color: string }[];
 }
 
 interface PreviewContextType {
@@ -28,7 +34,7 @@ interface PreviewContextType {
   currentView: PreviewView;
   activeWorkspaceId: number | string | null;
   addWorkspace: (
-    workspace: Omit<PreviewWorkspace, "id" | "documentCount">
+    workspace: Omit<PreviewWorkspace, "id" | "documentCount" | "lastUpdated">
   ) => void;
   setView: (view: PreviewView) => void;
   selectWorkspace: (id: number | string) => void;
@@ -43,6 +49,11 @@ const defaultWorkspaces: PreviewWorkspace[] = [
     documentCount: 24,
     bgColor: "#000000",
     iconColor: "#ffffff",
+    lastUpdated: "2 mins ago",
+    collaborators: [
+      { name: "Sagir", color: "#10b981" },
+      { name: "Larry", color: "#3b82f6" },
+    ],
   },
   {
     id: 2,
@@ -51,6 +62,7 @@ const defaultWorkspaces: PreviewWorkspace[] = [
     documentCount: 15,
     bgColor: "#ffffff",
     iconColor: "#000000",
+    lastUpdated: "1 hour ago",
   },
   {
     id: 3,
@@ -59,6 +71,11 @@ const defaultWorkspaces: PreviewWorkspace[] = [
     documentCount: 42,
     bgColor: "#000000",
     iconColor: "#ffffff",
+    lastUpdated: "5 hours ago",
+    collaborators: [
+      { name: "Calvo", color: "#8b5cf6" },
+      { name: "Sagir", color: "#10b981" },
+    ],
   },
   {
     id: 4,
@@ -67,6 +84,7 @@ const defaultWorkspaces: PreviewWorkspace[] = [
     documentCount: 31,
     bgColor: "#ffffff",
     iconColor: "#000000",
+    lastUpdated: "Yesterday",
   },
 ];
 
@@ -83,22 +101,24 @@ export const PreviewProvider: React.FC<{ children: ReactNode }> = ({
   >(null);
 
   const addWorkspace = (
-    workspace: Omit<PreviewWorkspace, "id" | "documentCount">
+    workspace: Omit<PreviewWorkspace, "id" | "documentCount" | "lastUpdated">
   ) => {
     const newId = Date.now().toString();
     const newWorkspace: PreviewWorkspace = {
       ...workspace,
       id: newId,
       documentCount: 0,
+      lastUpdated: "Just now",
+      collaborators: [],
     };
-    setWorkspaces((prev) => [...prev, newWorkspace]);
+    setWorkspaces((prev) => [newWorkspace, ...prev]);
     setActiveWorkspaceId(newId);
     setCurrentView("workspace-detail");
   };
 
   const setView = (view: PreviewView) => {
     setCurrentView(view);
-    if (view === "home") {
+    if (view === "home" || view === "workspaces-list") {
       setActiveWorkspaceId(null);
     }
   };
