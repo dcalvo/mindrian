@@ -1,6 +1,5 @@
 import { motion, AnimatePresence, type Variants } from "framer-motion";
-import { Link } from "@tanstack/react-router";
-import { ArrowLeft } from "lucide-react";
+
 import { ParticleBackground } from "../components/ParticleBackground";
 import { PreviewProvider, usePreview } from "../contexts/PreviewContext";
 import { CreateWorkspaceView } from "../components/CreateWorkspaceView";
@@ -98,30 +97,6 @@ function PreviewLandingContent() {
           setView("extensions-list");
         }}
       />
-
-      {/* Back button */}
-      <Link
-        to="/"
-        className="back-link"
-        onClick={(e) => {
-          if (isChatMode) {
-            e.preventDefault();
-            exitChatMode();
-          } else if (currentView !== "home") {
-            e.preventDefault();
-            setView("home");
-          }
-        }}
-      >
-        <motion.div
-          className="back-button"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          <ArrowLeft size={18} />
-          <span>{currentView === "home" ? "Back" : "Home"}</span>
-        </motion.div>
-      </Link>
 
       {/* Main content */}
       <motion.div
