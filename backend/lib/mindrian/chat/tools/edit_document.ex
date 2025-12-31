@@ -56,7 +56,8 @@ defmodule Mindrian.Chat.Tools.EditDocument do
                 properties: %{
                   type: %{
                     type: "string",
-                    description: "Block type (e.g., 'paragraph', 'heading', 'bulletListItem')"
+                    enum: ["paragraph", "heading", "bulletListItem", "numberedListItem"],
+                    description: "Block type"
                   },
                   content: %{
                     type: "string",

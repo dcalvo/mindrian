@@ -101,6 +101,8 @@ def edit_document(
             - block_id: The ID of the block (for delete_block and update_block)
             - after_id: The ID of the block to insert after (for insert_block)
             - block: Block data with type and content (for insert_block and append_block)
+              - type: One of "paragraph", "heading", "bulletListItem", "numberedListItem"
+              - content: The text content of the block
             - content: New content for the block (for update_block)
 
     Returns:
@@ -154,6 +156,8 @@ def edit_document_dangerous(
             - block_id: The ID of the block (for delete_block and update_block)
             - after_id: The ID of the block to insert after (for insert_block)
             - block: Block data with type and content (for insert_block and append_block)
+              - type: One of "paragraph", "heading", "bulletListItem", "numberedListItem"
+              - content: The text content of the block
             - content: New content for the block (for update_block)
 
     Returns:
