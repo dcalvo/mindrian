@@ -1,6 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { Home, LayoutDashboard, Blocks, Settings } from "lucide-react";
+import { Home, LayoutDashboard, Blocks } from "lucide-react";
 
 const NavItem = ({
   icon: Icon,
@@ -45,14 +45,36 @@ export const PreviewNavbar: React.FC<{
   return (
     <div className="preview-nav-wrapper">
       <div className="preview-nav">
-        <NavItem icon={Home} label="Home" onClick={onHomeClick} />
-        <NavItem
-          icon={LayoutDashboard}
-          label="Workspaces"
-          onClick={onWorkspacesClick}
-        />
-        <NavItem icon={Blocks} label="Extensions" onClick={onExtensionsClick} />
-        <NavItem icon={Settings} label="Settings" />
+        <div className="nav-left">
+          <div className="nav-logo" onClick={onHomeClick}>
+            <div className="nav-logo-icon">
+              <div className="nav-logo-inner" />
+            </div>
+            <span className="nav-logo-text">mindrian</span>
+          </div>
+        </div>
+
+        <div className="nav-center">
+          <NavItem icon={Home} label="Home" onClick={onHomeClick} />
+          <NavItem
+            icon={LayoutDashboard}
+            label="Workspaces"
+            onClick={onWorkspacesClick}
+          />
+          <NavItem
+            icon={Blocks}
+            label="Extensions"
+            onClick={onExtensionsClick}
+          />
+        </div>
+
+        <div className="nav-right">
+          <div className="user-avatar-wrapper">
+            <div className="user-avatar">
+              <span>D</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
