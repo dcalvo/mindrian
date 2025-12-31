@@ -3,9 +3,7 @@ import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   Plus,
-  MessageSquare,
   ChevronDown,
-  ArrowUp,
   ArrowLeft,
   FileText,
   Briefcase,
