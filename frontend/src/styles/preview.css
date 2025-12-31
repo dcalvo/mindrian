@@ -1083,7 +1083,8 @@
 }
 /* Support for wider layouts in specific views */
 .preview-content.view-extensions-list {
-  max-width: 1400px;
+  /* Calculate the max width based on the screen size */
+  max-width: calc(100vw - 220px);
   align-items: stretch;
   padding-left: 110px; /* Clear the navbar */
   height: 100vh;
