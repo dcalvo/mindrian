@@ -82,7 +82,12 @@ function PreviewLandingContent() {
       <ParticleBackground />
 
       {/* Centered Preview Navbar */}
-      <PreviewNavbar />
+      <PreviewNavbar
+        onHomeClick={() => {
+          exitChatMode();
+          setView("home");
+        }}
+      />
 
       {/* Back button */}
       <Link
