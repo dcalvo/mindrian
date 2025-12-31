@@ -71,9 +71,9 @@ export const ParticleBackground = () => {
       p.draw = () => {
         p.clear(); // Transparent background
 
-        // Translate to LEFT edge (0) and Vertically Centered
+        // Translate to RIGHT edge (width) and Vertically Centered
         // This makes it "half on, half off" the screen
-        const centerX = 0;
+        const centerX = p.width;
         const centerY = p.height * 0.5;
         p.translate(centerX, centerY);
 
