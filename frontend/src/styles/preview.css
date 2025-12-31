@@ -881,6 +881,7 @@
 }
 
 /* Workspace Detail View */
+/* Workspace Detail View - New 3-Panel Layout */
 .workspace-detail-view {
   width: 100%;
   height: 100%;
@@ -889,92 +890,247 @@
 }
 
 .workspace-header {
+  height: 64px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 40px;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
+  padding: 0 24px;
+  background: white;
+  border-radius: var(--preview-radius-xl);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+  margin-bottom: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  flex-shrink: 0;
 }
 
 .workspace-header-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: 14px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  margin-right: 16px;
 }
 
 .workspace-header-title {
-  font-size: 24px;
+  font-size: 1.1rem;
   font-weight: 700;
+  color: var(--preview-text-primary);
+  margin: 0;
+}
+
+.workspace-panels-layout {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 260px 1fr 300px;
+  gap: 16px;
+  min-height: 0;
+}
+
+.workspace-panel {
+  background: white;
+  border-radius: var(--preview-radius-xl);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Sidebar / File System */
+.workspace-sidebar {
+  background: #f8f9fb;
+}
+
+.sidebar-header {
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--preview-text-primary);
+  cursor: pointer;
+}
+
+.add-file-btn {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--preview-text-tertiary);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.add-file-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.file-list {
+  padding: 0 10px;
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--preview-radius-md);
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--preview-text-secondary);
+  transition: all 0.2s;
+}
+
+.file-item:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.file-item.active {
+  background: white;
+  color: var(--preview-text-primary);
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+/* Editor */
+.workspace-editor {
+  padding: 40px;
+}
+
+.editor-content {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-title-input {
+  font-size: 2rem;
+  font-weight: 700;
+  border: none;
+  outline: none;
+  color: var(--preview-text-primary);
+  margin-bottom: 8px;
+  padding: 0;
+  background: transparent;
+}
+
+.editor-meta {
+  font-size: 0.8rem;
+  color: var(--preview-text-tertiary);
+  margin-bottom: 32px;
+}
+
+.editor-textarea {
+  flex: 1;
+  border: none;
+  outline: none;
+  resize: none;
+  font-family: inherit;
+  font-size: 1.1rem;
+  line-height: 1.6;
+  color: var(--preview-text-secondary);
+  background: transparent;
+}
+
+.editor-empty-state {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--preview-text-tertiary);
+  text-align: center;
+  padding: 40px;
+}
+
+.editor-empty-state h3 {
+  margin: 16px 0 8px;
   color: var(--preview-text-primary);
 }
 
-.workspace-header-meta {
-  font-size: 14px;
-  color: var(--preview-text-secondary);
-}
-
-.header-actions {
-  display: flex;
-  gap: 10px;
-}
-
-.header-btn {
-  height: 40px;
-  padding: 0 16px;
-  border-radius: 10px;
-  font-size: 14px;
+.primary-action-btn {
+  margin-top: 24px;
+  background: var(--preview-text-primary);
+  color: white;
+  border: none;
+  padding: 10px 24px;
+  border-radius: var(--preview-radius-md);
   font-weight: 600;
   display: flex;
   align-items: center;
   gap: 8px;
   cursor: pointer;
-  transition: all 0.2s ease;
-  background: white;
-  border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
-.header-btn.primary {
-  background: var(--preview-text-primary);
-  color: white;
-  border: none;
-}
-
-.workspace-content-demo {
-  flex: 1;
-}
-
-.empty-state-workspace {
-  margin-top: 60px;
+/* Contextual Chat */
+.workspace-chat-sidebar {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  text-align: center;
+}
+
+.workspace-chat-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.workspace-chat-header h3 {
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.workspace-chat-messages {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.system-msg {
+  background: #f8f9fb;
+  padding: 12px;
+  border-radius: var(--preview-radius-md);
+  font-size: 0.85rem;
+  line-height: 1.4;
   color: var(--preview-text-secondary);
 }
 
-.empty-illustration {
-  margin-bottom: 20px;
-  opacity: 0.2;
+.workspace-chat-input-area {
+  padding: 20px;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
 }
 
-.empty-state-workspace h3 {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--preview-text-primary);
-  margin-bottom: 8px;
+.chat-input-pill {
+  background: #f8f9fb;
+  padding: 8px 12px 8px 16px;
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.03);
 }
 
-.empty-state-workspace p {
-  margin-bottom: 24px;
+.chat-input-pill input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  font-size: 0.85rem;
+}
+
+.chat-send-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 16px;
+  background: var(--preview-text-primary);
+  color: white;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
 }
 
 .empty-action-btn {
@@ -1082,14 +1238,14 @@
   opacity: 1 !important;
 }
 /* Support for wider layouts in specific views */
-.preview-content.view-extensions-list {
-  /* Calculate the max width based on the screen size */
-  max-width: calc(100vw - 220px);
+.preview-content.view-extensions-list,
+.preview-content.view-workspace-detail {
+  max-width: calc(100vw - 120px);
   align-items: stretch;
-  padding-left: 110px; /* Clear the navbar */
+  padding-left: 80px; /* Tighter left padding for sidebar */
   height: 100vh;
-  padding-top: 40px;
-  padding-bottom: 24px;
+  padding-top: 24px;
+  padding-bottom: 12px;
 }
 
 /* ===== Extensions View ===== */

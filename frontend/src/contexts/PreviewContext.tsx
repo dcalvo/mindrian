@@ -33,6 +33,13 @@ export interface PreviewExtension {
   isInstalled?: boolean;
 }
 
+export interface PreviewDocument {
+  id: string;
+  title: string;
+  content: string;
+  updatedAt: string;
+}
+
 export interface PreviewWorkspace {
   id: number | string;
   name: string;
@@ -42,6 +49,7 @@ export interface PreviewWorkspace {
   iconColor: string;
   lastUpdated: string;
   collaborators?: { name: string; color: string }[];
+  documents?: PreviewDocument[];
 }
 
 interface PreviewContextType {
@@ -49,15 +57,19 @@ interface PreviewContextType {
   extensions: PreviewExtension[];
   currentView: PreviewView;
   activeWorkspaceId: number | string | null;
+  activeDocumentId: string | null;
   addWorkspace: (
     workspace: Omit<PreviewWorkspace, "id" | "documentCount" | "lastUpdated">
   ) => void;
   setView: (view: PreviewView) => void;
   selectWorkspace: (id: number | string) => void;
+  selectDocument: (id: string) => void;
   activeWorkspace: PreviewWorkspace | null;
+  activeDocument: PreviewDocument | null;
 }
 
 const defaultExtensions: PreviewExtension[] = [
+  // ... (keep existing)
   {
     id: "bank-of-ideas",
     name: "Bank of Ideas",
@@ -111,7 +123,6 @@ const defaultExtensions: PreviewExtension[] = [
 ];
 
 const defaultWorkspaces: PreviewWorkspace[] = [
-  // ... existing workspaces
   {
     id: 1,
     name: "Product Design",
@@ -124,6 +135,22 @@ const defaultWorkspaces: PreviewWorkspace[] = [
       { name: "Sagir", color: "#10b981" },
       { name: "Larry", color: "#3b82f6" },
     ],
+    documents: [
+      {
+        id: "doc-1",
+        title: "Product Roadmap Q1",
+        content:
+          "# Product Roadmap Q1\n\n- [x] Research target audience\n- [ ] Design initial wireframes\n- [ ] Prototype interactive features",
+        updatedAt: "10 mins ago",
+      },
+      {
+        id: "doc-2",
+        title: "Design System Guidelines",
+        content:
+          "# Design System Guidelines\n\nOur design language focuses on clarity, efficiency, and a touch of antigravity.",
+        updatedAt: "2 hours ago",
+      },
+    ],
   },
   {
     id: 2,
@@ -133,6 +160,15 @@ const defaultWorkspaces: PreviewWorkspace[] = [
     bgColor: "#ffffff",
     iconColor: "#000000",
     lastUpdated: "1 hour ago",
+    documents: [
+      {
+        id: "doc-3",
+        title: "Content Calendar December",
+        content:
+          "# Content Calendar December\n\nDiscussing the year-end wrap up and holiday promotions.",
+        updatedAt: "1 hour ago",
+      },
+    ],
   },
   {
     id: 3,
@@ -146,6 +182,22 @@ const defaultWorkspaces: PreviewWorkspace[] = [
       { name: "Calvo", color: "#8b5cf6" },
       { name: "Sagir", color: "#10b981" },
     ],
+    documents: [
+      {
+        id: "doc-4",
+        title: "API Architecture Overview",
+        content:
+          "# API Architecture Overview\n\nLeveraging Elixir and Phoenix for high performance and scalability.",
+        updatedAt: "5 hours ago",
+      },
+      {
+        id: "doc-5",
+        title: "Database Schema V2",
+        content:
+          "# Database Schema V2\n\nDefining the core tables for entities and relationships.",
+        updatedAt: "1 day ago",
+      },
+    ],
   },
   {
     id: 4,
@@ -155,6 +207,15 @@ const defaultWorkspaces: PreviewWorkspace[] = [
     bgColor: "#ffffff",
     iconColor: "#000000",
     lastUpdated: "Yesterday",
+    documents: [
+      {
+        id: "doc-6",
+        title: "Weekly Reflection",
+        content:
+          "# Weekly Reflection\n\nThinking about the pace of development and personal growth.",
+        updatedAt: "Yesterday",
+      },
+    ],
   },
 ];
 
@@ -170,6 +231,7 @@ export const PreviewProvider: React.FC<{ children: ReactNode }> = ({
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<
     number | string | null
   >(null);
+  const [activeDocumentId, setActiveDocumentId] = useState<string | null>(null);
 
   const addWorkspace = (
     workspace: Omit<PreviewWorkspace, "id" | "documentCount" | "lastUpdated">
@@ -181,9 +243,11 @@ export const PreviewProvider: React.FC<{ children: ReactNode }> = ({
       documentCount: 0,
       lastUpdated: "Just now",
       collaborators: [],
+      documents: [],
     };
     setWorkspaces((prev) => [newWorkspace, ...prev]);
     setActiveWorkspaceId(newId);
+    setActiveDocumentId(null);
     setCurrentView("workspace-detail");
   };
 
@@ -195,16 +259,26 @@ export const PreviewProvider: React.FC<{ children: ReactNode }> = ({
       view === "extensions-list"
     ) {
       setActiveWorkspaceId(null);
+      setActiveDocumentId(null);
     }
   };
 
   const selectWorkspace = (id: number | string) => {
     setActiveWorkspaceId(id);
+    setActiveDocumentId(null);
     setCurrentView("workspace-detail");
+  };
+
+  const selectDocument = (id: string) => {
+    setActiveDocumentId(id);
   };
 
   const activeWorkspace =
     workspaces.find((ws) => ws.id === activeWorkspaceId) || null;
+
+  const activeDocument =
+    activeWorkspace?.documents?.find((doc) => doc.id === activeDocumentId) ||
+    null;
 
   return (
     <PreviewContext.Provider
@@ -213,10 +287,13 @@ export const PreviewProvider: React.FC<{ children: ReactNode }> = ({
         extensions,
         currentView,
         activeWorkspaceId,
+        activeDocumentId,
         addWorkspace,
         setView,
         selectWorkspace,
+        selectDocument,
         activeWorkspace,
+        activeDocument,
       }}
     >
       {children}
