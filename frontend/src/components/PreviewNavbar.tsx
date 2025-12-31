@@ -37,14 +37,19 @@ const NavItem = ({
   );
 };
 
-export const PreviewNavbar: React.FC<{ onHomeClick?: () => void }> = ({
-  onHomeClick,
-}) => {
+export const PreviewNavbar: React.FC<{
+  onHomeClick?: () => void;
+  onWorkspacesClick?: () => void;
+}> = ({ onHomeClick, onWorkspacesClick }) => {
   return (
     <div className="preview-nav-wrapper">
       <div className="preview-nav">
         <NavItem icon={Home} label="Home" onClick={onHomeClick} />
-        <NavItem icon={LayoutDashboard} label="Workspaces" />
+        <NavItem
+          icon={LayoutDashboard}
+          label="Workspaces"
+          onClick={onWorkspacesClick}
+        />
         <NavItem icon={Blocks} label="Extensions" />
         <NavItem icon={Settings} label="Settings" />
       </div>

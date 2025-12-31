@@ -5,6 +5,7 @@ import { ParticleBackground } from "../components/ParticleBackground";
 import { PreviewProvider, usePreview } from "../contexts/PreviewContext";
 import { CreateWorkspaceView } from "../components/CreateWorkspaceView";
 import { WorkspaceDetailView } from "../components/WorkspaceDetailView";
+import { WorkspacesListView } from "../components/WorkspacesListView";
 import { PreviewNavbar } from "../components/PreviewNavbar";
 import { PreviewHomeView } from "../components/PreviewHomeView";
 import { PreviewChatView } from "../components/PreviewChatView";
@@ -87,6 +88,10 @@ function PreviewLandingContent() {
           exitChatMode();
           setView("home");
         }}
+        onWorkspacesClick={() => {
+          exitChatMode();
+          setView("workspaces-list");
+        }}
       />
 
       {/* Back button */}
@@ -148,6 +153,11 @@ function PreviewLandingContent() {
                 sendMessage={sendMessage}
               />
             )
+          ) : currentView === "workspaces-list" ? (
+            <WorkspacesListView
+              key="workspaces-list"
+              itemVariants={itemVariants}
+            />
           ) : currentView === "create-workspace" ? (
             <CreateWorkspaceView key="create-workspace" />
           ) : currentView === "workspace-detail" ? (

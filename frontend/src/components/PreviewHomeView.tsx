@@ -214,7 +214,38 @@ export const PreviewHomeView: React.FC<PreviewHomeViewProps> = ({
         className="workspaces-section"
         variants={itemVariants}
       >
-        <h2 className="workspaces-title">Your Workspaces</h2>
+        <div
+          className="section-header"
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "20px",
+          }}
+        >
+          <h2 className="workspaces-title" style={{ margin: 0 }}>
+            Recent Workspaces
+          </h2>
+          <motion.button
+            className="see-all-btn"
+            onClick={() => setView("workspaces-list")}
+            whileHover={{ x: 3 }}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+              background: "none",
+              border: "none",
+              color: "var(--preview-text-primary)",
+              fontWeight: 600,
+              fontSize: "0.9rem",
+              cursor: "pointer",
+              opacity: 0.8,
+            }}
+          >
+            See all <ChevronRight size={16} />
+          </motion.button>
+        </div>
         <div className="workspaces-grid">
           {workspaces.map((workspace, index) => (
             <motion.div
