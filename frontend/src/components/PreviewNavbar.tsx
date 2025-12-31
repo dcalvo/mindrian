@@ -26,8 +26,8 @@ const NavItem = ({
       <motion.span
         className="nav-label"
         variants={{
-          rest: { opacity: 0, x: -10, pointerEvents: "none" },
-          hover: { opacity: 1, x: 0, pointerEvents: "auto" },
+          rest: { opacity: 0, y: -10, x: "-50%", pointerEvents: "none" },
+          hover: { opacity: 1, y: 0, x: "-50%", pointerEvents: "auto" },
         }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
       >
