@@ -1,154 +1,161 @@
-import { useEffect, useRef } from "react";
-import p5 from "p5";
+import { useEffect, useRef, useMemo } from "react";
+import { usePreview } from "../contexts/PreviewContext";
+
+interface Particle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  homeX: number;
+  homeY: number;
+  homeZ: number;
+}
 
 export const ParticleBackground = () => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const { currentView } = usePreview();
 
+  // Settings
+  const particleCount = 1024;
+  const attraction = 0.04;
+  const damping = 0.4;
+  const repelStrength = 2;
+
+  // State refs to avoid frequent re-renders
+  const particles = useRef<Particle[]>([]);
+  const mouse = useRef({ x: 0, y: 0 });
+  const angle = useRef(0);
+
+  // Check for reduced motion
+  const prefersReducedMotion = useMemo(
+    () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    []
+  );
+
+  // Initialize particles
   useEffect(() => {
-    if (!containerRef.current) return;
+    const newParticles: Particle[] = [];
+    const size = window.innerHeight * 0.35;
 
-    let repelRadius = 0;
-    let cubeSize = 0;
-    let angle = 0;
-    const points: {
-      index: number;
-      pos: p5.Vector; // Current 2D position on screen
-      val: p5.Vector; // Velocity
-      home3D: p5.Vector; // The fixed 3D position inside the cube
-    }[] = [];
+    for (let i = 0; i < particleCount; i++) {
+      const x = (Math.random() - 0.5) * 2 * size;
+      const y = (Math.random() - 0.5) * 2 * size;
+      const z = (Math.random() - 0.5) * 2 * size;
 
-    // Dense particle count for the cube volume
-    const particleCount = 1024;
-    const attraction = 0.04; // Stronger pull to keep the cube shape crisp
-    const damping = 0.4; // More friction
-    const repelStrength = 2; // Much subtler repulsion (was 10)
+      newParticles.push({
+        x,
+        y,
+        vx: 0,
+        vy: 0,
+        homeX: x,
+        homeY: y,
+        homeZ: z,
+      });
+    }
+    particles.current = newParticles;
+  }, []);
 
-    const sketch = (p: p5) => {
-      p.setup = () => {
-        // Responsive setup
-        const isMobile = p.windowWidth < 768;
-        p.createCanvas(p.windowWidth, p.windowHeight).parent(
-          containerRef.current!
-        );
+  // Check if we should be visible and animating
+  const isVisible = currentView !== "workspace-detail" && !prefersReducedMotion;
 
-        if (isMobile) {
-          cubeSize = p.windowHeight * 0.25; // Scale with height
-          repelRadius = 80;
-        } else {
-          cubeSize = p.windowHeight * 0.35; // Large enough to fill vertical space
-          repelRadius = 200;
+  // If the user prefers reduced motion, we don't render at all.
+  if (prefersReducedMotion) return null;
+
+  // Animation Loop
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    // IMPORTANT: If not visible (e.g. faded out), we stop the loop entirely.
+    // This means zero processing power is used for physics or drawing.
+    if (!isVisible) return;
+
+    const ctx = canvas.getContext("2d", { alpha: true });
+    if (!ctx) return;
+
+    let animationFrameId: number;
+
+    const render = () => {
+      const width = canvas.width;
+      const height = canvas.height;
+      const centerX = width * 0.95;
+      const centerY = height * 0.5;
+      const repelRadius = 200;
+
+      ctx.clearRect(0, 0, width, height);
+      ctx.save();
+      ctx.translate(centerX, centerY);
+
+      const cosA = Math.cos(angle.current);
+      const sinA = Math.sin(angle.current);
+      const cosB = Math.cos(angle.current * 0.6);
+      const sinB = Math.sin(angle.current * 0.6);
+
+      const mX = mouse.current.x - centerX;
+      const mY = mouse.current.y - centerY;
+      ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
+
+      for (const pt of particles.current) {
+        // 1. 3D Rotation to 2D Projecton
+        const x1 = pt.homeX * cosA - pt.homeZ * sinA;
+        const z1 = pt.homeZ * cosA + pt.homeX * sinA;
+        const y2 = pt.homeY * cosB - z1 * sinB;
+
+        const targetX = x1;
+        const targetY = y2;
+
+        // 2. Physics
+        const dx = targetX - pt.x;
+        const dy = targetY - pt.y;
+
+        pt.vx += dx * attraction;
+        pt.vy += dy * attraction;
+
+        const rdx = pt.x - mX;
+        const rdy = pt.y - mY;
+        const distSq = rdx * rdx + rdy * rdy;
+
+        if (distSq < repelRadius * repelRadius && distSq > 0.01) {
+          const dist = Math.sqrt(distSq);
+          const force = repelStrength * (1 - dist / repelRadius);
+          pt.vx += (rdx / dist) * force;
+          pt.vy += (rdy / dist) * force;
         }
 
-        p.pixelDensity(1);
-        // Dark subtle particles for light background
-        p.stroke(0, 0, 0, 80);
-        p.strokeWeight(2.5);
+        pt.vx *= damping;
+        pt.vy *= damping;
+        pt.x += pt.vx;
+        pt.y += pt.vy;
 
-        // Initialize points
-        for (let i = 0; i < particleCount; i++) {
-          // Generate points inside a cube volume centered at 0,0,0
-          // Assume cube spans from -cubeSize to +cubeSize
-          const x = p.random(-cubeSize, cubeSize);
-          const y = p.random(-cubeSize, cubeSize);
-          const z = p.random(-cubeSize, cubeSize);
+        ctx.fillRect(pt.x, pt.y, 2.5, 2.5);
+      }
+      angle.current += 0.001;
 
-          // Project initial position immediately so they don't fly in from center
-          // We assume initial angle is 0
-          // Initial rotation (angle=0):
-          // Rotate Y (cos0=1, sin0=0) -> x1=x, z1=z, y1=y
-          // Rotate X (cos0=1, sin0=0) -> y2=y, x2=x
-          // So initially 2D pos is just (x, y)
-
-          points.push({
-            index: i,
-            pos: p.createVector(x, y), // Start at correct position
-            val: p.createVector(0, 0),
-            home3D: p.createVector(x, y, z),
-          });
-        }
-      };
-
-      p.draw = () => {
-        p.clear(); // Transparent background
-
-        // Translate to RIGHT edge (width) and Vertically Centered
-        // This makes it "half on, half off" the screen
-        const centerX = p.width;
-        const centerY = p.height * 0.5;
-        p.translate(centerX, centerY);
-
-        // Adjust mouse coords relative to our new center
-        const mouse = p.createVector(p.mouseX - centerX, p.mouseY - centerY);
-
-        // Rotation Matrix logic (manual 3D projection)
-        // We rotate on a "vertex" which basically means shifting X and Y rotation
-        // Rotating around diagonal axis (1, 1, 0) gives a nice tumble
-        const cosA = Math.cos(angle);
-        const sinA = Math.sin(angle);
-        const cosB = Math.cos(angle * 0.6); // Different speed for second axis
-        const sinB = Math.sin(angle * 0.6);
-
-        for (const pt of points) {
-          // 1. Rotate the persistent 3D home position
-          // Rotate Y
-          const x1 = pt.home3D.x * cosA - pt.home3D.z * sinA;
-          const z1 = pt.home3D.z * cosA + pt.home3D.x * sinA;
-          const y1 = pt.home3D.y;
-
-          // Rotate X
-          const y2 = y1 * cosB - z1 * sinB;
-          // let z2 = z1 * cosB + y1 * sinB; // Unused for 2D projection
-          const x2 = x1;
-
-          // 2. Project 3D to 2D (Isometric-ish / Orthographic Projection)
-          // Since we are just drawing a flat cloud, we can just drop Z or use it for depth scale (optional)
-          // Simple orthographic: just use x2, y2 as target
-          const home2D = p.createVector(x2, y2);
-
-          // --- Physics ---
-
-          // Spring force to home
-          const toHome = p5.Vector.sub(home2D, pt.pos);
-          const spring = toHome.mult(attraction);
-          pt.val.add(spring);
-
-          // Mouse repulsion
-          const awayFromMouse = p5.Vector.sub(pt.pos, mouse);
-          const distSq = awayFromMouse.magSq();
-
-          if (distSq > 0.1 && distSq < repelRadius * repelRadius) {
-            const distance = Math.sqrt(distSq);
-            awayFromMouse.normalize();
-
-            // Stronger repulsion at center
-            const repel = repelStrength * (1 - distance / repelRadius);
-            awayFromMouse.mult(repel);
-            pt.val.add(awayFromMouse);
-          }
-
-          // Physics update
-          pt.val.mult(damping);
-          pt.pos.add(pt.val);
-
-          // Draw point
-          p.point(pt.pos.x, pt.pos.y);
-        }
-
-        // Constant rotation - slowed down
-        angle += 0.001;
-      };
-
-      p.windowResized = () => {
-        p.resizeCanvas(p.windowWidth, p.windowHeight);
-      };
+      ctx.restore();
+      animationFrameId = requestAnimationFrame(render);
     };
 
-    const myP5 = new p5(sketch);
+    const handleResize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      mouse.current = { x: e.clientX, y: e.clientY };
+    };
+
+    window.addEventListener("resize", handleResize);
+    window.addEventListener("mousemove", handleMouseMove);
+    handleResize();
+    render();
 
     return () => {
-      myP5.remove();
+      cancelAnimationFrame(animationFrameId);
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("mousemove", handleMouseMove);
     };
-  }, []);
+  }, [isVisible]);
 
   return (
     <div
@@ -159,11 +166,21 @@ export const ParticleBackground = () => {
         left: 0,
         width: "100%",
         height: "100%",
-        zIndex: 0, // Behind content
-        opacity: 0.8,
-        pointerEvents: "auto", // Allow mouse interaction
+        zIndex: 0,
+        opacity: isVisible ? 0.8 : 0,
+        pointerEvents: "none",
         overflow: "hidden",
+        transition: "opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1)",
       }}
-    />
+    >
+      <canvas
+        ref={canvasRef}
+        style={{
+          display: "block",
+          width: "100%",
+          height: "100%",
+        }}
+      />
+    </div>
   );
 };
