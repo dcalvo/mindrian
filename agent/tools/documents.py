@@ -132,5 +132,42 @@ def delete_document(document_id: str, run_context: Optional[RunContext] = None) 
     )
 
 
+# Dangerous versions (no confirmation required) for autonomous agents
+@tool(requires_confirmation=False)
+def edit_document_dangerous(
+    document_id: str,
+    operations: list[dict[str, Any]],
+    run_context: Optional[RunContext] = None,
+) -> dict[str, Any]:
+    """Edit a document by applying block-level operations (no confirmation).
+
+    Operations are applied in order. Available operation types:
+    - insert_block: Insert a new block after a specified block (or at start)
+    - delete_block: Remove a block by ID
+    - update_block: Update the content of an existing block
+    - append_block: Add a new block at the end of the document
+
+    Args:
+        document_id: The ID of the document to edit
+        operations: List of operations to apply. Each operation has:
+            - type: One of "insert_block", "delete_block", "update_block", "append_block"
+            - block_id: The ID of the block (for delete_block and update_block)
+            - after_id: The ID of the block to insert after (for insert_block)
+            - block: Block data with type and content (for insert_block and append_block)
+            - content: New content for the block (for update_block)
+
+    Returns:
+        Edit result with document_id and operations_applied count
+    """
+    return _phoenix_request(
+        "/api/agent/tools/edit_document",
+        {"document_id": document_id, "operations": operations},
+        run_context,
+    )
+
+
 # Export all document tools
 document_tools = [list_documents, create_document, read_document, edit_document, delete_document]
+
+# Tools for autonomous agents (McKinsey agent) - no confirmation required
+mckinsey_tools = [read_document, edit_document_dangerous]

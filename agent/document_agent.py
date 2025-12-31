@@ -16,9 +16,8 @@ load_dotenv()
 from agno.agent import Agent  # noqa: E402
 from agno.db.sqlite import SqliteDb  # noqa: E402
 from agno.models.anthropic import Claude  # noqa: E402
-from agno.os import AgentOS  # noqa: E402
-from testing import TESTING
 
+from testing import TESTING  # noqa: E402
 from tools import document_tools, testing_tools  # noqa: E402
 
 # document agent memory

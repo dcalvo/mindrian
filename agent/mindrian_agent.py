@@ -4,83 +4,112 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+from agno.agent import Agent  # noqa: E402
+from agno.db.sqlite import SqliteDb  # noqa: E402
+from agno.models.anthropic import Claude  # noqa: E402
 from agno.os import AgentOS  # noqa: E402
-from document_agent import document_agent
-from intelligent_agent import intelligent_agent
-from agno.agent import Agent
-from agno.utils.log import logger
-from agno.models.anthropic import Claude
+
+from document_agent import document_agent  # noqa: E402
+from mckinsey_agent import mckinsey_agent  # noqa: E402
+from testing import TESTING  # noqa: E402
+from tools import document_tools, testing_tools  # noqa: E402
 
 # Get API key from environment
 api_key = os.getenv("ANTHROPIC_API_KEY")
+
+# Chat agent memory (required for tool approval continuations)
+db = SqliteDb(db_file="tmp/mindrian_agent.db")
+
 
 def delegate_task(agent_name: str, task: str) -> str:
     """Delegate a task to a specific agent.
 
     Args:
-        agent_name (str): The name of the agent to delegate to (either 'document-agent' or 'intelligent-agent').
-        task (str): The task description.
+        agent_name: The agent to delegate to ('document-agent' or 'mckinsey-agent').
+        task: The task description.
 
     Returns:
-        str: The result of the task.
+        The result of the task.
     """
     target_agent = None
     if agent_name == "document-agent":
         target_agent = document_agent
-    elif agent_name == "intelligent-agent":
-        target_agent = intelligent_agent
-    
+    elif agent_name == "mckinsey-agent":
+        target_agent = mckinsey_agent
+
     if target_agent:
         try:
             response = target_agent.run(task)
             if response.content:
-                 if isinstance(response.content, str):
-                     return response.content
-                 return str(response.content)
+                if isinstance(response.content, str):
+                    return response.content
+                return str(response.content)
             return "Task completed successfully."
         except Exception as e:
             return f"Error executing task: {str(e)}"
-    
+
     return f"Agent '{agent_name}' not found."
 
-LEADER_INSTRUCTIONS = """You are the Mindrian Leader Agent. Your goal is to route user requests to the appropriate specialist agent.
 
-You have access to two specialist agents:
-1. 'document-agent': Use this for ANY operations related to documents (creating, reading, editing, deleting).
-2. 'intelligent-agent': Use this for general reasoning, math, chat, or complex analysis not strictly related to document management.
+LEADER_INSTRUCTIONS = """You are the Mindrian Chat Agent. You help users with \
+document management and can delegate specialized analysis tasks to expert agents.
 
-ALWAYS use the `delegate_task` tool to hand off the work. Do not attempt to answer the user's request directly unless it is a simple greeting or clarification.
+You have direct access to document tools for managing documents:
+- list_documents: List all documents in the workspace
+- create_document: Create a new document
+- read_document: Read document content
+- edit_document: Edit document blocks (insert, update, delete, append)
+- delete_document: Delete a document
 
-Example:
-User: "Create a document notes.txt"
-You: Call delegate_task("document-agent", "Create a document named notes.txt")
+For simple document operations, use your document tools directly.
 
-User: "Calculate the fibonacci sequence"
-You: Call delegate_task("intelligent-agent", "Calculate the fibonacci sequence")
-"""
+For specialized analysis, you can delegate to:
+- 'mckinsey-agent': Run a comprehensive McKinsey 7 Steps analysis on a document.
+  This agent reads the document, analyzes it using McKinsey's problem-solving
+  framework, and appends a detailed report to the document. Example:
+  delegate_task("mckinsey-agent", "Run McKinsey 7 Steps analysis on document ID")
 
-# Create leader agent
+Examples:
+User: "Create a document called Research Notes"
+You: Use create_document tool directly with title "Research Notes"
+
+User: "What documents do I have?"
+You: Use list_documents tool directly
+
+User: "Run a strategic analysis on document abc123"
+You: delegate_task("mckinsey-agent", "Run 7 Steps analysis on document abc123")
+
+Be helpful and conversational. Handle simple requests directly and delegate \
+complex analysis to specialists."""
+
+# Build tools list - include testing tools when MINDRIAN_TESTING=true
+tools = document_tools + [delegate_task] + (testing_tools if TESTING else [])
+
+# Create leader/chat agent with document tools
 mindrian_agent = Agent(
     id="mindrian-agent",
-    name="Mindrian Leader",
+    name="Mindrian Chat Agent",
     model=Claude(id="claude-haiku-4-5", api_key=api_key),
+    db=db,
     instructions=LEADER_INSTRUCTIONS,
-    tools=[delegate_task],
+    tools=tools,
     markdown=True,
     add_history_to_context=True,
+    num_history_runs=10,
 )
 
-# Create AgentOS instance
-# We register all agents so they are available in the system, but the frontend will primarily talk to the leader.
-agent_os = AgentOS(agents=[mindrian_agent, document_agent, intelligent_agent])
+# Create AgentOS instance - all agents registered, frontend talks to leader
+agent_os = AgentOS(agents=[mindrian_agent, document_agent, mckinsey_agent])
 
 # Get FastAPI app from AgentOS
 app = agent_os.get_app()
+
 
 # Add health check endpoint
 @app.get("/health")
 async def health():
     return {"status": "ok", "agent": "mindrian-agent"}
+
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", "8000"))
