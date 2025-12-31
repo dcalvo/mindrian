@@ -5,6 +5,7 @@ import { DocumentsProvider } from "../contexts/DocumentsContext";
 import { PresenceProvider } from "../contexts/PresenceContext";
 import { Layout } from "./Layout";
 import { useAuth } from "../hooks/useAuth";
+import { Toaster } from "sonner";
 
 export function RootLayout() {
   const { user, loading, isAuthenticated, login } = useAuth();
@@ -35,6 +36,7 @@ export function RootLayout() {
             <Outlet />
           </Layout>
           <TanStackRouterDevtools />
+          <Toaster />
         </CollaborationProvider>
       </DocumentsProvider>
     </PresenceProvider>

@@ -7,6 +7,7 @@ An AI-driven, agentic deep-research platform that transforms how individuals, te
 Innovation cycle time and quality are critical to survival and growth, yet innovation remains messy, sporadic, and structureless. The bottleneck isn't expertise—it's **cognitive bandwidth**.
 
 Human cognition cannot simultaneously process:
+
 - All relevant domain knowledge
 - Cutting-edge research and cross-domain advances
 - Organizational goals and constraints
@@ -69,6 +70,21 @@ cp .env.example .env
 cd ..
 ```
 
+### Troubleshooting
+
+If `mix ecto.setup` fails with connection errors or role errors:
+
+1. **Ensure Postgres is running**:
+   ```bash
+   brew services start postgresql@17
+   ```
+2. **Ensure the `postgres` user exists**:
+   ```bash
+   createuser -s postgres
+   # Set password to 'postgres'
+   psql postgres -c "ALTER USER postgres WITH PASSWORD 'postgres';"
+   ```
+
 ### Development
 
 Run all three servers in separate terminals:
@@ -129,6 +145,7 @@ fly deploy
 ```
 
 Useful commands:
+
 - `./fiex` - Remote IEx console
 - `fly logs` - View logs
 - `fly mpg connect <cluster>` - Connect to database
@@ -153,6 +170,7 @@ frontend/                  # React SPA (TypeScript)
 ```
 
 **Key technologies:**
+
 - **Backend**: Phoenix, PostgreSQL, Phoenix Channels
 - **Agent**: Python, Agno, Claude
 - **Frontend**: React, TypeScript, Vite, TanStack Router
@@ -177,4 +195,4 @@ For commercial licensing options, please contact us at support@mindrian.com.
 
 ---
 
-*Pushing thinking forward through agentic deep research.*
+_Pushing thinking forward through agentic deep research._
