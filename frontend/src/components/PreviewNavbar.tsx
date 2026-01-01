@@ -46,12 +46,32 @@ export const PreviewNavbar: React.FC<{
     <div className="preview-nav-wrapper">
       <div className="preview-nav">
         <div className="nav-left">
-          <div className="nav-logo" onClick={onHomeClick}>
+          <motion.div
+            className="nav-logo"
+            onClick={onHomeClick}
+            whileHover="hover"
+            initial="initial"
+          >
             <div className="nav-logo-icon">
-              <div className="nav-logo-inner" />
+              <motion.div
+                className="logo-square square-1"
+                variants={{
+                  initial: { x: 0, y: 0 },
+                  hover: { x: -4, y: 0 },
+                }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              />
+              <motion.div
+                className="logo-square square-2"
+                variants={{
+                  initial: { x: 7, y: -7 },
+                  hover: { x: 11, y: -7 },
+                }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              />
             </div>
             <span className="nav-logo-text">mindrian</span>
-          </div>
+          </motion.div>
         </div>
 
         <div className="nav-center">
