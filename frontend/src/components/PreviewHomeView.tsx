@@ -78,33 +78,6 @@ export const PreviewHomeView: React.FC<PreviewHomeViewProps> = ({
         </motion.p>
       </motion.div>
 
-      {/* Action buttons */}
-      <motion.div className="actions-section" variants={itemVariants}>
-        <motion.button
-          className="action-button primary-action"
-          onClick={() => push("create-workspace")}
-          whileHover={{
-            scale: 1.02,
-            boxShadow: "0 8px 30px rgba(0, 0, 0, 0.12)",
-          }}
-          whileTap={{ scale: 0.98 }}
-        >
-          <div className="action-icon">
-            <Plus size={20} />
-          </div>
-          <div className="action-content">
-            <span className="action-title">Create Workspace</span>
-            <span className="action-description">
-              Start fresh with a new workspace
-            </span>
-          </div>
-        </motion.button>
-
-        <div className="actions-divider">
-          <span>or</span>
-        </div>
-      </motion.div>
-
       {/* Chat Action Area */}
       <motion.div
         className="chat-action-container home-chat"
@@ -118,12 +91,11 @@ export const PreviewHomeView: React.FC<PreviewHomeViewProps> = ({
         >
           <textarea
             className="chat-input"
-            placeholder={`Discuss with ${selectedAgent.name}...`}
+            placeholder={`How can I help you today?`}
             value={chatInput}
             onChange={(e) => setChatInput(e.target.value)}
-            onFocus={enterChatMode}
             onBlur={handleBlur}
-            rows={isChatMode ? 2 : 1}
+            rows={4}
           />
 
           {!isChatMode ? (
@@ -194,7 +166,10 @@ export const PreviewHomeView: React.FC<PreviewHomeViewProps> = ({
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               disabled={!chatInput.trim()}
-              onClick={sendMessage}
+              onClick={() => {
+                enterChatMode();
+                setTimeout(sendMessage, 0);
+              }}
             >
               <ChevronRight size={18} />
             </motion.button>
@@ -241,6 +216,24 @@ export const PreviewHomeView: React.FC<PreviewHomeViewProps> = ({
           </motion.button>
         </div>
         <div className="workspaces-grid">
+          <motion.div
+            className="workspace-card create-card"
+            onClick={() => push("create-workspace")}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{
+              delay: 0.2,
+              duration: 0.5,
+            }}
+          >
+            <div className="workspace-icon">
+              <Plus size={24} />
+            </div>
+            <div className="workspace-info">
+              <h3 className="workspace-name">Create New</h3>
+            </div>
+          </motion.div>
+
           {workspaces.map((workspace, index) => (
             <motion.div
               key={workspace.id}

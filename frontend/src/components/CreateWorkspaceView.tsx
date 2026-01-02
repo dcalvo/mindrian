@@ -67,15 +67,6 @@ export const CreateWorkspaceView: React.FC = () => {
       animate="visible"
       exit="exit"
     >
-      <motion.button
-        className="back-view-button"
-        onClick={() => setView("home")}
-        whileHover={{ x: -4 }}
-      >
-        <ArrowLeft size={16} />
-        Back to Home
-      </motion.button>
-
       <motion.h1 variants={ITEM_VARIANTS} className="view-title">
         New Workspace
       </motion.h1>
