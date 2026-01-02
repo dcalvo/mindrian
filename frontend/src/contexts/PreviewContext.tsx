@@ -13,13 +13,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-export type PreviewView =
-  | "home"
-  | "create-workspace"
-  | "workspace-detail"
-  | "workspaces-list"
-  | "extensions-list";
-
 export interface PreviewExtension {
   id: string;
   name: string;
@@ -55,15 +48,11 @@ export interface PreviewWorkspace {
 interface PreviewContextType {
   workspaces: PreviewWorkspace[];
   extensions: PreviewExtension[];
-  currentView: PreviewView;
   activeWorkspaceId: number | string | null;
   activeDocumentId: string | null;
   addWorkspace: (
     workspace: Omit<PreviewWorkspace, "id" | "documentCount" | "lastUpdated">
   ) => void;
-  setView: (view: PreviewView) => void;
-  selectWorkspace: (id: number | string) => void;
-  selectDocument: (id: string) => void;
   activeWorkspace: PreviewWorkspace | null;
   activeDocument: PreviewDocument | null;
 }
@@ -221,17 +210,15 @@ const defaultWorkspaces: PreviewWorkspace[] = [
 
 const PreviewContext = createContext<PreviewContextType | undefined>(undefined);
 
+import { usePreviewNavigation } from "./PreviewNavigationContext";
+
 export const PreviewProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
+  const { current, push } = usePreviewNavigation();
   const [workspaces, setWorkspaces] =
     useState<PreviewWorkspace[]>(defaultWorkspaces);
   const [extensions] = useState<PreviewExtension[]>(defaultExtensions);
-  const [currentView, setCurrentView] = useState<PreviewView>("home");
-  const [activeWorkspaceId, setActiveWorkspaceId] = useState<
-    number | string | null
-  >(null);
-  const [activeDocumentId, setActiveDocumentId] = useState<string | null>(null);
 
   const addWorkspace = (
     workspace: Omit<PreviewWorkspace, "id" | "documentCount" | "lastUpdated">
@@ -246,38 +233,14 @@ export const PreviewProvider: React.FC<{ children: ReactNode }> = ({
       documents: [],
     };
     setWorkspaces((prev) => [newWorkspace, ...prev]);
-    setActiveWorkspaceId(newId);
-    setActiveDocumentId(null);
-    setCurrentView("workspace-detail");
-  };
-
-  const setView = (view: PreviewView) => {
-    setCurrentView(view);
-    if (
-      view === "home" ||
-      view === "workspaces-list" ||
-      view === "extensions-list"
-    ) {
-      setActiveWorkspaceId(null);
-      setActiveDocumentId(null);
-    }
-  };
-
-  const selectWorkspace = (id: number | string) => {
-    setActiveWorkspaceId(id);
-    setActiveDocumentId(null);
-    setCurrentView("workspace-detail");
-  };
-
-  const selectDocument = (id: string) => {
-    setActiveDocumentId(id);
+    push("workspace-detail", { workspaceId: newId, documentId: null });
   };
 
   const activeWorkspace =
-    workspaces.find((ws) => ws.id === activeWorkspaceId) || null;
+    workspaces.find((ws) => ws.id === current.workspaceId) || null;
 
   const activeDocument =
-    activeWorkspace?.documents?.find((doc) => doc.id === activeDocumentId) ||
+    activeWorkspace?.documents?.find((doc) => doc.id === current.documentId) ||
     null;
 
   return (
@@ -285,13 +248,9 @@ export const PreviewProvider: React.FC<{ children: ReactNode }> = ({
       value={{
         workspaces,
         extensions,
-        currentView,
-        activeWorkspaceId,
-        activeDocumentId,
+        activeWorkspaceId: current.workspaceId ?? null,
+        activeDocumentId: current.documentId ?? null,
         addWorkspace,
-        setView,
-        selectWorkspace,
-        selectDocument,
         activeWorkspace,
         activeDocument,
       }}

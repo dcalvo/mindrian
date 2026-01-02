@@ -12,6 +12,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { usePreview } from "../contexts/PreviewContext";
+import { usePreviewNavigation } from "../contexts/PreviewNavigationContext";
 
 // BlockNote Imports
 import "@blocknote/core/fonts/inter.css";
@@ -29,7 +30,8 @@ const CONTAINER_VARIANTS = {
 };
 
 export const WorkspaceDetailView: React.FC = () => {
-  const { activeWorkspace, activeDocument, selectDocument } = usePreview();
+  const { activeWorkspace, activeDocument } = usePreview();
+  const { current, push } = usePreviewNavigation();
   const [chatInput, setChatInput] = useState("");
   const [isFilesExpanded, setIsFilesExpanded] = useState(true);
 
@@ -111,7 +113,12 @@ export const WorkspaceDetailView: React.FC = () => {
                     <div
                       key={doc.id}
                       className={`file-item ${activeDocument?.id === doc.id ? "active" : ""}`}
-                      onClick={() => selectDocument(doc.id)}
+                      onClick={() =>
+                        push("workspace-detail", {
+                          ...current,
+                          documentId: doc.id,
+                        })
+                      }
                     >
                       <File size={14} />
                       <span className="file-name">{doc.title}</span>
