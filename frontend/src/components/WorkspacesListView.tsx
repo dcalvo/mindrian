@@ -2,6 +2,7 @@ import React from "react";
 import { motion, type Variants } from "framer-motion";
 import { Plus, FileText, Clock } from "lucide-react";
 import { usePreview } from "../contexts/PreviewContext";
+import { usePreviewNavigation } from "../contexts/PreviewNavigationContext";
 
 interface WorkspacesListViewProps {
   itemVariants: Variants;
@@ -10,7 +11,8 @@ interface WorkspacesListViewProps {
 export const WorkspacesListView: React.FC<WorkspacesListViewProps> = ({
   itemVariants,
 }) => {
-  const { workspaces, setView, selectWorkspace } = usePreview();
+  const { workspaces } = usePreview();
+  const { push } = usePreviewNavigation();
 
   return (
     <motion.div
@@ -66,7 +68,7 @@ export const WorkspacesListView: React.FC<WorkspacesListViewProps> = ({
         <motion.button
           variants={itemVariants}
           className="create-workspace-btn-small"
-          onClick={() => setView("create-workspace")}
+          onClick={() => push("create-workspace")}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           style={{
@@ -94,7 +96,9 @@ export const WorkspacesListView: React.FC<WorkspacesListViewProps> = ({
             key={workspace.id}
             className="workspace-card"
             variants={itemVariants}
-            onClick={() => selectWorkspace(workspace.id)}
+            onClick={() =>
+              push("workspace-detail", { workspaceId: workspace.id })
+            }
             whileHover={{ y: -5, boxShadow: "0 12px 30px rgba(0,0,0,0.08)" }}
           >
             <div

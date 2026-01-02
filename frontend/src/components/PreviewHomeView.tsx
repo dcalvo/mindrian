@@ -2,6 +2,7 @@ import React from "react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { Plus, ChevronDown, ChevronRight, FileText } from "lucide-react";
 import { usePreview } from "../contexts/PreviewContext";
+import { usePreviewNavigation } from "../contexts/PreviewNavigationContext";
 import type { Agent } from "../hooks/usePreviewChat";
 
 interface PreviewHomeViewProps {
@@ -33,7 +34,8 @@ export const PreviewHomeView: React.FC<PreviewHomeViewProps> = ({
   sendMessage,
   agents,
 }) => {
-  const { workspaces, setView, selectWorkspace } = usePreview();
+  const { workspaces } = usePreview();
+  const { push } = usePreviewNavigation();
 
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
@@ -80,7 +82,7 @@ export const PreviewHomeView: React.FC<PreviewHomeViewProps> = ({
       <motion.div className="actions-section" variants={itemVariants}>
         <motion.button
           className="action-button primary-action"
-          onClick={() => setView("create-workspace")}
+          onClick={() => push("create-workspace")}
           whileHover={{
             scale: 1.02,
             boxShadow: "0 8px 30px rgba(0, 0, 0, 0.12)",
@@ -220,7 +222,7 @@ export const PreviewHomeView: React.FC<PreviewHomeViewProps> = ({
           </h2>
           <motion.button
             className="see-all-btn"
-            onClick={() => setView("workspaces-list")}
+            onClick={() => push("workspaces-list")}
             whileHover={{ x: 3 }}
             style={{
               display: "flex",
@@ -243,7 +245,9 @@ export const PreviewHomeView: React.FC<PreviewHomeViewProps> = ({
             <motion.div
               key={workspace.id}
               className="workspace-card"
-              onClick={() => selectWorkspace(workspace.id)}
+              onClick={() =>
+                push("workspace-detail", { workspaceId: workspace.id })
+              }
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{

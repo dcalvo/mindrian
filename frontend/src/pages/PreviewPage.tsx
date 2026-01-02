@@ -1,7 +1,12 @@
 import { motion, AnimatePresence, type Variants } from "framer-motion";
+import { ArrowLeft } from "lucide-react";
 
 import { ParticleBackground } from "../components/ParticleBackground";
-import { PreviewProvider, usePreview } from "../contexts/PreviewContext";
+import { PreviewProvider } from "../contexts/PreviewContext";
+import {
+  PreviewNavigationProvider,
+  usePreviewNavigation,
+} from "../contexts/PreviewNavigationContext";
 import { CreateWorkspaceView } from "../components/CreateWorkspaceView";
 import { WorkspaceDetailView } from "../components/WorkspaceDetailView";
 import { WorkspacesListView } from "../components/WorkspacesListView";
@@ -14,14 +19,17 @@ import "../styles/preview.css";
 
 export function PreviewLanding() {
   return (
-    <PreviewProvider>
-      <PreviewLandingContent />
-    </PreviewProvider>
+    <PreviewNavigationProvider>
+      <PreviewProvider>
+        <PreviewLandingContent />
+      </PreviewProvider>
+    </PreviewNavigationProvider>
   );
 }
 
 function PreviewLandingContent() {
-  const { currentView, setView } = usePreview();
+  const { current, push, pop, reset, canPop } = usePreviewNavigation();
+  const currentView = current.view;
   const {
     isChatMode,
     isDropdownOpen,
@@ -86,15 +94,15 @@ function PreviewLandingContent() {
       <PreviewNavbar
         onHomeClick={() => {
           exitChatMode();
-          setView("home");
+          reset();
         }}
         onWorkspacesClick={() => {
           exitChatMode();
-          setView("workspaces-list");
+          push("workspaces-list");
         }}
         onExtensionsClick={() => {
           exitChatMode();
-          setView("extensions-list");
+          push("extensions-list");
         }}
       />
 
@@ -105,6 +113,28 @@ function PreviewLandingContent() {
         initial="hidden"
         animate="visible"
       >
+        <AnimatePresence>
+          {canPop && (
+            <motion.div
+              className="back-button-row"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              style={{ overflow: "hidden" }}
+            >
+              <motion.button
+                className="back-button"
+                onClick={pop}
+                whileHover={{ x: -2 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <ArrowLeft size={16} />
+                <span>Back</span>
+              </motion.button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <AnimatePresence mode="wait">
           {currentView === "home" ? (
             !isChatMode ? (
