@@ -1,5 +1,5 @@
 import { useEffect, useRef, useMemo } from "react";
-import { usePreview } from "../contexts/PreviewContext";
+import { usePreviewNavigation } from "../contexts/PreviewNavigationContext";
 
 interface Particle {
   x: number;
@@ -14,7 +14,8 @@ interface Particle {
 export const ParticleBackground = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const { currentView } = usePreview();
+  const { current } = usePreviewNavigation();
+  const currentView = current.view;
 
   // Settings
   const particleCount = 1024;
