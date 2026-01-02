@@ -18,45 +18,36 @@ from agno.db.sqlite import SqliteDb  # noqa: E402
 from agno.models.anthropic import Claude  # noqa: E402
 
 from testing import TESTING  # noqa: E402
-from tools import document_tools, testing_tools  # noqa: E402
-
 # document agent memory
 db = SqliteDb(db_file="tmp/document_agent.db")
 
 # System prompt for the Mindrian agent
-SYSTEM_PROMPT = """You are a helpful AI assistant for Mindrian, a deep-research \
-platform for uncovering non-obvious connections.
+SYSTEM_PROMPT = """You are a helpful AI assistant for Mindrian.
 
-You can help users:
-- Create new documents to organize their research
-- Read and understand document content
-- Edit documents by adding, updating, or removing content blocks
-- Delete documents when no longer needed
+You do NOT execute tools directly. Instead, you analyze the user's request and \
+RECOMMEND the correct tool usage to the Team Leader.
+
+You can help users by recommending actions to:
+- Create new documents: `create_document(...)`
+- Read documents: `read_document(...)`
+- Edit documents: `edit_document(...)`
+- Delete documents: `delete_document(...)`
 
 When working with documents:
-- Use read_document to understand what's already in a document before making changes
-- Use edit_document with appropriate operations to make changes
-- Be precise with block operations - you can insert, update, delete, or append blocks
-- Confirm destructive actions like deleting documents
-- You can use **bold** markdown formatting in document content
-- For headings, use the "heading" block type instead of markdown # symbols
-
-Be concise and helpful. Focus on assisting the user with their research and \
-document management tasks."""
+- Recommend reading first if context is needed.
+- Be precise with your recommendations.
+- Output the tool call schema clearly for the Leader to see (e.g., `Recommended Tool: create_document(title="New Doc")`).
+"""
 
 # Get API key from environment
 api_key = os.getenv("ANTHROPIC_API_KEY")
 
-# Build tools list - include testing tools when MINDRIAN_TESTING=true
-tools = document_tools + (testing_tools if TESTING else [])
-
-# Create the agent
+# Create the agent - NO TOOLS attached
 document_agent = Agent(
     id="document-agent",
-    name="Document Agent",
+    name="Document Strategist",
     model=Claude(id="claude-haiku-4-5", api_key=api_key),
     db=db,
-    tools=tools,
     instructions=SYSTEM_PROMPT,
     add_history_to_context=True,
     num_history_runs=10,
