@@ -2,8 +2,8 @@ import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
 
 import { useMemo, useEffect } from "react";
-import { useCreateBlockNote } from "@blocknote/react";
-import { BlockNoteView } from "@blocknote/mantine";
+//import { useCreateBlockNote } from "@blocknote/react";
+//import { BlockNoteView } from "@blocknote/mantine";
 import { useCollaboration } from "../hooks/useCollaboration";
 import { useAuth } from "../hooks/useAuth";
 import { COLORS, getColorFromString } from "../lib/colors";
@@ -22,7 +22,7 @@ export function CollaborativeEditor({ docId }: CollaborativeEditorProps) {
     [user]
   );
 
-  const { collaboration, synced, provider } = useCollaboration({
+  const { /*collaboration,*/ synced, provider } = useCollaboration({
     docId,
     user: userInfo,
   });
@@ -34,7 +34,7 @@ export function CollaborativeEditor({ docId }: CollaborativeEditorProps) {
     }
   }, [provider.awareness, userInfo]);
 
-  const editor = useCreateBlockNote({ collaboration });
+  //const editor = useCreateBlockNote({ collaboration }); Line causes github deployment error
 
   if (!synced) {
     return (
