@@ -7,7 +7,7 @@ import { BlockNoteView } from "@blocknote/mantine";
 import { useCollaboration } from "../hooks/useCollaboration";
 import { useAuth } from "../hooks/useAuth";
 import { COLORS, getColorFromString } from "../lib/colors";
-
+import { BlocknoteWithAtAgent } from "./BlocknoteWithAtAgent";
 interface CollaborativeEditorProps {
   docId: string;
 }
@@ -52,5 +52,5 @@ export function CollaborativeEditor({ docId }: CollaborativeEditorProps) {
     );
   }
 
-  return <BlockNoteView editor={editor} theme="light" />;
+  return <BlocknoteWithAtAgent/>;
 }
