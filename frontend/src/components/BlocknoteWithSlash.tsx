@@ -12,8 +12,6 @@ import {
 } from "@blocknote/react";
 import SlashAgent from "./SlashAgent";
 
-// Custom Slash Menu item to insert a block after the current one.
-
 // List containing all default Slash Menu Items, as well as our custom one.
 const getCustomSlashMenuItems = (
   editor: BlockNoteEditor,
