@@ -142,8 +142,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               <motion.div
                 className="logo-square square-2"
                 variants={{
-                  initial: { x: 7, y: -7 },
-                  hover: { x: 11, y: -7 },
+                  initial: { x: 0, y: 0 },
+                  hover: { x: 4, y: 0 },
                 }}
                 transition={{ type: "spring", stiffness: 300, damping: 20 }}
               />

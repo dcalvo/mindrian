@@ -176,10 +176,165 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
-.extensions-details {
+.workspace-header {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
   background: white;
   border-radius: var(--preview-radius-xl);
-  padding: 40px;
-  overflow-y: auto;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+  margin-bottom: 16px;
   border: 1px solid rgba(0, 0, 0, 0.05);
+  flex-shrink: 0;
+}
+
+.workspace-header-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 16px;
+}
+
+.workspace-header-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--preview-text-primary);
+  margin: 0;
+}
+
+.workspace-sidebar {
+  background: #f8f9fb;
+}
+
+.sidebar-header {
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--preview-text-primary);
+  cursor: pointer;
+}
+
+.add-file-btn {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--preview-text-tertiary);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.add-file-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.file-list {
+  padding: 0 10px;
+}
+
+.file-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--preview-radius-md);
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--preview-text-secondary);
+  transition: all 0.2s;
+}
+
+.file-item:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.file-item.active {
+  background: white;
+  color: var(--preview-text-primary);
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+/* Editor */
+.workspace-editor {
+  padding: 40px;
+}
+
+.editor-content {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-title-input {
+  font-size: 2rem;
+  font-weight: 700;
+  border: none;
+  outline: none;
+  color: var(--preview-text-primary);
+  margin-bottom: 8px;
+  padding: 0;
+  background: transparent;
+}
+
+.editor-meta {
+  font-size: 0.8rem;
+  color: var(--preview-text-tertiary);
+  margin-bottom: 32px;
+}
+
+.editor-textarea {
+  flex: 1;
+  border: none;
+  outline: none;
+  resize: none;
+  font-family: inherit;
+  font-size: 1.1rem;
+  line-height: 1.6;
+  color: var(--preview-text-secondary);
+  background: transparent;
+}
+
+/* Extensions View Extras */
+.extension-mini-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.extension-mini-info {
+  min-width: 0;
+}
+
+.extension-mini-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--preview-text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.installed-badge {
+  color: #10b981;
+}
+
+.extension-mini-desc {
+  font-size: 12px;
+  color: var(--preview-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
