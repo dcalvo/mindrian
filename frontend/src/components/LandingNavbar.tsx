@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 
 interface LandingNavbarProps {
@@ -8,6 +8,17 @@ interface LandingNavbarProps {
 export const LandingNavbar: React.FC<LandingNavbarProps> = ({
   onLoginClick,
 }) => {
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   const handleLogin = () => {
     if (onLoginClick) {
       onLoginClick();
@@ -22,7 +33,7 @@ export const LandingNavbar: React.FC<LandingNavbarProps> = ({
   };
 
   return (
-    <div className="landing-nav-wrapper">
+    <div className={`landing-nav-wrapper ${scrolled ? "scrolled" : ""}`}>
       <nav className="landing-nav">
         <div className="nav-left">
           <motion.div className="nav-logo" whileHover="hover" initial="initial">

@@ -15,7 +15,8 @@ defmodule MindrianWeb.UserSessionController do
         _ -> conn
       end
 
-    render(conn, :new, form: form)
+    back_url = get_session(conn, :user_return_to) || "/"
+    render(conn, :new, form: form, back_url: back_url)
   end
 
   # magic link login
@@ -35,7 +36,7 @@ defmodule MindrianWeb.UserSessionController do
       {:error, :not_found} ->
         conn
         |> put_flash(:error, "The link is invalid or it has expired.")
-        |> render(:new, form: Phoenix.Component.to_form(%{}, as: "user"))
+        |> render(:new, form: Phoenix.Component.to_form(%{}, as: "user"), back_url: get_session(conn, :user_return_to) || "/")
     end
   end
 
@@ -51,7 +52,7 @@ defmodule MindrianWeb.UserSessionController do
       # In order to prevent user enumeration attacks, don't disclose whether the email is registered.
       conn
       |> put_flash(:error, "Invalid email or password")
-      |> render(:new, form: form)
+      |> render(:new, form: form, back_url: get_session(conn, :user_return_to) || "/")
     end
   end
 

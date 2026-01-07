@@ -75,12 +75,6 @@ export function LandingPage() {
           initial="hidden"
           animate="visible"
         >
-          {/* Logo Mark - matching navbar style */}
-          <motion.div className="hero-logo-mark" variants={itemVariants}>
-            <div className="logo-square-large square-1" />
-            <div className="logo-square-large square-2" />
-          </motion.div>
-
           <motion.h1 className="hero-title" variants={itemVariants}>
             <span className="hero-brand">Welcome to Mindrian</span>
           </motion.h1>
@@ -162,33 +156,45 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* Footer CTA */}
-      <section className="landing-footer">
-        <motion.div
-          className="footer-content"
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-        >
-          <h2 className="footer-title">Ready to think differently?</h2>
-          <motion.button
-            className="cta-button primary"
-            onClick={() => {
-              const base = import.meta.env.DEV ? "http://localhost:4000" : "";
-              const returnTo = import.meta.env.DEV
-                ? `?return_to=${encodeURIComponent(window.location.origin + "/")}`
-                : "";
-              window.location.href = `${base}/users/log-in${returnTo}`;
-            }}
-            whileHover={{ scale: 1.02, y: -2 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            Start Now
-            <ChevronRight size={18} />
-          </motion.button>
-        </motion.div>
-      </section>
+      {/* Footer */}
+      <footer className="landing-footer">
+        <div className="footer-content">
+          <div className="footer-main">
+            <div className="footer-brand">
+              <div className="footer-logo">
+                <div className="footer-logo-icon">
+                  <div className="footer-logo-square square-1" />
+                  <div className="footer-logo-square square-2" />
+                </div>
+                <span className="footer-logo-text">mindrian</span>
+              </div>
+              <p className="footer-tagline">Think Better, Together</p>
+            </div>
+            <div className="footer-links">
+              <div className="footer-column">
+                <h4>Product</h4>
+                <a href="#">Features</a>
+                <a href="#">Pricing</a>
+                <a href="#">Roadmap</a>
+              </div>
+              <div className="footer-column">
+                <h4>Company</h4>
+                <a href="#">About</a>
+                <a href="#">Blog</a>
+                <a href="#">Careers</a>
+              </div>
+              <div className="footer-column">
+                <h4>Legal</h4>
+                <a href="#">Privacy Policy</a>
+                <a href="#">Terms of Service</a>
+              </div>
+            </div>
+          </div>
+          <div className="footer-bottom">
+            <p>© 2025 Mindrian. All rights reserved.</p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

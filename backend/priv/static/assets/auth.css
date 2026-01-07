@@ -65,16 +65,15 @@ body {
 }
 
 .auth-logo-square.square-1 {
-  left: 0;
-  bottom: 0;
+  left: 2.5px;
+  bottom: 2.5px;
   z-index: 2;
 }
 
 .auth-logo-square.square-2 {
-  right: 0;
-  top: 0;
+  right: 2.5px;
+  top: 2.5px;
   z-index: 1;
-  opacity: 0.7;
 }
 
 .auth-logo-text {
@@ -277,6 +276,30 @@ body {
 
 .auth-back-link:hover {
   color: var(--auth-text-primary);
+}
+
+/* Absolute Back Button (Top Left) */
+.auth-back-absolute {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  color: var(--auth-text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  background: transparent;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.auth-back-absolute:hover {
+  color: var(--auth-text-primary);
+  background: rgba(0, 0, 0, 0.03);
 }
 
 /* Flash messages */
