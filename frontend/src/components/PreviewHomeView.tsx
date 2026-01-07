@@ -3,7 +3,7 @@ import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { Plus, ChevronDown, ChevronRight, FileText } from "lucide-react";
 import { usePreview } from "../contexts/PreviewContext";
 import { usePreviewNavigation } from "../contexts/PreviewNavigationContext";
-import type { Agent } from "../hooks/usePreviewChat";
+import type { Agent } from "../hooks/chat/usePreviewChat";
 
 interface PreviewHomeViewProps {
   itemVariants: Variants;

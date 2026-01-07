@@ -1,5 +1,5 @@
 import { useContext } from "react";
-import { PresenceContext } from "../contexts/presence";
+import { PresenceContext } from "../../contexts/presence";
 
 export function usePresence() {
   const context = useContext(PresenceContext);

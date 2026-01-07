@@ -14,7 +14,7 @@ import { PreviewNavbar } from "../components/PreviewNavbar";
 import { PreviewHomeView } from "../components/PreviewHomeView";
 import { PreviewChatView } from "../components/PreviewChatView";
 import { ExtensionsView } from "../components/ExtensionsView";
-import { usePreviewChat } from "../hooks/usePreviewChat";
+import { usePreviewChat } from "../hooks/chat/usePreviewChat";
 import "../styles/preview.css";
 
 export function PreviewLanding() {
