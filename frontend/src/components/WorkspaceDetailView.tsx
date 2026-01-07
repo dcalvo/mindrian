@@ -1,6 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { Search, MoreVertical, FileText, Plus } from "lucide-react";
+import { FileText, Plus } from "lucide-react";
 import { usePreviewContext } from "../contexts/PreviewContext";
 import { FileTree } from "./FileTree";
 import { ChatPane } from "./ChatPane";
@@ -29,48 +29,28 @@ export const WorkspaceDetailView: React.FC = () => {
       animate="visible"
       exit="exit"
     >
-      {/* Fixed Streamlined Header */}
-      <header className="workspace-header">
-        <div className="header-left">
-          <div
-            className="workspace-header-icon"
-            style={{ backgroundColor: activeWorkspace.bgColor }}
-          >
-            <Icon size={20} color={activeWorkspace.iconColor} />
+      <div className="workspace-unified-container">
+        {/* Left Panel: Workspace Identity + File System */}
+        <aside className="workspace-panel workspace-sidebar">
+          <div className="workspace-sidebar-identity">
+            <div
+              className="workspace-sidebar-icon"
+              style={{ backgroundColor: activeWorkspace.bgColor }}
+            >
+              <Icon size={18} color={activeWorkspace.iconColor} />
+            </div>
+            <h1 className="workspace-sidebar-title">{activeWorkspace.name}</h1>
           </div>
-          <div className="workspace-header-info">
-            <h1 className="workspace-header-title">{activeWorkspace.name}</h1>
+          <div className="workspace-sidebar-divider" />
+          <div className="workspace-sidebar-content">
+            <FileTree />
           </div>
-        </div>
-
-        <div className="header-actions">
-          <button className="header-btn">
-            <Search size={18} />
-          </button>
-          <button className="header-btn">
-            <MoreVertical size={18} />
-          </button>
-        </div>
-      </header>
-
-      {/* 3-Panel Content Area */}
-      <div className="workspace-panels-layout">
-        {/* Left Panel: File System */}
-        <aside
-          className="workspace-panel workspace-sidebar"
-          style={{ paddingTop: "1rem" }}
-        >
-          <FileTree />
         </aside>
 
         {/* Middle Panel: Collaborative Editor */}
         <main className="workspace-panel workspace-editor">
           {activeDocument ? (
-            <div
-              className="editor-container"
-              style={{ height: "100%", overflow: "hidden" }}
-            >
-              {/* CollaborativeEditor handles its own scroll and layout mostly, but we wrap it to be safe */}
+            <div className="editor-container">
               <CollaborativeEditor docId={activeDocument.id} />
             </div>
           ) : (
