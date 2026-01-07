@@ -4,7 +4,7 @@ import {
   useChat,
   type AgentMessage,
   type ToolCallMessage,
-} from "../hooks/useChat";
+} from "../hooks/chat/useChat";
 import { ChatMessage } from "./ChatMessage";
 import { ToolApproval } from "./ToolApproval";
 import "./ChatPane.css";
@@ -32,18 +32,19 @@ export function ChatPane() {
 
   // Find streaming message (agent message with status "streaming")
   const streamingMessage = messages.find(
-    (m): m is AgentMessage => m.role === "agent" && m.status === "streaming"
+    (m: any): m is AgentMessage =>
+      m.role === "agent" && m.status === "streaming"
   );
 
   // Find pending tool (tool_call with status "pending_approval")
   const pendingTool = messages.find(
-    (m): m is ToolCallMessage =>
+    (m: any): m is ToolCallMessage =>
       m.role === "tool_call" && m.status === "pending_approval"
   );
 
   // Filter out streaming messages and pending tools from the main list
   const displayMessages = messages.filter(
-    (m) =>
+    (m: any) =>
       !(m.role === "agent" && (m as AgentMessage).status === "streaming") &&
       !(
         m.role === "tool_call" &&
@@ -107,7 +108,7 @@ export function ChatPane() {
           </div>
         )}
 
-        {displayMessages.map((message) => (
+        {displayMessages.map((message: any) => (
           <ChatMessage key={message.id} message={message} />
         ))}
 

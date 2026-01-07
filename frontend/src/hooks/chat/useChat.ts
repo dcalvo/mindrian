@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { Channel } from "phoenix";
-import { getSocket } from "../lib/socket";
+import { getSocket } from "../../lib/socket";
 
 // ---------------------------------------------------------------------------
 // Types

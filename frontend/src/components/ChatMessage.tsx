@@ -4,7 +4,7 @@ import type {
   UserMessage,
   AgentMessage,
   ToolCallMessage,
-} from "../hooks/useChat";
+} from "../hooks/chat/useChat";
 import { ToolCallDisplay } from "./ToolCallDisplay";
 
 interface ChatMessageProps {
