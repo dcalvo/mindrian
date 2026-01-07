@@ -1,38 +1,45 @@
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
 
-import { ParticleBackground } from "../components/ParticleBackground";
-import { PreviewProvider } from "../contexts/PreviewContext";
+import { ParticleBackground } from "./ParticleBackground";
+import { PreviewProvider } from "../../contexts/PreviewContext";
 import {
   PreviewNavigationProvider,
   usePreviewNavigationContext,
-} from "../contexts/PreviewNavigationContext";
-import { CreateWorkspaceView } from "../components/CreateWorkspaceView";
-import { WorkspaceDetailView } from "../components/WorkspaceDetailView";
-import { WorkspacesListView } from "../components/WorkspacesListView";
-import { Navbar } from "../components/Navbar";
-import { PreviewHomeView } from "../components/PreviewHomeView";
-import { PreviewChatView } from "../components/PreviewChatView";
-import { ExtensionsView } from "../components/ExtensionsView";
-import { usePreviewChat } from "../hooks/chat/usePreviewChat";
-import type { User } from "../lib/api";
-import "../styles/preview.css";
+} from "../../contexts/PreviewNavigationContext";
+import { CreateWorkspaceView } from "../dashboard/CreateWorkspaceView";
+import { WorkspaceDetailView } from "../workspace/WorkspaceDetailView";
+import { WorkspacesListView } from "../dashboard/WorkspacesListView";
+import { Navbar } from "../../components/common/Navbar";
+import { PreviewHomeView } from "./PreviewHomeView";
+import { PreviewChatView } from "./PreviewChatView";
+import { ExtensionsView } from "../workspace/ExtensionsView";
+import { usePreviewChat } from "../../hooks/chat/usePreviewChat";
+import { DocumentsProvider } from "../../contexts/DocumentsContext";
+import { CollaborationProvider } from "../../contexts/CollaborationContext";
+import { PresenceProvider } from "../../contexts/PresenceContext";
+import "./landing.css";
+import "../dashboard/dashboard.css";
+import "../workspace/workspace.css";
+import "../../components/common/common.css";
 
-interface DashboardPageProps {
-  user: User;
-}
-
-export function DashboardPage({ user: _user }: DashboardPageProps) {
+export function PreviewLanding() {
   return (
     <PreviewNavigationProvider>
       <PreviewProvider>
-        <DashboardContent />
+        <DocumentsProvider>
+          <CollaborationProvider>
+            <PresenceProvider>
+              <PreviewLandingContent />
+            </PresenceProvider>
+          </CollaborationProvider>
+        </DocumentsProvider>
       </PreviewProvider>
     </PreviewNavigationProvider>
   );
 }
 
-function DashboardContent() {
+function PreviewLandingContent() {
   const { current, push, pop, reset, canPop } = usePreviewNavigationContext();
   const currentView = current.view;
   const {
@@ -95,7 +102,7 @@ function DashboardContent() {
       {/* Physics-based Particle Background */}
       <ParticleBackground />
 
-      {/* Dashboard Navbar with logout */}
+      {/* Centered Preview Navbar */}
       <Navbar
         onHomeClick={() => {
           exitChatMode();
@@ -174,7 +181,7 @@ function DashboardContent() {
               key="workspaces-list"
               itemVariants={itemVariants}
             />
-          ) : currentView === "extensions-list" ? (
+          ) : currentView === "extensions-list" ? ( // Added ExtensionsView
             <ExtensionsView key="extensions-list" itemVariants={itemVariants} />
           ) : currentView === "create-workspace" ? (
             <CreateWorkspaceView key="create-workspace" />

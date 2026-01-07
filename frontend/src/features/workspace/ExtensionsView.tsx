@@ -8,7 +8,7 @@ import {
   Globe,
   ShieldCheck,
 } from "lucide-react";
-import { usePreviewContext } from "../contexts/PreviewContext";
+import { usePreviewContext } from "../../contexts/PreviewContext";
 
 interface ExtensionsViewProps {
   itemVariants: Variants;

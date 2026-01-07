@@ -9,7 +9,7 @@ import {
   MoreHorizontal,
   Plus,
 } from "lucide-react";
-import type { TreeNode } from "../lib/tree";
+import type { TreeNode } from "../../lib/tree";
 import { createPortal } from "react-dom";
 
 export interface FileNodeProps extends NodeRendererProps<TreeNode> {

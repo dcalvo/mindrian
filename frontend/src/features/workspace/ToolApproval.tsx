@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import type { ToolCallMessage } from "../hooks/chat/useChat";
+import type { ToolCallMessage } from "../../hooks/chat/useChat";
 
 interface ToolApprovalProps {
   tool: ToolCallMessage;

@@ -1,12 +1,12 @@
 import { Outlet, useLocation } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
-import { CollaborationProvider } from "../contexts/CollaborationContext";
-import { DocumentsProvider } from "../contexts/DocumentsContext";
-import { PresenceProvider } from "../contexts/PresenceContext";
-import { useAuth } from "../hooks/auth/useAuth";
+import { CollaborationProvider } from "../../contexts/CollaborationContext";
+import { DocumentsProvider } from "../../contexts/DocumentsContext";
+import { PresenceProvider } from "../../contexts/PresenceContext";
+import { useAuth } from "../../hooks/auth/useAuth";
 import { Toaster } from "sonner";
-import { LandingPage } from "../pages/LandingPage";
-import { DashboardPage } from "../pages/DashboardPage";
+import { LandingPage } from "../../features/landing/LandingPage";
+import { DashboardPage } from "../../features/dashboard/DashboardPage";
 
 export function RootLayout() {
   const { user, loading, isAuthenticated } = useAuth();

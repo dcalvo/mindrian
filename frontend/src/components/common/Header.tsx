@@ -1,6 +1,7 @@
-import type { User } from "../lib/api";
-import { useAuth } from "../hooks/auth/useAuth";
-import { PresenceBubbles } from "./PresenceBubbles";
+import type { User } from "../../lib/api";
+import { useAuth } from "../../hooks/auth/useAuth";
+import { PresenceBubbles } from "../../features/workspace/PresenceBubbles";
+import "./common.css";
 
 interface HeaderProps {
   user: User;

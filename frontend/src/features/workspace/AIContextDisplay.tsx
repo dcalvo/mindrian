@@ -1,6 +1,6 @@
 "use client";
 
-import { useAIContext } from "../contexts/AIContext";
+import { useAIContext } from "../../contexts/AIContext";
 
 export default function AIContextDisplay() {
   const { context } = useAIContext();

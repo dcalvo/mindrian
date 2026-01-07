@@ -1,7 +1,7 @@
 import { getRouteApi, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { CollaborativeEditor } from "../components/CollaborativeEditor";
-import { getDocument } from "../lib/api";
+import { CollaborativeEditor } from "./CollaborativeEditor";
+import { getDocument } from "../../lib/api";
 
 const routeApi = getRouteApi("/document/$documentId");
 

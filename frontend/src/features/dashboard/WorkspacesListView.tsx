@@ -1,8 +1,8 @@
 import React from "react";
 import { motion, type Variants } from "framer-motion";
 import { Plus, FileText, Clock } from "lucide-react";
-import { usePreviewContext } from "../contexts/PreviewContext";
-import { usePreviewNavigationContext } from "../contexts/PreviewNavigationContext";
+import { usePreviewContext } from "../../contexts/PreviewContext";
+import { usePreviewNavigationContext } from "../../contexts/PreviewNavigationContext";
 
 interface WorkspacesListViewProps {
   itemVariants: Variants;

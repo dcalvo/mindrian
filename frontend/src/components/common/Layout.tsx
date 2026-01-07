@@ -5,11 +5,11 @@ import {
   useCallback,
   useEffect,
 } from "react";
-import type { User } from "../lib/api";
+import type { User } from "../../lib/api";
 import { Header } from "./Header";
-import { FileTree } from "./FileTree";
-import { ChatPane } from "./ChatPane";
-import "./Layout.css";
+import { FileTree } from "../../features/workspace/FileTree";
+import { ChatPane } from "../../features/workspace/ChatPane";
+import "./common.css";
 
 interface LayoutProps {
   user: User;

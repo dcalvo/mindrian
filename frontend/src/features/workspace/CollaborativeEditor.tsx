@@ -4,9 +4,9 @@ import "@blocknote/mantine/style.css";
 import { useMemo, useEffect } from "react";
 //import { useCreateBlockNote } from "@blocknote/react";
 //import { BlockNoteView } from "@blocknote/mantine";
-import { useCollaboration } from "../hooks/document/useCollaboration";
-import { useAuth } from "../hooks/auth/useAuth";
-import { COLORS, getColorFromString } from "../lib/colors";
+import { useCollaboration } from "../../hooks/document/useCollaboration";
+import { useAuth } from "../../hooks/auth/useAuth";
+import { COLORS, getColorFromString } from "../../lib/colors";
 import { BlocknoteWithAtAgent } from "./BlocknoteWithAtAgent";
 interface CollaborativeEditorProps {
   docId: string;

@@ -1,7 +1,7 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronRight } from "lucide-react";
-import type { Agent, Message } from "../hooks/chat/usePreviewChat";
+import type { Agent, Message } from "../../hooks/chat/usePreviewChat";
 
 interface PreviewChatViewProps {
   messages: Message[];

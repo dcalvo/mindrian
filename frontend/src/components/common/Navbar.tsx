@@ -8,7 +8,8 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
-import { useAuth } from "../hooks/auth/useAuth";
+import { useAuth } from "../../hooks/auth/useAuth";
+import "./common.css";
 
 const NavItem = ({
   icon: Icon,

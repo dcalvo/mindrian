@@ -1,5 +1,5 @@
 import { useEffect, useRef, useMemo } from "react";
-import { usePreviewNavigationContext } from "../contexts/PreviewNavigationContext";
+import { usePreviewNavigationContext } from "../../contexts/PreviewNavigationContext";
 
 interface Particle {
   x: number;

@@ -1,11 +1,8 @@
 // Keeping in here as a reference for now. Delete later.
 import "@blocknote/mantine/style.css";
-import {
-  useComponentsContext,
-  useSelectedBlocks,
-} from "@blocknote/react";
+import { useComponentsContext, useSelectedBlocks } from "@blocknote/react";
 import type { Block } from "@blocknote/core";
-import { useAIContext }  from "../contexts/AIContext";
+import { useAIContext } from "../../contexts/AIContext";
 
 /**
  * Extracts plain text from a block's content.
@@ -35,7 +32,7 @@ const extractTextFromBlock = (block: Block<any, any, any>): string => {
   }
 
   return "";
-}
+};
 
 const AIContextButton = () => {
   const Components = useComponentsContext()!;
@@ -72,6 +69,6 @@ const AIContextButton = () => {
       AI Context
     </Components.FormattingToolbar.Button>
   );
-}
+};
 
 export default AIContextButton;

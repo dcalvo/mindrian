@@ -11,7 +11,7 @@ import {
   Zap,
   Plus,
 } from "lucide-react";
-import { usePreviewContext } from "../contexts/PreviewContext";
+import { usePreviewContext } from "../../contexts/PreviewContext";
 
 const AVAILABLE_ICONS = [
   { id: "briefcase", icon: Briefcase },

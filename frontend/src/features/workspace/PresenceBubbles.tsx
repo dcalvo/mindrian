@@ -1,5 +1,5 @@
-import { usePresenceContext } from "../contexts/PresenceContext";
-import { getColorFromString, getInitials } from "../lib/colors";
+import { usePresenceContext } from "../../contexts/PresenceContext";
+import { getColorFromString, getInitials } from "../../lib/colors";
 import "./PresenceBubbles.css";
 
 export function PresenceBubbles() {

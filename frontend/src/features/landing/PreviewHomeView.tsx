@@ -1,9 +1,9 @@
 import React from "react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { Plus, ChevronDown, ChevronRight, FileText } from "lucide-react";
-import { usePreviewContext } from "../contexts/PreviewContext";
-import { usePreviewNavigationContext } from "../contexts/PreviewNavigationContext";
-import type { Agent } from "../hooks/chat/usePreviewChat";
+import { usePreviewContext } from "../../contexts/PreviewContext";
+import { usePreviewNavigationContext } from "../../contexts/PreviewNavigationContext";
+import type { Agent } from "../../hooks/chat/usePreviewChat";
 
 interface PreviewHomeViewProps {
   itemVariants: Variants;

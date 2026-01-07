@@ -4,7 +4,7 @@ import {
   useChat,
   type AgentMessage,
   type ToolCallMessage,
-} from "../hooks/chat/useChat";
+} from "../../hooks/chat/useChat";
 import { ChatMessage } from "./ChatMessage";
 import { ToolApproval } from "./ToolApproval";
 import "./ChatPane.css";

@@ -1,10 +1,11 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { FileText, Plus } from "lucide-react";
-import { usePreviewContext } from "../contexts/PreviewContext";
+import { usePreviewContext } from "../../contexts/PreviewContext";
 import { FileTree } from "./FileTree";
 import { ChatPane } from "./ChatPane";
 import { CollaborativeEditor } from "./CollaborativeEditor";
+import "./workspace.css";
 
 const CONTAINER_VARIANTS = {
   hidden: { opacity: 0 },

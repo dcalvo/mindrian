@@ -8,9 +8,9 @@ import type {
   MoveHandler,
 } from "react-arborist";
 import { FilePlus, FolderPlus } from "lucide-react";
-import { useDocumentsContext } from "../contexts/DocumentsContext";
+import { useDocumentsContext } from "../../contexts/DocumentsContext";
 import { FileNode } from "./FileNode";
-import { buildTree, type TreeNode } from "../lib/tree";
+import { buildTree, type TreeNode } from "../../lib/tree";
 import "./FileTree.css";
 
 interface FileTreeProps {

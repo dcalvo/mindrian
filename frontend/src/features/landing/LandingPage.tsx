@@ -2,9 +2,9 @@ import React from "react";
 import { motion, type Variants } from "framer-motion";
 import { Code2, Brain, Users, Sparkles, ChevronRight } from "lucide-react";
 
-import { LandingParticleBackground } from "../components/LandingParticleBackground";
-import { Navbar } from "../components/Navbar";
-import "../styles/preview.css";
+import { LandingParticleBackground } from "./LandingParticleBackground";
+import { Navbar } from "../../components/common/Navbar";
+import "./landing.css";
 
 interface FeatureCardProps {
   icon: React.ReactNode;
