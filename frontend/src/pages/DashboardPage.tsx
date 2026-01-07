@@ -15,19 +15,24 @@ import { PreviewHomeView } from "../components/PreviewHomeView";
 import { PreviewChatView } from "../components/PreviewChatView";
 import { ExtensionsView } from "../components/ExtensionsView";
 import { usePreviewChat } from "../hooks/chat/usePreviewChat";
+import type { User } from "../lib/api";
 import "../styles/preview.css";
 
-export function PreviewLanding() {
+interface DashboardPageProps {
+  user: User;
+}
+
+export function DashboardPage({ user: _user }: DashboardPageProps) {
   return (
     <PreviewNavigationProvider>
       <PreviewProvider>
-        <PreviewLandingContent />
+        <DashboardContent />
       </PreviewProvider>
     </PreviewNavigationProvider>
   );
 }
 
-function PreviewLandingContent() {
+function DashboardContent() {
   const { current, push, pop, reset, canPop } = usePreviewNavigationContext();
   const currentView = current.view;
   const {
@@ -90,7 +95,7 @@ function PreviewLandingContent() {
       {/* Physics-based Particle Background */}
       <ParticleBackground />
 
-      {/* Centered Preview Navbar */}
+      {/* Dashboard Navbar with logout */}
       <Navbar
         onHomeClick={() => {
           exitChatMode();
@@ -169,7 +174,7 @@ function PreviewLandingContent() {
               key="workspaces-list"
               itemVariants={itemVariants}
             />
-          ) : currentView === "extensions-list" ? ( // Added ExtensionsView
+          ) : currentView === "extensions-list" ? (
             <ExtensionsView key="extensions-list" itemVariants={itemVariants} />
           ) : currentView === "create-workspace" ? (
             <CreateWorkspaceView key="create-workspace" />

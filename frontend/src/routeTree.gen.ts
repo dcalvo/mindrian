@@ -10,12 +10,18 @@
 
 import { Route as rootRouteImport } from "./routes/__root"
 import { Route as PreviewRouteImport } from "./routes/preview"
+import { Route as LandingRouteImport } from "./routes/landing"
 import { Route as IndexRouteImport } from "./routes/index"
 import { Route as DocumentDocumentIdRouteImport } from "./routes/document.$documentId"
 
 const PreviewRoute = PreviewRouteImport.update({
   id: "/preview",
   path: "/preview",
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LandingRoute = LandingRouteImport.update({
+  id: "/landing",
+  path: "/landing",
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -31,30 +37,34 @@ const DocumentDocumentIdRoute = DocumentDocumentIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   "/": typeof IndexRoute
+  "/landing": typeof LandingRoute
   "/preview": typeof PreviewRoute
   "/document/$documentId": typeof DocumentDocumentIdRoute
 }
 export interface FileRoutesByTo {
   "/": typeof IndexRoute
+  "/landing": typeof LandingRoute
   "/preview": typeof PreviewRoute
   "/document/$documentId": typeof DocumentDocumentIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   "/": typeof IndexRoute
+  "/landing": typeof LandingRoute
   "/preview": typeof PreviewRoute
   "/document/$documentId": typeof DocumentDocumentIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: "/" | "/preview" | "/document/$documentId"
+  fullPaths: "/" | "/landing" | "/preview" | "/document/$documentId"
   fileRoutesByTo: FileRoutesByTo
-  to: "/" | "/preview" | "/document/$documentId"
-  id: "__root__" | "/" | "/preview" | "/document/$documentId"
+  to: "/" | "/landing" | "/preview" | "/document/$documentId"
+  id: "__root__" | "/" | "/landing" | "/preview" | "/document/$documentId"
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  LandingRoute: typeof LandingRoute
   PreviewRoute: typeof PreviewRoute
   DocumentDocumentIdRoute: typeof DocumentDocumentIdRoute
 }
@@ -66,6 +76,13 @@ declare module "@tanstack/react-router" {
       path: "/preview"
       fullPath: "/preview"
       preLoaderRoute: typeof PreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    "/landing": {
+      id: "/landing"
+      path: "/landing"
+      fullPath: "/landing"
+      preLoaderRoute: typeof LandingRouteImport
       parentRoute: typeof rootRouteImport
     }
     "/": {
@@ -87,6 +104,7 @@ declare module "@tanstack/react-router" {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  LandingRoute: LandingRoute,
   PreviewRoute: PreviewRoute,
   DocumentDocumentIdRoute: DocumentDocumentIdRoute,
 }

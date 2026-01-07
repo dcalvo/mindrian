@@ -3,19 +3,20 @@ import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { CollaborationProvider } from "../contexts/CollaborationContext";
 import { DocumentsProvider } from "../contexts/DocumentsContext";
 import { PresenceProvider } from "../contexts/PresenceContext";
-import { Layout } from "./Layout";
 import { useAuth } from "../hooks/auth/useAuth";
 import { Toaster } from "sonner";
 import { LandingPage } from "../pages/LandingPage";
+import { DashboardPage } from "../pages/DashboardPage";
 
 export function RootLayout() {
   const { user, loading, isAuthenticated } = useAuth();
   const location = useLocation();
 
-  // Allow preview route to bypass authentication
+  // Allow specific routes to bypass providers and render standalone
   const isPreviewRoute = location.pathname === "/preview";
+  const isLandingRoute = location.pathname === "/landing";
 
-  if (loading && !isPreviewRoute) {
+  if (loading && !isPreviewRoute && !isLandingRoute) {
     return (
       <div className="loading-container">
         <p>Loading...</p>
@@ -23,8 +24,8 @@ export function RootLayout() {
     );
   }
 
-  // Preview route renders without auth wrapper
-  if (isPreviewRoute) {
+  // Preview and Landing routes render without auth wrapper
+  if (isPreviewRoute || isLandingRoute) {
     return (
       <>
         <Outlet />
@@ -37,13 +38,12 @@ export function RootLayout() {
     return <LandingPage />;
   }
 
+  // Authenticated users see the new dashboard
   return (
     <PresenceProvider>
       <DocumentsProvider>
         <CollaborationProvider>
-          <Layout user={user!}>
-            <Outlet />
-          </Layout>
+          <DashboardPage user={user!} />
           <TanStackRouterDevtools />
           <Toaster />
         </CollaborationProvider>

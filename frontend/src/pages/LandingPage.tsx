@@ -3,7 +3,7 @@ import { motion, type Variants } from "framer-motion";
 import { Code2, Brain, Users, Sparkles, ChevronRight } from "lucide-react";
 
 import { LandingParticleBackground } from "../components/LandingParticleBackground";
-import { LandingNavbar } from "../components/LandingNavbar";
+import { Navbar } from "../components/Navbar";
 import "../styles/preview.css";
 
 interface FeatureCardProps {
@@ -64,8 +64,8 @@ export function LandingPage() {
       {/* Physics-based Particle Background */}
       <LandingParticleBackground />
 
-      {/* Navbar */}
-      <LandingNavbar />
+      {/* Unified Navbar - shows login button or user avatar based on auth state */}
+      <Navbar variant="fixed" />
 
       {/* Hero Section */}
       <section className="landing-hero">
