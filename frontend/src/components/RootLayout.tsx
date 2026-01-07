@@ -4,7 +4,7 @@ import { CollaborationProvider } from "../contexts/CollaborationContext";
 import { DocumentsProvider } from "../contexts/DocumentsContext";
 import { PresenceProvider } from "../contexts/PresenceContext";
 import { Layout } from "./Layout";
-import { useAuth } from "../hooks/useAuth";
+import { useAuth } from "../hooks/auth/useAuth";
 import { Toaster } from "sonner";
 
 export function RootLayout() {

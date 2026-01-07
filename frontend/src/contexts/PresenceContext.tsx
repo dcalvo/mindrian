@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, type ReactNode } from "react";
 import type { Channel } from "phoenix";
 import { Presence } from "phoenix";
 import { getSocket } from "../lib/socket";
-import { useAuth } from "../hooks/useAuth";
+import { useAuth } from "../hooks/auth/useAuth";
 import { PresenceContext, type PresenceUser } from "./presence";
 
 export function PresenceProvider({ children }: { children: ReactNode }) {

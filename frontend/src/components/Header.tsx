@@ -1,5 +1,5 @@
 import type { User } from "../lib/api";
-import { useAuth } from "../hooks/useAuth";
+import { useAuth } from "../hooks/auth/useAuth";
 import { PresenceBubbles } from "./PresenceBubbles";
 
 interface HeaderProps {

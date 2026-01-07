@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
-import { getMe } from "../lib/api";
-import type { User } from "../lib/api";
-import { setSocketToken, disconnectSocket } from "../lib/socket";
+import { getMe } from "../../lib/api";
+import type { User } from "../../lib/api";
+import { setSocketToken, disconnectSocket } from "../../lib/socket";
 
 interface AuthState {
   user: User | null;
