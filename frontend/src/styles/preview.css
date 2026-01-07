@@ -1783,13 +1783,15 @@
 .hero-title {
   margin-bottom: 16px;
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .hero-welcome {
-  font-size: 24px;
-  font-weight: 500;
+  font-size: 32px;
+  font-weight: 800;
   letter-spacing: -0.01em;
   color: var(--preview-text-secondary);
 }
@@ -1799,7 +1801,6 @@
   font-weight: 800;
   letter-spacing: -0.04em;
   color: var(--preview-text-primary);
-  display: block;
 }
 
 .hero-tagline {
@@ -1873,6 +1874,7 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  display: inline-block;
 }
 
 .section-subtitle {

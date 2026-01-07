@@ -82,8 +82,7 @@ export function LandingPage() {
           </motion.div>
 
           <motion.h1 className="hero-title" variants={itemVariants}>
-            <span className="hero-welcome">Welcome to</span>
-            <span className="hero-brand">mindrian</span>
+            <span className="hero-brand">Welcome to Mindrian</span>
           </motion.h1>
 
           <motion.p className="hero-tagline" variants={itemVariants}>
