@@ -121,17 +121,16 @@ function DashboardContent() {
         animate="visible"
       >
         <AnimatePresence>
-          {canPop && (
+          {(canPop || isChatMode) && (
             <motion.div
-              className="back-button-row"
+              className={`back-button-row ${isChatMode ? "chat-back-row" : ""}`}
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
-              style={{ overflow: "hidden" }}
             >
               <motion.button
                 className="back-button"
-                onClick={pop}
+                onClick={isChatMode ? exitChatMode : pop}
                 whileHover={{ x: -2 }}
                 whileTap={{ scale: 0.95 }}
               >
