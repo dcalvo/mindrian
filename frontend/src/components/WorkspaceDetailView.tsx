@@ -11,8 +11,8 @@ import {
   ChevronRight,
   ChevronDown,
 } from "lucide-react";
-import { usePreview } from "../contexts/PreviewContext";
-import { usePreviewNavigation } from "../contexts/PreviewNavigationContext";
+import { usePreviewContext } from "../contexts/PreviewContext";
+import { usePreviewNavigationContext } from "../contexts/PreviewNavigationContext";
 
 // BlockNote Imports
 import "@blocknote/core/fonts/inter.css";
@@ -30,8 +30,8 @@ const CONTAINER_VARIANTS = {
 };
 
 export const WorkspaceDetailView: React.FC = () => {
-  const { activeWorkspace, activeDocument } = usePreview();
-  const { current, push } = usePreviewNavigation();
+  const { activeWorkspace, activeDocument } = usePreviewContext();
+  const { current, push } = usePreviewNavigationContext();
   const [chatInput, setChatInput] = useState("");
   const [isFilesExpanded, setIsFilesExpanded] = useState(true);
 

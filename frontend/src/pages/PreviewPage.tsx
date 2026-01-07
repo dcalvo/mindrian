@@ -5,7 +5,7 @@ import { ParticleBackground } from "../components/ParticleBackground";
 import { PreviewProvider } from "../contexts/PreviewContext";
 import {
   PreviewNavigationProvider,
-  usePreviewNavigation,
+  usePreviewNavigationContext,
 } from "../contexts/PreviewNavigationContext";
 import { CreateWorkspaceView } from "../components/CreateWorkspaceView";
 import { WorkspaceDetailView } from "../components/WorkspaceDetailView";
@@ -28,7 +28,7 @@ export function PreviewLanding() {
 }
 
 function PreviewLandingContent() {
-  const { current, push, pop, reset, canPop } = usePreviewNavigation();
+  const { current, push, pop, reset, canPop } = usePreviewNavigationContext();
   const currentView = current.view;
   const {
     isChatMode,

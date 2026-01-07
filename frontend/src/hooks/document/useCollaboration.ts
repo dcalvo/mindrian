@@ -1,5 +1,5 @@
 import { useContext, useSyncExternalStore, useCallback } from "react";
-import { CollaborationContext } from "../../contexts/collaboration";
+import { CollaborationContext } from "../../contexts/CollaborationContext";
 
 interface UseCollaborationOptions {
   docId: string;

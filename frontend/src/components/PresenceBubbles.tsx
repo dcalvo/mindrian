@@ -1,9 +1,9 @@
-import { usePresence } from "../hooks/usePresence";
+import { usePresenceContext } from "../contexts/PresenceContext";
 import { getColorFromString, getInitials } from "../lib/colors";
 import "./PresenceBubbles.css";
 
 export function PresenceBubbles() {
-  const { users, loading } = usePresence();
+  const { users, loading } = usePresenceContext();
 
   if (loading || users.length === 0) {
     return null;

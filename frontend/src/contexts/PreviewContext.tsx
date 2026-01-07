@@ -210,12 +210,12 @@ const defaultWorkspaces: PreviewWorkspace[] = [
 
 const PreviewContext = createContext<PreviewContextType | undefined>(undefined);
 
-import { usePreviewNavigation } from "./PreviewNavigationContext";
+import { usePreviewNavigationContext } from "./PreviewNavigationContext";
 
 export const PreviewProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  const { current, push } = usePreviewNavigation();
+  const { current, push } = usePreviewNavigationContext();
   const [workspaces, setWorkspaces] =
     useState<PreviewWorkspace[]>(defaultWorkspaces);
   const [extensions] = useState<PreviewExtension[]>(defaultExtensions);
@@ -260,10 +260,10 @@ export const PreviewProvider: React.FC<{ children: ReactNode }> = ({
   );
 };
 
-export const usePreview = () => {
+export const usePreviewContext = () => {
   const context = useContext(PreviewContext);
   if (context === undefined) {
-    throw new Error("usePreview must be used within a PreviewProvider");
+    throw new Error("usePreviewContext must be used within a PreviewProvider");
   }
   return context;
 };

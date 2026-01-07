@@ -72,11 +72,11 @@ export const PreviewNavigationProvider: React.FC<{ children: ReactNode }> = ({
   );
 };
 
-export const usePreviewNavigation = () => {
+export const usePreviewNavigationContext = () => {
   const context = useContext(PreviewNavigationContext);
   if (context === undefined) {
     throw new Error(
-      "usePreviewNavigation must be used within a PreviewNavigationProvider"
+      "usePreviewNavigationContext must be used within a PreviewNavigationProvider"
     );
   }
   return context;

@@ -8,7 +8,7 @@ import type {
   MoveHandler,
 } from "react-arborist";
 import { FilePlus, FolderPlus } from "lucide-react";
-import { useDocuments } from "../hooks/useDocuments";
+import { useDocumentsContext } from "../contexts/DocumentsContext";
 import { FileNode } from "./FileNode";
 import { buildTree, type TreeNode } from "../lib/tree";
 import "./FileTree.css";
@@ -31,7 +31,7 @@ export function FileTree({ width }: FileTreeProps) {
     renameItem,
     moveItem,
     removeItem,
-  } = useDocuments();
+  } = useDocumentsContext();
 
   // Transform folders + documents to tree structure
   const treeData = useMemo(

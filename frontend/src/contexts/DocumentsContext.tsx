@@ -21,8 +21,47 @@ import {
   type FileSystemItem,
 } from "../lib/api";
 import { getSocket } from "../lib/socket";
-import { DocumentsContext } from "./documents";
 import { toast } from "sonner";
+import { createContext, useContext } from "react";
+
+export interface DocumentsContextValue {
+  folders: Folder[];
+  documents: Document[];
+  loading: boolean;
+  error: string | null;
+  refetch: () => Promise<void>;
+  addDocument: (title?: string, folderId?: string | null) => Promise<Document>;
+  addFolder: (
+    title?: string,
+    parentFolderId?: string | null
+  ) => Promise<Folder>;
+  renameItem: (
+    id: string,
+    title: string,
+    isFolder: boolean
+  ) => Promise<FileSystemItem>;
+  moveItem: (
+    id: string,
+    parentId: string | null,
+    position: number,
+    isFolder: boolean
+  ) => Promise<FileSystemItem>;
+  removeItem: (id: string) => Promise<void>;
+}
+
+export const DocumentsContext = createContext<DocumentsContextValue | null>(
+  null
+);
+
+export function useDocumentsContext() {
+  const context = useContext(DocumentsContext);
+  if (!context) {
+    throw new Error(
+      "useDocumentsContext must be used within a DocumentsProvider"
+    );
+  }
+  return context;
+}
 
 export function DocumentsProvider({ children }: { children: ReactNode }) {
   const [folders, setFolders] = useState<Folder[]>([]);

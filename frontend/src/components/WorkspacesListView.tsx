@@ -1,8 +1,8 @@
 import React from "react";
 import { motion, type Variants } from "framer-motion";
 import { Plus, FileText, Clock } from "lucide-react";
-import { usePreview } from "../contexts/PreviewContext";
-import { usePreviewNavigation } from "../contexts/PreviewNavigationContext";
+import { usePreviewContext } from "../contexts/PreviewContext";
+import { usePreviewNavigationContext } from "../contexts/PreviewNavigationContext";
 
 interface WorkspacesListViewProps {
   itemVariants: Variants;
@@ -11,8 +11,8 @@ interface WorkspacesListViewProps {
 export const WorkspacesListView: React.FC<WorkspacesListViewProps> = ({
   itemVariants,
 }) => {
-  const { workspaces } = usePreview();
-  const { push } = usePreviewNavigation();
+  const { workspaces } = usePreviewContext();
+  const { push } = usePreviewNavigationContext();
 
   return (
     <motion.div

@@ -8,7 +8,7 @@ import {
   Globe,
   ShieldCheck,
 } from "lucide-react";
-import { usePreview } from "../contexts/PreviewContext";
+import { usePreviewContext } from "../contexts/PreviewContext";
 
 interface ExtensionsViewProps {
   itemVariants: Variants;
@@ -17,7 +17,7 @@ interface ExtensionsViewProps {
 export const ExtensionsView: React.FC<ExtensionsViewProps> = ({
   itemVariants,
 }) => {
-  const { extensions } = usePreview();
+  const { extensions } = usePreviewContext();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string>(extensions[0].id);
 
