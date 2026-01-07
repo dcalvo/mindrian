@@ -15,13 +15,22 @@ import { PreviewHomeView } from "../components/PreviewHomeView";
 import { PreviewChatView } from "../components/PreviewChatView";
 import { ExtensionsView } from "../components/ExtensionsView";
 import { usePreviewChat } from "../hooks/chat/usePreviewChat";
+import { DocumentsProvider } from "../contexts/DocumentsContext";
+import { CollaborationProvider } from "../contexts/CollaborationContext";
+import { PresenceProvider } from "../contexts/PresenceContext";
 import "../styles/preview.css";
 
 export function PreviewLanding() {
   return (
     <PreviewNavigationProvider>
       <PreviewProvider>
-        <PreviewLandingContent />
+        <DocumentsProvider>
+          <CollaborationProvider>
+            <PresenceProvider>
+              <PreviewLandingContent />
+            </PresenceProvider>
+          </CollaborationProvider>
+        </DocumentsProvider>
       </PreviewProvider>
     </PreviewNavigationProvider>
   );

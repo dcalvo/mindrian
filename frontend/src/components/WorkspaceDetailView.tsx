@@ -1,24 +1,10 @@
-import React, { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  FileText,
-  Search,
-  Folder,
-  File,
-  Plus,
-  Send,
-  MoreVertical,
-  ChevronRight,
-  ChevronDown,
-} from "lucide-react";
+import React from "react";
+import { motion } from "framer-motion";
+import { Search, MoreVertical, FileText, Plus } from "lucide-react";
 import { usePreviewContext } from "../contexts/PreviewContext";
-import { usePreviewNavigationContext } from "../contexts/PreviewNavigationContext";
-
-// BlockNote Imports
-import "@blocknote/core/fonts/inter.css";
-import "@blocknote/mantine/style.css";
-import { useCreateBlockNote } from "@blocknote/react";
-import { BlockNoteView } from "@blocknote/mantine";
+import { FileTree } from "./FileTree";
+import { ChatPane } from "./ChatPane";
+import { CollaborativeEditor } from "./CollaborativeEditor";
 
 const CONTAINER_VARIANTS = {
   hidden: { opacity: 0 },
@@ -31,17 +17,9 @@ const CONTAINER_VARIANTS = {
 
 export const WorkspaceDetailView: React.FC = () => {
   const { activeWorkspace, activeDocument } = usePreviewContext();
-  const { current, push } = usePreviewNavigationContext();
-  const [chatInput, setChatInput] = useState("");
-  const [isFilesExpanded, setIsFilesExpanded] = useState(true);
-
-  // Initialize BlockNote
-  const editor = useCreateBlockNote();
-
   if (!activeWorkspace) return null;
 
   const Icon = activeWorkspace.icon;
-  const documents = activeWorkspace.documents || [];
 
   return (
     <motion.div
@@ -78,78 +56,22 @@ export const WorkspaceDetailView: React.FC = () => {
       {/* 3-Panel Content Area */}
       <div className="workspace-panels-layout">
         {/* Left Panel: File System */}
-        <aside className="workspace-panel workspace-sidebar">
-          <div className="sidebar-section">
-            <div
-              className="sidebar-header"
-              onClick={() => setIsFilesExpanded(!isFilesExpanded)}
-            >
-              <div className="sidebar-header-left">
-                {isFilesExpanded ? (
-                  <ChevronDown size={14} />
-                ) : (
-                  <ChevronRight size={14} />
-                )}
-                <Folder size={16} />
-                <span>Documents</span>
-              </div>
-              <button
-                className="add-file-btn"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <Plus size={14} />
-              </button>
-            </div>
-
-            <AnimatePresence>
-              {isFilesExpanded && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  className="file-list"
-                >
-                  {documents.map((doc) => (
-                    <div
-                      key={doc.id}
-                      className={`file-item ${activeDocument?.id === doc.id ? "active" : ""}`}
-                      onClick={() =>
-                        push("workspace-detail", {
-                          ...current,
-                          documentId: doc.id,
-                        })
-                      }
-                    >
-                      <File size={14} />
-                      <span className="file-name">{doc.title}</span>
-                    </div>
-                  ))}
-                  {documents.length === 0 && (
-                    <div className="empty-files-hint">No documents yet</div>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+        <aside
+          className="workspace-panel workspace-sidebar"
+          style={{ paddingTop: "1rem" }}
+        >
+          <FileTree />
         </aside>
 
-        {/* Middle Panel: BlockNote Editor */}
+        {/* Middle Panel: Collaborative Editor */}
         <main className="workspace-panel workspace-editor">
           {activeDocument ? (
-            <div className="editor-container">
-              <div className="editor-scroll-area">
-                <input
-                  type="text"
-                  className="editor-title-input"
-                  defaultValue={activeDocument.title}
-                />
-                <div className="editor-meta">
-                  Last updated {activeDocument.updatedAt}
-                </div>
-                <div className="blocknote-wrapper">
-                  <BlockNoteView editor={editor} theme="light" />
-                </div>
-              </div>
+            <div
+              className="editor-container"
+              style={{ height: "100%", overflow: "hidden" }}
+            >
+              {/* CollaborativeEditor handles its own scroll and layout mostly, but we wrap it to be safe */}
+              <CollaborativeEditor docId={activeDocument.id} />
             </div>
           ) : (
             <div className="editor-empty-state">
@@ -166,29 +88,9 @@ export const WorkspaceDetailView: React.FC = () => {
         </main>
 
         {/* Right Panel: Contextual Chat */}
-        <aside className="workspace-panel workspace-chat-sidebar">
-          <div className="workspace-chat-header">
-            <h3>Workspace Assistant</h3>
-          </div>
-          <div className="workspace-chat-messages">
-            <div className="system-msg">
-              Assistant ready for {activeWorkspace.name}. How can I help?
-            </div>
-          </div>
-          <div className="workspace-chat-input-area">
-            <div className="chat-input-pill">
-              <input
-                type="text"
-                placeholder="Ask anything..."
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-              />
-              <button className="chat-send-btn">
-                <Send size={14} />
-              </button>
-            </div>
-          </div>
-        </aside>
+        <div className="workspace-panel workspace-chat-sidebar">
+          <ChatPane />
+        </div>
       </div>
     </motion.div>
   );
