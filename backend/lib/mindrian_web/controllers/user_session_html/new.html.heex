@@ -1,69 +1,86 @@
 <Layouts.app flash={@flash} current_scope={@current_scope}>
-  <div class="mx-auto max-w-sm space-y-4">
-    <div class="text-center">
-      <.header>
-        <p>Log in</p>
-        <:subtitle>
-          <%= if @current_scope do %>
-            You need to reauthenticate to perform sensitive actions on your account.
-          <% else %>
-            Don't have an account? <.link
-              navigate={~p"/users/register"}
-              class="font-semibold text-brand hover:underline"
-              phx-no-format
-            >Sign up</.link> for an account now.
-          <% end %>
-        </:subtitle>
-      </.header>
-    </div>
+  <div class="auth-container">
+    <div class="auth-card">
+      <!-- Logo -->
+      <div class="auth-logo">
+        <div class="auth-logo-icon">
+          <div class="auth-logo-square square-1"></div>
+          <div class="auth-logo-square square-2"></div>
+        </div>
+        <span class="auth-logo-text">mindrian</span>
+      </div>
 
-    <div :if={local_mail_adapter?()} class="alert alert-info">
-      <.icon name="hero-information-circle" class="size-6 shrink-0" />
-      <div>
-        <p>You are running the local mail adapter.</p>
-        <p>
-          To see sent emails, visit <.link href="/dev/mailbox" class="underline">the mailbox page</.link>.
+      <!-- Header -->
+      <div class="auth-header">
+        <h1 class="auth-title">Log in</h1>
+        <p class="auth-subtitle">
+          <%= if @current_scope do %>
+            Reauthenticate to perform sensitive actions.
+          <% else %>
+            Don't have an account? <.link navigate={~p"/users/register"}>Sign up</.link>
+          <% end %>
         </p>
       </div>
-    </div>
 
-    <.form :let={f} for={@form} as={:user} id="login_form_magic" action={~p"/users/log-in"}>
-      <.input
-        readonly={!!@current_scope}
-        field={f[:email]}
-        type="email"
-        label="Email"
-        autocomplete="email"
-        required
-        phx-mounted={JS.focus()}
-      />
-      <.button class="btn btn-primary w-full">
-        Log in with email <span aria-hidden="true">→</span>
-      </.button>
-    </.form>
+      <!-- Dev mode mail info -->
+      <div :if={local_mail_adapter?()} class="auth-info">
+        <svg class="auth-info-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <div>
+          <strong>Development Mode</strong><br/>
+          View sent emails at <.link href="/dev/mailbox" class="underline">the mailbox page</.link>.
+        </div>
+      </div>
 
-    <div class="divider">or try a test account</div>
-
-    <div class="flex gap-2">
-      <.form
-        :for={
-          {email, password, n} <- [
-            {"test1@mindrian.local", "testpassword1", 1},
-            {"test2@mindrian.local", "testpassword2", 2},
-            {"test3@mindrian.local", "testpassword3", 3}
-          ]
-        }
-        for={@form}
-        as={:user}
-        action={~p"/users/log-in"}
-        class="flex-1"
-      >
-        <input type="hidden" name="user[email]" value={email} />
-        <input type="hidden" name="user[password]" value={password} />
-        <.button class="btn btn-soft w-full">
-          Test {n}
-        </.button>
+      <!-- Email Login Form -->
+      <.form :let={f} for={@form} as={:user} id="login_form_magic" action={~p"/users/log-in"} class="auth-form">
+        <div class="auth-input-group">
+          <label for="user_email">Email</label>
+          <input
+            type="email"
+            id="user_email"
+            name="user[email]"
+            value={f[:email].value}
+            class="auth-input"
+            placeholder="you@example.com"
+            autocomplete="email"
+            required
+            readonly={!!@current_scope}
+            phx-mounted={JS.focus()}
+          />
+        </div>
+        <button type="submit" class="auth-btn-primary">
+          Log in with email
+          <span aria-hidden="true">→</span>
+        </button>
       </.form>
+
+      <!-- Test Accounts Divider -->
+      <div class="auth-divider">or try a test account</div>
+
+      <!-- Test Account Buttons -->
+      <div class="auth-test-buttons">
+        <.form
+          :for={
+            {email, password, n} <- [
+              {"test1@mindrian.local", "testpassword1", 1},
+              {"test2@mindrian.local", "testpassword2", 2},
+              {"test3@mindrian.local", "testpassword3", 3}
+            ]
+          }
+          for={@form}
+          as={:user}
+          action={~p"/users/log-in"}
+          style="flex: 1"
+        >
+          <input type="hidden" name="user[email]" value={email} />
+          <input type="hidden" name="user[password]" value={password} />
+          <button type="submit" class="auth-btn-secondary" style="width: 100%">
+            Test {n}
+          </button>
+        </.form>
+      </div>
     </div>
   </div>
 </Layouts.app>
