@@ -160,30 +160,6 @@
   border: none;
 }
 
-.workspace-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.workspace-name {
-  font-size: 16px;
-  font-weight: 600;
-  color: #ffffff;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.workspace-meta {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.4);
-}
-
 .see-all-btn:hover {
   color: var(--preview-text-primary);
   opacity: 1 !important;
