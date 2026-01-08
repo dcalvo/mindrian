@@ -5,13 +5,13 @@ Synthesizes all diagnostic agent outputs into coherent assessment
 
 from agno.models.anthropic import Claude
 from pydantic import BaseModel, Field
-from config.prompts import DIAGNOSIS_CONSOLIDATOR_PROMPT
+from .prompts import DIAGNOSIS_CONSOLIDATOR_PROMPT
 from agno.teams import Team
 from typing import List
-from complexity_assessor import complexity_assessor_agent
-from definition_classifier import definition_classifier_agent
-from risk_uncertainty_evaluator import risk_uncertainty_evaluator_agent
-from wickedness_classifier import wickedness_classifier_agent
+from .complexity_assessor import complexity_assessor_agent
+from .definition_classifier import definition_classifier_agent
+from .risk_uncertainty_evaluator import risk_uncertainty_evaluator_agent
+from .wickedness_classifier import wickedness_classifier_agent
 
 class ConsistencyCheck(BaseModel):
     is_consistent: bool = Field(..., description="Whether the diagnosis is consistent across dimensions.")

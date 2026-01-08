@@ -9,7 +9,7 @@ from typing import List
 from agno.agent import Agent
 from agno.models.anthropic import Claude
 from pydantic import BaseModel, Field
-from config.prompts import RESEARCH_AGENT_PROMPT
+from .prompts import RESEARCH_AGENT_PROMPT
 
 class ResearchDecision(BaseModel):
     should_research: bool = Field(

@@ -7,7 +7,7 @@ from typing import List, Literal
 from agno.agent import Agent
 from agno.models.anthropic import Claude
 from pydantic import BaseModel, Field
-from config.prompts import DEFINITION_CLASSIFIER_PROMPT
+from .prompts import DEFINITION_CLASSIFIER_PROMPT
 import os
 
 class ProblemDefinition(BaseModel):

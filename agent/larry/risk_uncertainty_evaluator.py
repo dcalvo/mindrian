@@ -7,7 +7,7 @@ from typing import List
 from agno.agent import Agent
 from agno.models.anthropic import Claude
 from pydantic import BaseModel, Field
-from config.prompts import RISK_UNCERTAINTY_EVALUATOR_PROMPT
+from .prompts import RISK_UNCERTAINTY_EVALUATOR_PROMPT
 
 class RiskUncertaintyEvaluation(BaseModel):
     position: float = Field(

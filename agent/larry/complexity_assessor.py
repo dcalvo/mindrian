@@ -7,7 +7,7 @@ from typing import List, Literal
 from agno.agent import Agent
 from agno.models.anthropic import Claude
 from pydantic import BaseModel, Field
-from config.prompts import COMPLEXITY_ASSESSOR_PROMPT
+from .prompts import COMPLEXITY_ASSESSOR_PROMPT
 
 class ComplexityAssessment(BaseModel):
     complexity: Literal["simple", "complicated", "complex", "chaotic"] = Field(
