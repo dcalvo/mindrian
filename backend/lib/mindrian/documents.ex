@@ -28,6 +28,8 @@ defmodule Mindrian.Documents do
   @doc """
   Lists all folders for the given scope's user, ordered by parent then position.
   Optionally filters by workspace_id.
+  When workspace_id is provided, only returns folders with that workspace_id.
+  When workspace_id is nil, excludes folders with NULL workspace_id (legacy items).
   """
   def list_folders(%Scope{user: user}, workspace_id \\ nil) do
     query =
@@ -38,9 +40,11 @@ defmodule Mindrian.Documents do
 
     query =
       if workspace_id do
+        # Only return folders with the specific workspace_id
         from(f in query, where: f.workspace_id == ^workspace_id)
       else
-        query
+        # Exclude folders with NULL workspace_id (these are legacy items)
+        from(f in query, where: not is_nil(f.workspace_id))
       end
 
     Repo.all(query)
@@ -49,6 +53,8 @@ defmodule Mindrian.Documents do
   @doc """
   Lists all documents for the given scope's user, ordered by folder then position.
   Optionally filters by workspace_id.
+  When workspace_id is provided, only returns documents with that workspace_id.
+  When workspace_id is nil, excludes documents with NULL workspace_id (legacy items).
   """
   def list_documents(%Scope{user: user}, workspace_id \\ nil) do
     query =
@@ -59,9 +65,11 @@ defmodule Mindrian.Documents do
 
     query =
       if workspace_id do
+        # Only return documents with the specific workspace_id
         from(d in query, where: d.workspace_id == ^workspace_id)
       else
-        query
+        # Exclude documents with NULL workspace_id (these are legacy items)
+        from(d in query, where: not is_nil(d.workspace_id))
       end
 
     Repo.all(query)
@@ -352,7 +360,7 @@ defmodule Mindrian.Documents do
   # PRIVATE FUNCTIONS
   # =============================================================================
 
-  defp next_folder_position(user_id, parent_folder_id, workspace_id \\ nil) do
+  defp next_folder_position(user_id, parent_folder_id, workspace_id) do
     query =
       if is_nil(parent_folder_id) do
         base_query = from(f in Folder, where: f.user_id == ^user_id and is_nil(f.parent_folder_id))
@@ -378,7 +386,7 @@ defmodule Mindrian.Documents do
     end
   end
 
-  defp next_document_position(user_id, folder_id, workspace_id \\ nil) do
+  defp next_document_position(user_id, folder_id, workspace_id) do
     query =
       if is_nil(folder_id) do
         base_query = from(d in Document, where: d.user_id == ^user_id and is_nil(d.folder_id))

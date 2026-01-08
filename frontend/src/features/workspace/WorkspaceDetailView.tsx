@@ -68,9 +68,6 @@ export const WorkspaceDetailView: React.FC = () => {
               </div>
               <h3>Select a document</h3>
               <p>Pick a document from the sidebar to start working</p>
-              <button className="primary-action-btn">
-                <Plus size={16} /> New Document
-              </button>
             </div>
           )}
         </main>
