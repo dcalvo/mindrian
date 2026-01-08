@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
-import { FileText } from "lucide-react";
+import { FileText, MessageSquare } from "lucide-react";
 import { useEditorContext } from "../../contexts/EditorContext";
 import { useDocumentsContext } from "../../contexts/DocumentsContext";
 import { useWorkspacesContext } from "../../contexts/WorkspacesContext";
@@ -32,6 +32,7 @@ export const WorkspaceDetailView: React.FC = () => {
 
   // Chat panel resize state
   const [chatWidth, setChatWidth] = useState(DEFAULT_CHAT_WIDTH);
+  const [isChatOpen, setIsChatOpen] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -118,14 +119,25 @@ export const WorkspaceDetailView: React.FC = () => {
 
         {/* Right Panel: Contextual Chat */}
         <div
-          className="workspace-panel workspace-chat-sidebar"
-          style={{ width: chatWidth }}
+          className={`workspace-panel workspace-chat-sidebar ${
+            !isChatOpen ? "workspace-chat-collapsed" : ""
+          }`}
+          style={isChatOpen ? { width: chatWidth } : undefined}
+          onClick={!isChatOpen ? () => setIsChatOpen(true) : undefined}
         >
-          <div
-            className={`chat-resize-handle ${isDragging ? "dragging" : ""}`}
-            onMouseDown={handleMouseDown}
-          />
-          <ChatPane />
+          {isChatOpen ? (
+            <>
+              <div
+                className={`chat-resize-handle ${isDragging ? "dragging" : ""}`}
+                onMouseDown={handleMouseDown}
+              />
+              <ChatPane onCollapse={() => setIsChatOpen(false)} />
+            </>
+          ) : (
+            <div className="chat-collapsed-icon" title="Open Chat">
+              <MessageSquare size={20} strokeWidth={2} />
+            </div>
+          )}
         </div>
       </div>
     </motion.div>

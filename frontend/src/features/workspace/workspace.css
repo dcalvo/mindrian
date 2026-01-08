@@ -723,3 +723,36 @@
   background: rgba(0, 0, 0, 0.08);
   opacity: 1 !important;
 }
+
+/* Collapsed Chat State */
+.workspace-chat-collapsed {
+  width: 60px !important;
+  min-width: 60px !important;
+  cursor: pointer;
+  align-items: center;
+  padding-top: 16px;
+  background: #fafbfc;
+  transition: background 0.2s ease;
+  border-left: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.workspace-chat-collapsed:hover {
+  background: #f0f1f3;
+}
+
+.chat-collapsed-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--preview-text-secondary);
+  transition: all 0.2s ease;
+}
+
+.workspace-chat-collapsed:hover .chat-collapsed-icon {
+  color: var(--preview-text-primary);
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}

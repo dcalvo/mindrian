@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
+import { ArrowUp, PanelRightClose } from "lucide-react";
 import {
   useChat,
   type AgentMessage,
@@ -9,7 +10,11 @@ import { ChatMessage } from "./ChatMessage";
 import { ToolApproval } from "./ToolApproval";
 import "./ChatPane.css";
 
-export function ChatPane() {
+interface ChatPaneProps {
+  onCollapse?: () => void;
+}
+
+export function ChatPane({ onCollapse }: ChatPaneProps) {
   const [conversationId] = useState(() => crypto.randomUUID());
   const {
     conversation,
@@ -90,7 +95,18 @@ export function ChatPane() {
   return (
     <aside className="chat-pane">
       <div className="chat-header">
-        <h3>Chat</h3>
+        <div className="chat-header-left">
+          {onCollapse && (
+            <button
+              className="chat-collapse-btn"
+              onClick={onCollapse}
+              title="Collapse Panel"
+            >
+              <PanelRightClose size={16} />
+            </button>
+          )}
+          <h3>Chat</h3>
+        </div>
         {status !== "idle" && (
           <button className="chat-cancel-btn" onClick={cancel} title="Cancel">
             Cancel
@@ -155,10 +171,11 @@ export function ChatPane() {
               />
               <button
                 type="submit"
-                className="chat-send-btn"
+                className="chat-send-btn icon-only"
                 disabled={!input.trim() || status !== "idle"}
+                title="Send Message"
               >
-                Send
+                <ArrowUp size={18} />
               </button>
             </form>
           </>
