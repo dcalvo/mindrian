@@ -271,6 +271,8 @@ DIAGNOSIS_CONSOLIDATOR_PROMPT = """You are the Diagnosis Consolidator agent.
 
 Your task is to synthesize outputs from all diagnostic agents into a coherent assessment.
 
+The following are the inputs you will receive from your subagents:
+
 **Input:**
 - Definition classification
 - Complexity assessment
