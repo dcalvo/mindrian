@@ -15,18 +15,19 @@ from larry.larry_team import larry_team  # noqa: E402
 from larry.diagnosis_consolidator import diagnosis_consolidator_team  # noqa: E402
 from testing import TESTING  # noqa: E402
 from tools import document_tools, mckinsey_tools, testing_tools  # noqa: E402
+from db.db import DB  # noqa: E402
 
 # Get API key from environment
 api_key = os.getenv("ANTHROPIC_API_KEY")
 
 # Chat agent memory (required for tool approval continuations)
-db = SqliteDb(db_file="tmp/mindrian_agent.db")
+db = DB
 
 def delegate_task(agent_name: str, task: str) -> str:
     """Consult a specialist agent for a recommendation.
 
     Args:
-        agent_name: The specialist to consult ('document-agent' or 'mckinsey-agent').
+        agent_name: The specialist to consult ('document-agent' or 'larry-team').
         task: The task or question for the specialist.
 
     Returns:

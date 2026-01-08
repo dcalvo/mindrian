@@ -12,6 +12,7 @@ from .complexity_assessor import complexity_assessor_agent
 from .definition_classifier import definition_classifier_agent
 from .risk_uncertainty_evaluator import risk_uncertainty_evaluator_agent
 from .wickedness_classifier import wickedness_classifier_agent
+from db.db import DB
 
 class ConsistencyCheck(BaseModel):
     is_consistent: bool = Field(..., description="Whether the diagnosis is consistent across dimensions.")
@@ -31,5 +32,8 @@ diagnosis_consolidator_team = Team(
     members=[wickedness_classifier_agent, complexity_assessor_agent, definition_classifier_agent, risk_uncertainty_evaluator_agent],
     instructions=DIAGNOSIS_CONSOLIDATOR_PROMPT,
     output_schema=DiagnosisConsolidation,
+    store_member_responses=True,
     use_json_mode=True,
+    enable_user_memories=True,
+    db=DB
 )
