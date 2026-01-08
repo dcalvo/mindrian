@@ -14,15 +14,17 @@ defmodule Mindrian.Documents.Folder do
 
     belongs_to :user, Mindrian.Accounts.User
     belongs_to :parent_folder, __MODULE__
+    belongs_to :workspace, Mindrian.Documents.Workspace
 
     timestamps(type: :utc_datetime)
   end
 
   def changeset(folder, attrs) do
     folder
-    |> cast(attrs, [:title, :parent_folder_id, :position])
+    |> cast(attrs, [:title, :parent_folder_id, :position, :workspace_id])
     |> validate_required([:title])
     |> validate_length(:title, min: 1, max: 255)
     |> foreign_key_constraint(:parent_folder_id)
+    |> foreign_key_constraint(:workspace_id)
   end
 end

@@ -6,13 +6,24 @@ defmodule Mindrian.Documents do
 
   alias Mindrian.Repo
   alias Mindrian.Accounts.Scope
-  alias Mindrian.Documents.{Document, Folder}
+  alias Mindrian.Documents.{Document, Folder, Workspace}
   alias Mindrian.Collaboration.YjsDocument
   alias MindrianWeb.DocumentsChannel
 
   # =============================================================================
   # LIST OPERATIONS
   # =============================================================================
+
+  @doc """
+  Lists all workspaces for the given scope's user.
+  """
+  def list_workspaces(%Scope{user: user}) do
+    from(w in Workspace,
+      where: w.owner_id == ^user.id,
+      order_by: [desc: w.updated_at]
+    )
+    |> Repo.all()
+  end
 
   @doc """
   Lists all folders for the given scope's user, ordered by parent then position.
@@ -52,6 +63,16 @@ defmodule Mindrian.Documents do
   # =============================================================================
 
   @doc """
+  Gets a single workspace by ID, scoped to the user.
+  """
+  def get_workspace(%Scope{user: user}, id) do
+    from(w in Workspace,
+      where: w.id == ^id and w.owner_id == ^user.id
+    )
+    |> Repo.one()
+  end
+
+  @doc """
   Gets a single folder by ID, scoped to the user.
   """
   def get_folder(%Scope{user: user}, id) do
@@ -84,6 +105,15 @@ defmodule Mindrian.Documents do
   # =============================================================================
   # CREATE OPERATIONS
   # =============================================================================
+
+  @doc """
+  Creates a workspace for the given scope's user.
+  """
+  def create_workspace(%Scope{user: user}, attrs \\ %{}) do
+    %Workspace{owner_id: user.id}
+    |> Workspace.changeset(attrs)
+    |> Repo.insert()
+  end
 
   @doc """
   Creates a folder for the given scope's user.
@@ -132,6 +162,15 @@ defmodule Mindrian.Documents do
   # =============================================================================
   # UPDATE OPERATIONS
   # =============================================================================
+
+  @doc """
+  Updates a workspace.
+  """
+  def update_workspace(%Workspace{} = workspace, attrs) do
+    workspace
+    |> Workspace.changeset(attrs)
+    |> Repo.update()
+  end
 
   @doc """
   Updates a folder (title, etc).
@@ -209,6 +248,13 @@ defmodule Mindrian.Documents do
   # =============================================================================
 
   @doc """
+  Deletes a workspace.
+  """
+  def delete_workspace(%Workspace{} = workspace) do
+    Repo.delete(workspace)
+  end
+
+  @doc """
   Deletes a folder and all its contents recursively.
   """
   def delete_folder(%Folder{} = folder) do
@@ -257,6 +303,13 @@ defmodule Mindrian.Documents do
   # =============================================================================
   # CHANGESET
   # =============================================================================
+
+  @doc """
+  Returns a changeset for tracking workspace changes.
+  """
+  def change_workspace(%Workspace{} = workspace, attrs \\ %{}) do
+    Workspace.changeset(workspace, attrs)
+  end
 
   @doc """
   Returns a changeset for tracking document changes.

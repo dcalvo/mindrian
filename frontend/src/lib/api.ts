@@ -30,6 +30,17 @@ export interface Document {
   updated_at: string;
 }
 
+export interface Workspace {
+  id: string;
+  title: string;
+  icon: string;
+  bg_color: string;
+  icon_color: string;
+  owner_id: string;
+  inserted_at: string;
+  updated_at: string;
+}
+
 export type FileSystemItem = Folder | Document;
 
 export interface ApiError {
@@ -71,6 +82,68 @@ export async function getMe(): Promise<User> {
 
 export async function checkHealth(): Promise<{ status: string }> {
   return fetchApi<{ status: string }>("/health");
+}
+
+// =============================================================================
+// WORKSPACE API
+// =============================================================================
+
+interface ListWorkspacesResponse {
+  data: Workspace[];
+}
+
+interface WorkspaceResponse {
+  data: Workspace;
+}
+
+export async function listWorkspaces(): Promise<Workspace[]> {
+  const response = await fetchApi<ListWorkspacesResponse>("/workspaces");
+  return response.data;
+}
+
+export async function getWorkspace(id: string): Promise<Workspace> {
+  const response = await fetchApi<WorkspaceResponse>(`/workspaces/${id}`);
+  return response.data;
+}
+
+export async function createWorkspace(
+  title: string,
+  icon: string,
+  bg_color: string,
+  icon_color: string
+): Promise<Workspace> {
+  const response = await fetchApi<WorkspaceResponse>("/workspaces", {
+    method: "POST",
+    body: JSON.stringify({
+      workspace: { title, icon, bg_color, icon_color },
+    }),
+  });
+  return response.data;
+}
+
+export async function updateWorkspace(
+  id: string,
+  updates: Partial<
+    Pick<Workspace, "title" | "icon" | "bg_color" | "icon_color">
+  >
+): Promise<Workspace> {
+  const response = await fetchApi<WorkspaceResponse>(`/workspaces/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ workspace: updates }),
+  });
+  return response.data;
+}
+
+export async function deleteWorkspace(id: string): Promise<void> {
+  const response = await fetch(`${API_BASE}/workspaces/${id}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || "Failed to delete workspace");
+  }
 }
 
 // =============================================================================

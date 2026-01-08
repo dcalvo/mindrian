@@ -1,7 +1,19 @@
 import React from "react";
 import { motion, type Variants } from "framer-motion";
-import { Plus, FileText, Clock } from "lucide-react";
-// import { usePreviewContext } from "../../contexts/PreviewContext";
+import {
+  Plus,
+  FileText,
+  Clock,
+  Briefcase,
+  TrendingUp,
+  Code,
+  BookOpen,
+  Terminal,
+  Cpu,
+  Globe,
+  Zap,
+} from "lucide-react";
+import { useWorkspacesContext } from "../../contexts/WorkspacesContext";
 import { useDashboardNavigationContext } from "../../contexts/DashboardNavigationContext";
 
 interface WorkspacesListViewProps {
@@ -11,9 +23,31 @@ interface WorkspacesListViewProps {
 export const WorkspacesListView: React.FC<WorkspacesListViewProps> = ({
   itemVariants,
 }) => {
-  // const { workspaces } = usePreviewContext();
-  const workspaces: any[] = [];
+  const { workspaces, loading } = useWorkspacesContext();
   const { push } = useDashboardNavigationContext();
+
+  const getIcon = (iconId: string) => {
+    switch (iconId) {
+      case "briefcase":
+        return Briefcase;
+      case "trending-up":
+        return TrendingUp;
+      case "code":
+        return Code;
+      case "book-open":
+        return BookOpen;
+      case "terminal":
+        return Terminal;
+      case "cpu":
+        return Cpu;
+      case "globe":
+        return Globe;
+      case "zap":
+        return Zap;
+      default:
+        return Briefcase;
+    }
+  };
 
   return (
     <motion.div
@@ -92,55 +126,83 @@ export const WorkspacesListView: React.FC<WorkspacesListViewProps> = ({
       </div>
 
       <div className="workspaces-grid full-grid">
-        {workspaces.map((workspace) => (
-          <motion.div
-            key={workspace.id}
-            className="workspace-card"
-            variants={itemVariants}
-            onClick={() =>
-              push("workspace-detail", { workspaceId: workspace.id })
-            }
-            whileHover={{ y: -5, boxShadow: "0 12px 30px rgba(0,0,0,0.08)" }}
+        {loading && (
+          <div
+            style={{
+              gridColumn: "1/-1",
+              textAlign: "center",
+              padding: "40px",
+              color: "var(--preview-text-secondary)",
+            }}
           >
-            <div
-              className="workspace-icon"
-              style={{
-                backgroundColor: workspace.bgColor,
-                boxShadow: `0 8px 20px ${workspace.bgColor}33`,
-              }}
+            Loading workspaces...
+          </div>
+        )}
+        {!loading && workspaces.length === 0 && (
+          <div
+            style={{
+              gridColumn: "1/-1",
+              textAlign: "center",
+              padding: "40px",
+              color: "var(--preview-text-secondary)",
+            }}
+          >
+            No workspaces found. Create one to get started.
+          </div>
+        )}
+        {workspaces.map((workspace) => {
+          const IconComponent = getIcon(workspace.icon);
+          return (
+            <motion.div
+              key={workspace.id}
+              className="workspace-card"
+              variants={itemVariants}
+              onClick={() =>
+                push("workspace-detail", { workspaceId: workspace.id })
+              }
+              whileHover={{ y: -5, boxShadow: "0 12px 30px rgba(0,0,0,0.08)" }}
             >
-              <workspace.icon size={32} color={workspace.iconColor} />
-            </div>
-            <div className="workspace-info">
-              <h3 className="workspace-name">{workspace.name}</h3>
-              <div className="workspace-meta-row">
-                <span className="workspace-meta">
-                  <FileText size={12} />
-                  {workspace.documentCount} docs
-                </span>
-                <span className="workspace-meta">
-                  <Clock size={12} />
-                  {workspace.lastUpdated}
-                </span>
+              <div
+                className="workspace-icon"
+                style={{
+                  backgroundColor: workspace.bg_color,
+                  boxShadow: `0 8px 20px ${workspace.bg_color}33`,
+                }}
+              >
+                <IconComponent size={32} color={workspace.icon_color} />
               </div>
-            </div>
+              <div className="workspace-info">
+                <h3 className="workspace-name">{workspace.title}</h3>
+                <div className="workspace-meta-row">
+                  <span className="workspace-meta">
+                    <FileText size={12} />0 docs
+                  </span>
+                  <span className="workspace-meta">
+                    <Clock size={12} />
+                    {new Date(workspace.updated_at).toLocaleDateString()}
+                  </span>
+                </div>
+              </div>
 
-            {workspace.collaborators && workspace.collaborators.length > 0 && (
-              <div className="workspace-collaborators">
-                {workspace.collaborators.map((collab: any, i: number) => (
-                  <div
-                    key={i}
-                    className="collab-avatar"
-                    style={{ backgroundColor: collab.color }}
-                    title={collab.name}
-                  >
-                    {collab.name[0]}
-                  </div>
-                ))}
-              </div>
-            )}
-          </motion.div>
-        ))}
+              {/* Future: Collaborators
+              {workspace.collaborators && workspace.collaborators.length > 0 && (
+                <div className="workspace-collaborators">
+                  {workspace.collaborators.map((collab: any, i: number) => (
+                    <div
+                      key={i}
+                      className="collab-avatar"
+                      style={{ backgroundColor: collab.color }}
+                      title={collab.name}
+                    >
+                      {collab.name[0]}
+                    </div>
+                  ))}
+                </div>
+              )}
+              */}
+            </motion.div>
+          );
+        })}
       </div>
     </motion.div>
   );

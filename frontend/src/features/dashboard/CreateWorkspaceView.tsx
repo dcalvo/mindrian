@@ -11,7 +11,8 @@ import {
   Zap,
   Plus,
 } from "lucide-react";
-// import { usePreviewContext } from "../../contexts/PreviewContext";
+import { useWorkspacesContext } from "../../contexts/WorkspacesContext";
+import { useDashboardNavigationContext } from "../../contexts/DashboardNavigationContext";
 
 const AVAILABLE_ICONS = [
   { id: "briefcase", icon: Briefcase },
@@ -40,25 +41,30 @@ const ITEM_VARIANTS = {
 };
 
 export const CreateWorkspaceView: React.FC = () => {
-  // const { addWorkspace } = usePreviewContext();
-  const addWorkspace = (workspace: any) => {
-    console.log("Adding workspace:", workspace);
-  };
+  const { createWorkspace } = useWorkspacesContext();
+  const { push } = useDashboardNavigationContext();
+
   const [name, setName] = useState("");
   const [selectedIconId, setSelectedIconId] = useState("briefcase");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleCreate = () => {
-    if (!name.trim()) return;
+  const handleCreate = async () => {
+    if (!name.trim() || isSubmitting) return;
 
     const iconObj = AVAILABLE_ICONS.find((i) => i.id === selectedIconId);
     if (!iconObj) return;
 
-    addWorkspace({
-      name,
-      icon: iconObj.icon,
-      bgColor: "#000000",
-      iconColor: "#ffffff",
-    });
+    try {
+      setIsSubmitting(true);
+      await createWorkspace(name, selectedIconId, "#000000", "#ffffff");
+
+      // Navigate to the dashboard (workspaces list) or the new workspace detail
+      push("workspaces-list");
+    } catch (error) {
+      console.error("Failed to create workspace", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -108,13 +114,13 @@ export const CreateWorkspaceView: React.FC = () => {
       <motion.button
         variants={ITEM_VARIANTS}
         className="create-confirm-button"
-        disabled={!name.trim()}
+        disabled={!name.trim() || isSubmitting}
         onClick={handleCreate}
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
       >
         <Plus size={18} />
-        Create Workspace
+        {isSubmitting ? "Creating..." : "Create Workspace"}
       </motion.button>
     </motion.div>
   );

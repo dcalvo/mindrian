@@ -44,6 +44,7 @@ defmodule MindrianWeb.Router do
 
     resources "/documents", DocumentController, except: [:new, :edit]
     put "/documents/:id/move", DocumentController, :move
+    resources "/workspaces", WorkspaceController, except: [:new, :edit]
   end
 
   # Agent tool API routes - localhost only, called by Agno microservice
