@@ -225,8 +225,10 @@ export function FileTree({ width }: FileTreeProps) {
       className="file-tree"
       style={{ width: width ? `${width}px` : undefined }}
     >
-      <div className="file-tree-header">
-        <h3>Workspace</h3>
+      <div
+        className="file-tree-header"
+        style={{ padding: "0 12px 8px", justifyContent: "flex-end" }}
+      >
         <div className="file-tree-actions">
           <button
             className="file-tree-action-btn"

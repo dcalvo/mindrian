@@ -2,9 +2,9 @@ import React from "react";
 import { motion } from "framer-motion";
 import { FileText, Plus } from "lucide-react";
 import { usePreviewContext } from "../../contexts/PreviewContext";
-import { FileTree } from "./FileTree";
 import { ChatPane } from "./ChatPane";
 import { CollaborativeEditor } from "./CollaborativeEditor";
+import { WorkspaceSidebar } from "./WorkspaceSidebar";
 import "./workspace.css";
 
 const CONTAINER_VARIANTS = {
@@ -18,9 +18,8 @@ const CONTAINER_VARIANTS = {
 
 export const WorkspaceDetailView: React.FC = () => {
   const { activeWorkspace, activeDocument } = usePreviewContext();
-  if (!activeWorkspace) return null;
 
-  const Icon = activeWorkspace.icon;
+  if (!activeWorkspace) return null;
 
   return (
     <motion.div
@@ -32,21 +31,7 @@ export const WorkspaceDetailView: React.FC = () => {
     >
       <div className="workspace-unified-container">
         {/* Left Panel: Workspace Identity + File System */}
-        <aside className="workspace-panel workspace-sidebar">
-          <div className="workspace-sidebar-identity">
-            <div
-              className="workspace-sidebar-icon"
-              style={{ backgroundColor: activeWorkspace.bgColor }}
-            >
-              <Icon size={18} color={activeWorkspace.iconColor} />
-            </div>
-            <h1 className="workspace-sidebar-title">{activeWorkspace.name}</h1>
-          </div>
-          <div className="workspace-sidebar-divider" />
-          <div className="workspace-sidebar-content">
-            <FileTree />
-          </div>
-        </aside>
+        <WorkspaceSidebar />
 
         {/* Middle Panel: Collaborative Editor */}
         <main className="workspace-panel workspace-editor">

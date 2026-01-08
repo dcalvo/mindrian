@@ -121,7 +121,7 @@ function DashboardContent() {
         animate="visible"
       >
         <AnimatePresence>
-          {(canPop || isChatMode) && (
+          {(canPop || isChatMode) && currentView !== "workspace-detail" && (
             <motion.div
               className={`back-button-row ${isChatMode ? "chat-back-row" : ""}`}
               initial={{ opacity: 0, height: 0 }}
