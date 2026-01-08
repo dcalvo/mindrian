@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, PanelLeftClose, Briefcase } from "lucide-react";
+import { ArrowLeft, PanelLeftClose } from "lucide-react";
 import { useDashboardNavigationContext } from "../../contexts/DashboardNavigationContext";
 import { useWorkspacesContext } from "../../contexts/WorkspacesContext";
 import { FileTree } from "./FileTree";

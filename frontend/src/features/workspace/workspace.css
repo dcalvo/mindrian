@@ -46,11 +46,75 @@
   min-width: 0;
 }
 
+/* Editor container with proper scroll */
+.editor-container {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* BlockNote editor wrapper */
+.editor-container .bn-container,
+.editor-container .bn-editor {
+  height: 100%;
+  overflow: visible;
+}
+
+/* Ensure the block note content scrolls */
+.editor-container [class*="ProseMirror"] {
+  min-height: 100%;
+  padding: 24px;
+  padding-bottom: 120px; /* Extra space at bottom for comfortable editing */
+}
+
 .workspace-chat-sidebar {
-  width: 320px;
+  width: 360px;
+  min-width: 280px;
+  max-width: 600px;
   flex-shrink: 0;
-  background: white;
+  background: linear-gradient(180deg, #fafbfc 0%, #f5f7f9 100%);
   border-left: 1px solid rgba(0, 0, 0, 0.06);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Resize handle for chat panel */
+.chat-resize-handle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 10;
+  transition: background 0.2s ease;
+}
+
+.chat-resize-handle::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2px;
+  height: 40px;
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 2px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.chat-resize-handle:hover,
+.chat-resize-handle.dragging {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.chat-resize-handle:hover::before,
+.chat-resize-handle.dragging::before {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.2);
 }
 
 /* Sidebar Identity */

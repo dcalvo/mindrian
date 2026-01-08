@@ -1,6 +1,6 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
-import { FileText, Plus } from "lucide-react";
+import { FileText } from "lucide-react";
 import { useEditorContext } from "../../contexts/EditorContext";
 import { useDocumentsContext } from "../../contexts/DocumentsContext";
 import { useWorkspacesContext } from "../../contexts/WorkspacesContext";
@@ -20,11 +20,55 @@ const CONTAINER_VARIANTS = {
   exit: { opacity: 0 },
 };
 
+const MIN_CHAT_WIDTH = 280;
+const MAX_CHAT_WIDTH = 600;
+const DEFAULT_CHAT_WIDTH = 360;
+
 export const WorkspaceDetailView: React.FC = () => {
   const { activeDocumentId } = useEditorContext();
   const { documents } = useDocumentsContext();
   const { current } = useDashboardNavigationContext();
   const { setCurrentWorkspaceId } = useWorkspacesContext();
+
+  // Chat panel resize state
+  const [chatWidth, setChatWidth] = useState(DEFAULT_CHAT_WIDTH);
+  const [isDragging, setIsDragging] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Handle resize drag
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!containerRef.current) return;
+      const containerRect = containerRef.current.getBoundingClientRect();
+      const newWidth = containerRect.right - e.clientX;
+      setChatWidth(
+        Math.min(MAX_CHAT_WIDTH, Math.max(MIN_CHAT_WIDTH, newWidth))
+      );
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+  }, [isDragging]);
 
   // Set the current workspace when this view loads
   useEffect(() => {
@@ -50,7 +94,7 @@ export const WorkspaceDetailView: React.FC = () => {
       animate="visible"
       exit="exit"
     >
-      <div className="workspace-unified-container">
+      <div className="workspace-unified-container" ref={containerRef}>
         {/* Left Panel: Workspace Identity + File System */}
         <WorkspaceSidebar />
 
@@ -73,7 +117,14 @@ export const WorkspaceDetailView: React.FC = () => {
         </main>
 
         {/* Right Panel: Contextual Chat */}
-        <div className="workspace-panel workspace-chat-sidebar">
+        <div
+          className="workspace-panel workspace-chat-sidebar"
+          style={{ width: chatWidth }}
+        >
+          <div
+            className={`chat-resize-handle ${isDragging ? "dragging" : ""}`}
+            onMouseDown={handleMouseDown}
+          />
           <ChatPane />
         </div>
       </div>
