@@ -86,6 +86,11 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false;
 
+    // Clear state immediately when workspace changes
+    setFolders([]);
+    setDocuments([]);
+    setLoading(true);
+
     const setup = async () => {
       try {
         const user = await getMe();

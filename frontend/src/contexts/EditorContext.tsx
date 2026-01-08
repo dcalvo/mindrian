@@ -3,9 +3,11 @@ import React, {
   useContext,
   useState,
   useCallback,
+  useEffect,
   type ReactNode,
 } from "react";
 import type { Document } from "../lib/api";
+import { useWorkspacesContext } from "./WorkspacesContext";
 
 export interface EditorContextType {
   openDocuments: Document[];
@@ -22,6 +24,13 @@ export const EditorProvider: React.FC<{ children: ReactNode }> = ({
 }) => {
   const [openDocuments, setOpenDocuments] = useState<Document[]>([]);
   const [activeDocumentId, setActiveDocumentId] = useState<string | null>(null);
+  const { currentWorkspaceId } = useWorkspacesContext();
+
+  // Reset editor state when workspace changes
+  useEffect(() => {
+    setOpenDocuments([]);
+    setActiveDocumentId(null);
+  }, [currentWorkspaceId]);
 
   const openDocument = useCallback((doc: Document) => {
     setOpenDocuments((prev) => {
