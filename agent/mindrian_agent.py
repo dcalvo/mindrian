@@ -42,6 +42,10 @@ def delegate_task(agent_name: str, task: str) -> str:
         try:
             # We just want the recommendation text
             response = target_agent.run(task)
+            if agent_name == "larry-team":
+                if response.content:
+                    content = response.content if isinstance(response.content, str) else str(response.content)
+                    print(content)
             if response.content:
                 content = response.content if isinstance(response.content, str) else str(response.content)
                 return f"Specialist {agent_name} recommends:\n\n{content}"
@@ -58,7 +62,7 @@ Your Workflow for EVERY user request:
 1. Receive user request.
 2. You MUST consult a specialist agent for every action. Do NOT make decisions yourself.
    - For general document tasks (create, read, list, delete), consult 'document-agent'.
-   - For complex McKinsey analysis, consult 'mckinsey-agent'.
+   - For complex analysis tasks, consult 'larry-team'.
 3. Call `delegate_task(agent_name, task)`.
 4. The specialist will return a recommendation (e.g., "Recommended Tool: create_document(...)").
 5. You MUST then EXECUTE that recommended tool exactly as specified.
@@ -70,7 +74,7 @@ returned: "Recommended Tool: list_documents()"
 You: Call list_documents()
 
 User: "Analyze doc 1"
-You: delegate_task("mckinsey-agent", "Analyze doc 1")
+You: delegate_task("larry-team", "Analyze doc 1")
 returned: "Recommended Tool: read_document(id='1')"
 You: Call read_document(id='1')
 

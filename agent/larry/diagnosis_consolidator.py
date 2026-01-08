@@ -6,7 +6,7 @@ Synthesizes all diagnostic agent outputs into coherent assessment
 from agno.models.anthropic import Claude
 from pydantic import BaseModel, Field
 from .prompts import DIAGNOSIS_CONSOLIDATOR_PROMPT
-from agno.teams import Team
+from agno.team import Team
 from typing import List
 from .complexity_assessor import complexity_assessor_agent
 from .definition_classifier import definition_classifier_agent
