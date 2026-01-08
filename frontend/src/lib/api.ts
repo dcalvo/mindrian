@@ -165,9 +165,13 @@ interface DocumentResponse {
 
 /**
  * Lists all folders and documents for the current user.
+ * Optionally filters by workspace_id.
  */
-export async function listAll(): Promise<ListResponse> {
-  return fetchApi<ListResponse>("/documents");
+export async function listAll(workspaceId?: string): Promise<ListResponse> {
+  const url = workspaceId
+    ? `/documents?workspace_id=${encodeURIComponent(workspaceId)}`
+    : "/documents";
+  return fetchApi<ListResponse>(url);
 }
 
 /**
@@ -183,12 +187,17 @@ export async function getDocument(id: string): Promise<Document> {
  */
 export async function createDocument(
   title?: string,
-  folderId?: string | null
+  folderId?: string | null,
+  workspaceId?: string
 ): Promise<Document> {
   const response = await fetchApi<DocumentResponse>("/documents", {
     method: "POST",
     body: JSON.stringify({
-      document: { title: title || "Untitled", folder_id: folderId || null },
+      document: {
+        title: title || "Untitled",
+        folder_id: folderId || null,
+        workspace_id: workspaceId || null,
+      },
     }),
   });
   return response.document;
@@ -199,7 +208,8 @@ export async function createDocument(
  */
 export async function createFolder(
   title?: string,
-  parentFolderId?: string | null
+  parentFolderId?: string | null,
+  workspaceId?: string
 ): Promise<Folder> {
   const response = await fetchApi<FolderResponse>("/documents", {
     method: "POST",
@@ -207,6 +217,7 @@ export async function createFolder(
       document: {
         title: title || "New Folder",
         parent_folder_id: parentFolderId || null,
+        workspace_id: workspaceId || null,
         is_folder: true,
       },
     }),

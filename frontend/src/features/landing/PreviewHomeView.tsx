@@ -1,9 +1,19 @@
 import React from "react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { Plus, ChevronDown, ChevronRight, FileText } from "lucide-react";
-// import { usePreviewContext } from "../../contexts/PreviewContext";
+import { useWorkspacesContext } from "../../contexts/WorkspacesContext";
 import { useDashboardNavigationContext } from "../../contexts/DashboardNavigationContext";
 import type { Agent } from "../../hooks/chat/usePreviewChat";
+import {
+  Briefcase,
+  TrendingUp,
+  Code,
+  BookOpen,
+  Terminal,
+  Cpu,
+  Globe,
+  Zap,
+} from "lucide-react";
 
 interface PreviewHomeViewProps {
   itemVariants: Variants;
@@ -34,9 +44,34 @@ export const PreviewHomeView: React.FC<PreviewHomeViewProps> = ({
   sendMessage,
   agents,
 }) => {
-  // const { workspaces } = usePreviewContext();
-  const workspaces: any[] = [];
+  const { workspaces } = useWorkspacesContext();
   const { push } = useDashboardNavigationContext();
+
+  const getIcon = (iconId: string) => {
+    switch (iconId) {
+      case "briefcase":
+        return Briefcase;
+      case "trending-up":
+        return TrendingUp;
+      case "code":
+        return Code;
+      case "book-open":
+        return BookOpen;
+      case "terminal":
+        return Terminal;
+      case "cpu":
+        return Cpu;
+      case "globe":
+        return Globe;
+      case "zap":
+        return Zap;
+      default:
+        return Briefcase;
+    }
+  };
+
+  // Get recent workspaces (limit to 6 most recent)
+  const recentWorkspaces = workspaces.slice(0, 6);
 
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
@@ -235,38 +270,42 @@ export const PreviewHomeView: React.FC<PreviewHomeViewProps> = ({
             </div>
           </motion.div>
 
-          {workspaces.map((workspace, index) => (
-            <motion.div
-              key={workspace.id}
-              className="workspace-card"
-              onClick={() =>
-                push("workspace-detail", { workspaceId: workspace.id })
-              }
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{
-                delay: 0.2 + index * 0.1,
-                duration: 0.5,
-              }}
-            >
-              <div
-                className="workspace-icon"
-                style={{
-                  backgroundColor: workspace.bgColor,
-                  boxShadow: `0 8px 20px ${workspace.bgColor}33`,
+          {recentWorkspaces.map((workspace, index) => {
+            const IconComponent = getIcon(workspace.icon);
+            return (
+              <motion.div
+                key={workspace.id}
+                className="workspace-card"
+                onClick={() =>
+                  push("workspace-detail", { workspaceId: workspace.id })
+                }
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{
+                  delay: 0.2 + index * 0.1,
+                  duration: 0.5,
                 }}
               >
-                <workspace.icon size={28} color={workspace.iconColor} />
-              </div>
-              <div className="workspace-info">
-                <h3 className="workspace-name">{workspace.name}</h3>
-                <p className="workspace-meta">
-                  <FileText size={12} />
-                  {workspace.documentCount} documents
-                </p>
-              </div>
-            </motion.div>
-          ))}
+                <div
+                  className="workspace-icon"
+                  style={{
+                    backgroundColor: workspace.bg_color,
+                    boxShadow: `0 8px 20px ${workspace.bg_color}33`,
+                  }}
+                >
+                  <IconComponent size={28} color={workspace.icon_color} />
+                </div>
+                <div className="workspace-info">
+                  <h3 className="workspace-name">{workspace.title}</h3>
+                  <p className="workspace-meta">
+                    <FileText size={12} />
+                    {/* TODO: Get actual document count per workspace */}
+                    Recent
+                  </p>
+                </div>
+              </motion.div>
+            );
+          })}
         </div>
       </motion.div>
     </motion.div>

@@ -17,6 +17,8 @@ interface WorkspacesContextType {
   workspaces: Workspace[];
   loading: boolean;
   error: string | null;
+  currentWorkspaceId: string | null;
+  setCurrentWorkspaceId: (id: string | null) => void;
   refreshWorkspaces: () => Promise<void>;
   createWorkspace: (
     title: string,
@@ -37,6 +39,9 @@ export const WorkspacesProvider: React.FC<{ children: ReactNode }> = ({
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentWorkspaceId, setCurrentWorkspaceId] = useState<string | null>(
+    null
+  );
 
   const refreshWorkspaces = useCallback(async () => {
     try {
@@ -92,6 +97,8 @@ export const WorkspacesProvider: React.FC<{ children: ReactNode }> = ({
         workspaces,
         loading,
         error,
+        currentWorkspaceId,
+        setCurrentWorkspaceId,
         refreshWorkspaces,
         createWorkspace,
         deleteWorkspace,

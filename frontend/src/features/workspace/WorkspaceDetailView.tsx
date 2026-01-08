@@ -1,8 +1,10 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { motion } from "framer-motion";
 import { FileText, Plus } from "lucide-react";
 import { useEditorContext } from "../../contexts/EditorContext";
 import { useDocumentsContext } from "../../contexts/DocumentsContext";
+import { useWorkspacesContext } from "../../contexts/WorkspacesContext";
+import { useDashboardNavigationContext } from "../../contexts/DashboardNavigationContext";
 import { ChatPane } from "./ChatPane";
 import { CollaborativeEditor } from "./CollaborativeEditor";
 import { WorkspaceSidebar } from "./WorkspaceSidebar";
@@ -21,6 +23,20 @@ const CONTAINER_VARIANTS = {
 export const WorkspaceDetailView: React.FC = () => {
   const { activeDocumentId } = useEditorContext();
   const { documents } = useDocumentsContext();
+  const { current } = useDashboardNavigationContext();
+  const { setCurrentWorkspaceId } = useWorkspacesContext();
+
+  // Set the current workspace when this view loads
+  useEffect(() => {
+    const wsId = current.workspaceId;
+    if (wsId) {
+      setCurrentWorkspaceId(String(wsId));
+    }
+    return () => {
+      // Clear workspace when leaving this view
+      setCurrentWorkspaceId(null);
+    };
+  }, [current.workspaceId, setCurrentWorkspaceId]);
 
   const activeDocument = activeDocumentId
     ? documents.find((d) => d.id === activeDocumentId)

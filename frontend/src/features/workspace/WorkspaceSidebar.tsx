@@ -2,8 +2,18 @@ import React, { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, PanelLeftClose, Briefcase } from "lucide-react";
 import { useDashboardNavigationContext } from "../../contexts/DashboardNavigationContext";
-// import { usePreviewContext } from "../../contexts/PreviewContext";
+import { useWorkspacesContext } from "../../contexts/WorkspacesContext";
 import { FileTree } from "./FileTree";
+import {
+  Briefcase as BriefcaseIcon,
+  TrendingUp,
+  Code,
+  BookOpen,
+  Terminal,
+  Cpu,
+  Globe,
+  Zap,
+} from "lucide-react";
 import "./workspace.css";
 
 const MIN_WIDTH = 240;
@@ -11,14 +21,51 @@ const MAX_WIDTH = 480;
 const COLLAPSED_WIDTH = 60;
 
 export const WorkspaceSidebar: React.FC = () => {
-  // const { activeWorkspace } = usePreviewContext();
-  const activeWorkspace = {
-    name: "Workspace",
-    icon: Briefcase,
-    bgColor: "#000000",
-    iconColor: "#ffffff",
-  }; // Placeholder
+  const { current } = useDashboardNavigationContext();
+  const { workspaces, currentWorkspaceId } = useWorkspacesContext();
   const { pop } = useDashboardNavigationContext();
+
+  const getIcon = (iconId: string) => {
+    switch (iconId) {
+      case "briefcase":
+        return BriefcaseIcon;
+      case "trending-up":
+        return TrendingUp;
+      case "code":
+        return Code;
+      case "book-open":
+        return BookOpen;
+      case "terminal":
+        return Terminal;
+      case "cpu":
+        return Cpu;
+      case "globe":
+        return Globe;
+      case "zap":
+        return Zap;
+      default:
+        return BriefcaseIcon;
+    }
+  };
+
+  const workspaceId = currentWorkspaceId || current.workspaceId;
+  const activeWorkspace = workspaceId
+    ? workspaces.find((w) => w.id === workspaceId)
+    : null;
+
+  const workspaceData = activeWorkspace
+    ? {
+        name: activeWorkspace.title,
+        icon: getIcon(activeWorkspace.icon),
+        bgColor: activeWorkspace.bg_color,
+        iconColor: activeWorkspace.icon_color,
+      }
+    : {
+        name: "Workspace",
+        icon: BriefcaseIcon,
+        bgColor: "#000000",
+        iconColor: "#ffffff",
+      };
 
   const [width, setWidth] = useState(260);
   const [isOpen, setIsOpen] = useState(true);
@@ -70,8 +117,8 @@ export const WorkspaceSidebar: React.FC = () => {
     }
   };
 
-  if (!activeWorkspace) return null;
-  const Icon = activeWorkspace.icon;
+  if (!workspaceData) return null;
+  const Icon = workspaceData.icon;
 
   const currentWidth = isOpen ? width : isHovered ? 80 : COLLAPSED_WIDTH;
 
@@ -167,12 +214,12 @@ export const WorkspaceSidebar: React.FC = () => {
           <div
             className="workspace-sidebar-icon"
             style={{
-              backgroundColor: activeWorkspace.bgColor,
+              backgroundColor: workspaceData.bgColor,
               transform: !isOpen && isHovered ? "scale(1.1)" : "scale(1)",
               transition: "transform 0.2s ease",
             }}
           >
-            <Icon size={18} color={activeWorkspace.iconColor} />
+            <Icon size={18} color={workspaceData.iconColor} />
           </div>
           {isOpen && (
             <span
@@ -186,7 +233,7 @@ export const WorkspaceSidebar: React.FC = () => {
                 whiteSpace: "nowrap",
               }}
             >
-              {activeWorkspace.name}
+              {workspaceData.name}
             </span>
           )}
         </div>

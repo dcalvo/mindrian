@@ -6,9 +6,11 @@ defmodule MindrianWeb.API.DocumentController do
 
   @doc """
   Lists all folders and documents for the current user.
+  Optionally filters by workspace_id query parameter.
   """
-  def index(conn, _params) do
-    data = Documents.list_all(conn.assigns.current_scope)
+  def index(conn, params) do
+    workspace_id = params["workspace_id"]
+    data = Documents.list_all(conn.assigns.current_scope, workspace_id)
     render(conn, :index, folders: data.folders, documents: data.documents)
   end
 

@@ -27,34 +27,55 @@ defmodule Mindrian.Documents do
 
   @doc """
   Lists all folders for the given scope's user, ordered by parent then position.
+  Optionally filters by workspace_id.
   """
-  def list_folders(%Scope{user: user}) do
-    from(f in Folder,
-      where: f.user_id == ^user.id,
-      order_by: [asc: f.position, desc: f.updated_at]
-    )
-    |> Repo.all()
+  def list_folders(%Scope{user: user}, workspace_id \\ nil) do
+    query =
+      from(f in Folder,
+        where: f.user_id == ^user.id,
+        order_by: [asc: f.position, desc: f.updated_at]
+      )
+
+    query =
+      if workspace_id do
+        from(f in query, where: f.workspace_id == ^workspace_id)
+      else
+        query
+      end
+
+    Repo.all(query)
   end
 
   @doc """
   Lists all documents for the given scope's user, ordered by folder then position.
+  Optionally filters by workspace_id.
   """
-  def list_documents(%Scope{user: user}) do
-    from(d in Document,
-      where: d.user_id == ^user.id,
-      order_by: [asc: d.position, desc: d.updated_at]
-    )
-    |> Repo.all()
+  def list_documents(%Scope{user: user}, workspace_id \\ nil) do
+    query =
+      from(d in Document,
+        where: d.user_id == ^user.id,
+        order_by: [asc: d.position, desc: d.updated_at]
+      )
+
+    query =
+      if workspace_id do
+        from(d in query, where: d.workspace_id == ^workspace_id)
+      else
+        query
+      end
+
+    Repo.all(query)
   end
 
   @doc """
   Lists all folders and documents for the given scope's user.
+  Optionally filters by workspace_id.
   Returns a map with :folders and :documents keys.
   """
-  def list_all(%Scope{} = scope) do
+  def list_all(%Scope{} = scope, workspace_id \\ nil) do
     %{
-      folders: list_folders(scope),
-      documents: list_documents(scope)
+      folders: list_folders(scope, workspace_id),
+      documents: list_documents(scope, workspace_id)
     }
   end
 
@@ -120,7 +141,8 @@ defmodule Mindrian.Documents do
   """
   def create_folder(%Scope{user: user}, attrs \\ %{}) do
     parent_folder_id = attrs["parent_folder_id"] || attrs[:parent_folder_id]
-    position = next_folder_position(user.id, parent_folder_id)
+    workspace_id = attrs["workspace_id"] || attrs[:workspace_id]
+    position = next_folder_position(user.id, parent_folder_id, workspace_id)
 
     result =
       %Folder{user_id: user.id, position: position}
@@ -142,7 +164,8 @@ defmodule Mindrian.Documents do
   """
   def create_document(%Scope{user: user}, attrs \\ %{}) do
     folder_id = attrs["folder_id"] || attrs[:folder_id]
-    position = next_document_position(user.id, folder_id)
+    workspace_id = attrs["workspace_id"] || attrs[:workspace_id]
+    position = next_document_position(user.id, folder_id, workspace_id)
 
     result =
       %Document{user_id: user.id, position: position}
@@ -329,18 +352,22 @@ defmodule Mindrian.Documents do
   # PRIVATE FUNCTIONS
   # =============================================================================
 
-  defp next_folder_position(user_id, parent_folder_id) do
+  defp next_folder_position(user_id, parent_folder_id, workspace_id \\ nil) do
     query =
       if is_nil(parent_folder_id) do
-        from(f in Folder,
-          where: f.user_id == ^user_id and is_nil(f.parent_folder_id),
-          select: max(f.position)
-        )
+        base_query = from(f in Folder, where: f.user_id == ^user_id and is_nil(f.parent_folder_id))
+        if workspace_id do
+          from(f in base_query, where: f.workspace_id == ^workspace_id, select: max(f.position))
+        else
+          from(f in base_query, select: max(f.position))
+        end
       else
-        from(f in Folder,
-          where: f.user_id == ^user_id and f.parent_folder_id == ^parent_folder_id,
-          select: max(f.position)
-        )
+        base_query = from(f in Folder, where: f.user_id == ^user_id and f.parent_folder_id == ^parent_folder_id)
+        if workspace_id do
+          from(f in base_query, where: f.workspace_id == ^workspace_id, select: max(f.position))
+        else
+          from(f in base_query, select: max(f.position))
+        end
       end
 
     query
@@ -351,18 +378,22 @@ defmodule Mindrian.Documents do
     end
   end
 
-  defp next_document_position(user_id, folder_id) do
+  defp next_document_position(user_id, folder_id, workspace_id \\ nil) do
     query =
       if is_nil(folder_id) do
-        from(d in Document,
-          where: d.user_id == ^user_id and is_nil(d.folder_id),
-          select: max(d.position)
-        )
+        base_query = from(d in Document, where: d.user_id == ^user_id and is_nil(d.folder_id))
+        if workspace_id do
+          from(d in base_query, where: d.workspace_id == ^workspace_id, select: max(d.position))
+        else
+          from(d in base_query, select: max(d.position))
+        end
       else
-        from(d in Document,
-          where: d.user_id == ^user_id and d.folder_id == ^folder_id,
-          select: max(d.position)
-        )
+        base_query = from(d in Document, where: d.user_id == ^user_id and d.folder_id == ^folder_id)
+        if workspace_id do
+          from(d in base_query, where: d.workspace_id == ^workspace_id, select: max(d.position))
+        else
+          from(d in base_query, select: max(d.position))
+        end
       end
 
     query

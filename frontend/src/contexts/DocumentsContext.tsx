@@ -23,6 +23,7 @@ import {
 import { getSocket } from "../lib/socket";
 import { toast } from "sonner";
 import { createContext, useContext } from "react";
+import { useWorkspacesContext } from "./WorkspacesContext";
 
 export interface DocumentsContextValue {
   folders: Folder[];
@@ -63,12 +64,24 @@ export function useDocumentsContext() {
   return context;
 }
 
+// Helper hook to safely get workspace ID (handles case where WorkspacesProvider might not be available)
+function useWorkspaceIdSafe(): string | null {
+  try {
+    const { currentWorkspaceId } = useWorkspacesContext();
+    return currentWorkspaceId;
+  } catch {
+    // WorkspacesContext not available (e.g., DocumentsProvider is outside WorkspacesProvider)
+    return null;
+  }
+}
+
 export function DocumentsProvider({ children }: { children: ReactNode }) {
   const [folders, setFolders] = useState<Folder[]>([]);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const channelRef = useRef<Channel | null>(null);
+  const currentWorkspaceId = useWorkspaceIdSafe();
 
   useEffect(() => {
     let cancelled = false;
@@ -147,7 +160,7 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        const data = await listAll();
+        const data = await listAll(currentWorkspaceId || undefined);
         if (cancelled) return;
 
         setFolders(data.folders);
@@ -173,13 +186,13 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
         channelRef.current = null;
       }
     };
-  }, []);
+  }, [currentWorkspaceId]);
 
   const refetch = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await listAll();
+      const data = await listAll(currentWorkspaceId || undefined);
       setFolders(data.folders);
       setDocuments(data.documents);
     } catch (err) {
@@ -187,7 +200,7 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentWorkspaceId]);
 
   const getUniqueFolderName = useCallback(
     (baseName: string, parentFolderId: string | null) => {
@@ -236,17 +249,25 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
   const addDocument = useCallback(
     async (title: string = "Untitled", folderId?: string | null) => {
       const uniqueTitle = getUniqueDocumentName(title, folderId || null);
-      return await createDocument(uniqueTitle, folderId);
+      return await createDocument(
+        uniqueTitle,
+        folderId,
+        currentWorkspaceId || undefined
+      );
     },
-    [getUniqueDocumentName]
+    [getUniqueDocumentName, currentWorkspaceId]
   );
 
   const addFolder = useCallback(
     async (title: string = "New Folder", parentFolderId?: string | null) => {
       const uniqueTitle = getUniqueFolderName(title, parentFolderId || null);
-      return await createFolder(uniqueTitle, parentFolderId);
+      return await createFolder(
+        uniqueTitle,
+        parentFolderId,
+        currentWorkspaceId || undefined
+      );
     },
-    [getUniqueFolderName]
+    [getUniqueFolderName, currentWorkspaceId]
   );
 
   const renameItem = useCallback(
