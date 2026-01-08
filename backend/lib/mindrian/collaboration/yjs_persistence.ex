@@ -16,9 +16,6 @@ defmodule Mindrian.Collaboration.YjsPersistence do
     # Load existing state from DB and apply to the doc
     ecto_doc = get_y_doc(doc_name)
 
-    {:ok, new_updates} = Yex.encode_state_as_update(doc)
-    insert_update(doc_name, new_updates)
-
     Yex.apply_update(doc, Yex.encode_state_as_update!(ecto_doc))
 
     %{doc_name: doc_name}

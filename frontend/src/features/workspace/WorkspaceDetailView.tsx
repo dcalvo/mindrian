@@ -104,7 +104,10 @@ export const WorkspaceDetailView: React.FC = () => {
           <EditorTabs />
           {activeDocument ? (
             <div className="editor-container">
-              <CollaborativeEditor docId={activeDocument.id} />
+              <CollaborativeEditor
+                key={activeDocument.id}
+                docId={activeDocument.id}
+              />
             </div>
           ) : (
             <div className="editor-empty-state">
