@@ -27,6 +27,7 @@ class DiagnosisConsolidation(BaseModel):
 # team to consolidate all diagnosis
 diagnosis_consolidator_team = Team(
     model=Claude(id="claude-haiku-4-5"),
+    name="Diagnosis Consolidator",
     members=[wickedness_classifier_agent, complexity_assessor_agent, definition_classifier_agent, risk_uncertainty_evaluator_agent],
     instructions=DIAGNOSIS_CONSOLIDATOR_PROMPT,
     output_schema=DiagnosisConsolidation,

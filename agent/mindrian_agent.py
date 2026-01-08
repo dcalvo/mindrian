@@ -11,6 +11,8 @@ from agno.os import AgentOS  # noqa: E402
 
 from document_agent import document_agent  # noqa: E402
 from mckinsey_agent import mckinsey_agent  # noqa: E402
+from larry.larry_team import larry_team  # noqa: E402
+from larry.diagnosis_consolidator import diagnosis_consolidator_team  # noqa: E402
 from testing import TESTING  # noqa: E402
 from tools import document_tools, mckinsey_tools, testing_tools  # noqa: E402
 
@@ -19,7 +21,6 @@ api_key = os.getenv("ANTHROPIC_API_KEY")
 
 # Chat agent memory (required for tool approval continuations)
 db = SqliteDb(db_file="tmp/mindrian_agent.db")
-
 
 def delegate_task(agent_name: str, task: str) -> str:
     """Consult a specialist agent for a recommendation.
@@ -34,8 +35,8 @@ def delegate_task(agent_name: str, task: str) -> str:
     target_agent = None
     if agent_name == "document-agent":
         target_agent = document_agent
-    elif agent_name == "mckinsey-agent":
-        target_agent = mckinsey_agent
+    elif agent_name == "larry-team":
+        target_agent = larry_team
 
     if target_agent:
         try:
@@ -92,7 +93,7 @@ mindrian_agent = Agent(
 )
 
 # Create AgentOS instance - all agents registered, frontend talks to leader
-agent_os = AgentOS(agents=[mindrian_agent, document_agent, mckinsey_agent])
+agent_os = AgentOS(agents=[mindrian_agent, document_agent, mckinsey_agent], teams=[larry_team, diagnosis_consolidator_team])
 
 # Get FastAPI app from AgentOS
 app = agent_os.get_app()
