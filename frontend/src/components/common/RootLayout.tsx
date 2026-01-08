@@ -4,6 +4,7 @@ import { CollaborationProvider } from "../../contexts/CollaborationContext";
 import { DocumentsProvider } from "../../contexts/DocumentsContext";
 import { PresenceProvider } from "../../contexts/PresenceContext";
 import { useAuth } from "../../hooks/auth/useAuth";
+import { WorkspacesProvider } from "../../contexts/WorkspacesContext";
 import { Toaster } from "sonner";
 import { LandingPage } from "../../features/landing/LandingPage";
 import { DashboardPage } from "../../features/dashboard/DashboardPage";
@@ -41,13 +42,15 @@ export function RootLayout() {
   // Authenticated users see the new dashboard
   return (
     <PresenceProvider>
-      <DocumentsProvider>
-        <CollaborationProvider>
-          <DashboardPage user={user!} />
-          <TanStackRouterDevtools />
-          <Toaster />
-        </CollaborationProvider>
-      </DocumentsProvider>
+      <WorkspacesProvider>
+        <DocumentsProvider>
+          <CollaborationProvider>
+            <DashboardPage user={user!} />
+            <TanStackRouterDevtools />
+            <Toaster />
+          </CollaborationProvider>
+        </DocumentsProvider>
+      </WorkspacesProvider>
     </PresenceProvider>
   );
 }

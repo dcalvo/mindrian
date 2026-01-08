@@ -10,7 +10,7 @@ import {
 import { CreateWorkspaceView } from "./CreateWorkspaceView";
 import { WorkspaceDetailView } from "../workspace/WorkspaceDetailView";
 import { WorkspacesListView } from "./WorkspacesListView";
-import { WorkspacesProvider } from "../../contexts/WorkspacesContext";
+
 import { Navbar } from "../../components/common/Navbar";
 import { PreviewHomeView } from "../landing/PreviewHomeView";
 import { PreviewChatView } from "../landing/PreviewChatView";
@@ -27,11 +27,9 @@ interface DashboardPageProps {
 export function DashboardPage({ user: _user }: DashboardPageProps) {
   return (
     <DashboardNavigationProvider>
-      <WorkspacesProvider>
-        <EditorProvider>
-          <DashboardContent />
-        </EditorProvider>
-      </WorkspacesProvider>
+      <EditorProvider>
+        <DashboardContent />
+      </EditorProvider>
     </DashboardNavigationProvider>
   );
 }
