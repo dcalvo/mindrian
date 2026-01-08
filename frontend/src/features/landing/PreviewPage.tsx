@@ -2,11 +2,11 @@ import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
 
 import { ParticleBackground } from "./ParticleBackground";
-import { PreviewProvider } from "../../contexts/PreviewContext";
+// import { PreviewProvider } from "../../contexts/PreviewContext";
 import {
-  PreviewNavigationProvider,
-  usePreviewNavigationContext,
-} from "../../contexts/PreviewNavigationContext";
+  DashboardNavigationProvider,
+  useDashboardNavigationContext,
+} from "../../contexts/DashboardNavigationContext";
 import { CreateWorkspaceView } from "../dashboard/CreateWorkspaceView";
 import { WorkspaceDetailView } from "../workspace/WorkspaceDetailView";
 import { WorkspacesListView } from "../dashboard/WorkspacesListView";
@@ -25,22 +25,20 @@ import "../../components/common/common.css";
 
 export function PreviewLanding() {
   return (
-    <PreviewNavigationProvider>
-      <PreviewProvider>
-        <DocumentsProvider>
-          <CollaborationProvider>
-            <PresenceProvider>
-              <PreviewLandingContent />
-            </PresenceProvider>
-          </CollaborationProvider>
-        </DocumentsProvider>
-      </PreviewProvider>
-    </PreviewNavigationProvider>
+    <DashboardNavigationProvider>
+      <DocumentsProvider>
+        <CollaborationProvider>
+          <PresenceProvider>
+            <PreviewLandingContent />
+          </PresenceProvider>
+        </CollaborationProvider>
+      </DocumentsProvider>
+    </DashboardNavigationProvider>
   );
 }
 
 function PreviewLandingContent() {
-  const { current, push, pop, reset, canPop } = usePreviewNavigationContext();
+  const { current, push, pop, reset, canPop } = useDashboardNavigationContext();
   const currentView = current.view;
   const {
     isChatMode,

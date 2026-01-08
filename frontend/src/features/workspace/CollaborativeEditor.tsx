@@ -1,16 +1,65 @@
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
-
+import {
+  BlockNoteSchema,
+  defaultInlineContentSpecs,
+  type BlockNoteEditor,
+} from "@blocknote/core";
+import { filterSuggestionItems } from "@blocknote/core/extensions";
+import { BlockNoteView } from "@blocknote/mantine";
+import {
+  type DefaultReactSuggestionItem,
+  getDefaultReactSlashMenuItems,
+  SuggestionMenuController,
+  useCreateBlockNote,
+} from "@blocknote/react";
 import { useMemo, useEffect } from "react";
-//import { useCreateBlockNote } from "@blocknote/react";
-//import { BlockNoteView } from "@blocknote/mantine";
 import { useCollaboration } from "../../hooks/document/useCollaboration";
 import { useAuth } from "../../hooks/auth/useAuth";
 import { COLORS, getColorFromString } from "../../lib/colors";
-import { BlocknoteWithAtAgent } from "./BlocknoteWithAtAgent";
+import { Mention } from "./Mention";
+import SlashAgent from "./SlashAgent";
+
 interface CollaborativeEditorProps {
   docId: string;
 }
+
+// Schema definition
+const schema = BlockNoteSchema.create({
+  inlineContentSpecs: {
+    ...defaultInlineContentSpecs,
+    mention: Mention,
+  },
+});
+
+// Mentions menu items
+const getMentionMenuItems = (
+  editor: typeof schema.BlockNoteEditor
+): DefaultReactSuggestionItem[] => {
+  const users = ["Research Agent", "Coding Assistant", "Lawrence AI"];
+  return users.map((user) => ({
+    title: user,
+    onItemClick: () => {
+      editor.insertInlineContent([
+        {
+          type: "mention",
+          props: {
+            user,
+          },
+        },
+        " ",
+      ]);
+    },
+  }));
+};
+
+// Slash menu items
+const getCustomSlashMenuItems = (
+  editor: BlockNoteEditor
+): DefaultReactSuggestionItem[] => [
+  ...getDefaultReactSlashMenuItems(editor),
+  SlashAgent(editor),
+];
 
 export function CollaborativeEditor({ docId }: CollaborativeEditorProps) {
   const { user } = useAuth();
@@ -22,19 +71,22 @@ export function CollaborativeEditor({ docId }: CollaborativeEditorProps) {
     [user]
   );
 
-  const { /*collaboration,*/ synced, provider } = useCollaboration({
+  const { collaboration, synced, provider } = useCollaboration({
     docId,
     user: userInfo,
   });
 
-  // Set awareness local state with user info for cursor presence
+  // Set awareness local state
   useEffect(() => {
     if (provider.awareness && userInfo.name !== "Anonymous") {
       provider.awareness.setLocalStateField("user", userInfo);
     }
   }, [provider.awareness, userInfo]);
 
-  //const editor = useCreateBlockNote({ collaboration }); Line causes github deployment error
+  const editor = useCreateBlockNote({
+    schema,
+    collaboration,
+  });
 
   if (!synced) {
     return (
@@ -44,7 +96,8 @@ export function CollaborativeEditor({ docId }: CollaborativeEditorProps) {
           alignItems: "center",
           justifyContent: "center",
           height: "100%",
-          color: "#666",
+          color: "var(--preview-text-tertiary)",
+          fontSize: "14px",
         }}
       >
         Connecting...
@@ -52,5 +105,20 @@ export function CollaborativeEditor({ docId }: CollaborativeEditorProps) {
     );
   }
 
-  return <BlocknoteWithAtAgent />;
+  return (
+    <BlockNoteView editor={editor} theme="light" slashMenu={false}>
+      <SuggestionMenuController
+        triggerCharacter={"@"}
+        getItems={async (query) =>
+          filterSuggestionItems(getMentionMenuItems(editor as any), query)
+        }
+      />
+      <SuggestionMenuController
+        triggerCharacter={"/"}
+        getItems={async (query) =>
+          filterSuggestionItems(getCustomSlashMenuItems(editor as any), query)
+        }
+      />
+    </BlockNoteView>
+  );
 }

@@ -6,7 +6,7 @@ import React, {
   useCallback,
 } from "react";
 
-export type PreviewView =
+export type DashboardView =
   | "home"
   | "create-workspace"
   | "workspace-detail"
@@ -14,25 +14,25 @@ export type PreviewView =
   | "extensions-list";
 
 export interface NavigationState {
-  view: PreviewView;
+  view: DashboardView;
   workspaceId?: number | string | null;
   documentId?: string | null;
 }
 
-interface PreviewNavigationContextType {
+interface DashboardNavigationContextType {
   current: NavigationState;
   history: NavigationState[];
-  push: (view: PreviewView, params?: Partial<NavigationState>) => void;
+  push: (view: DashboardView, params?: Partial<NavigationState>) => void;
   pop: () => void;
   canPop: boolean;
   reset: () => void;
 }
 
-const PreviewNavigationContext = createContext<
-  PreviewNavigationContextType | undefined
+const DashboardNavigationContext = createContext<
+  DashboardNavigationContextType | undefined
 >(undefined);
 
-export const PreviewNavigationProvider: React.FC<{ children: ReactNode }> = ({
+export const DashboardNavigationProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
   const [history, setHistory] = useState<NavigationState[]>([{ view: "home" }]);
@@ -40,7 +40,7 @@ export const PreviewNavigationProvider: React.FC<{ children: ReactNode }> = ({
   const current = history[history.length - 1];
 
   const push = useCallback(
-    (view: PreviewView, params?: Partial<NavigationState>) => {
+    (view: DashboardView, params?: Partial<NavigationState>) => {
       setHistory((prev) => [...prev, { view, ...params }]);
     },
     []
@@ -57,7 +57,7 @@ export const PreviewNavigationProvider: React.FC<{ children: ReactNode }> = ({
   const canPop = history.length > 1;
 
   return (
-    <PreviewNavigationContext.Provider
+    <DashboardNavigationContext.Provider
       value={{
         current,
         history,
@@ -68,15 +68,15 @@ export const PreviewNavigationProvider: React.FC<{ children: ReactNode }> = ({
       }}
     >
       {children}
-    </PreviewNavigationContext.Provider>
+    </DashboardNavigationContext.Provider>
   );
 };
 
-export const usePreviewNavigationContext = () => {
-  const context = useContext(PreviewNavigationContext);
+export const useDashboardNavigationContext = () => {
+  const context = useContext(DashboardNavigationContext);
   if (context === undefined) {
     throw new Error(
-      "usePreviewNavigationContext must be used within a PreviewNavigationProvider"
+      "useDashboardNavigationContext must be used within a DashboardNavigationProvider"
     );
   }
   return context;

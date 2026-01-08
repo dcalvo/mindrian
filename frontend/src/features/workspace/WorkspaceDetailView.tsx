@@ -1,10 +1,12 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { FileText, Plus } from "lucide-react";
-import { usePreviewContext } from "../../contexts/PreviewContext";
+import { useEditorContext } from "../../contexts/EditorContext";
+import { useDocumentsContext } from "../../contexts/DocumentsContext";
 import { ChatPane } from "./ChatPane";
 import { CollaborativeEditor } from "./CollaborativeEditor";
 import { WorkspaceSidebar } from "./WorkspaceSidebar";
+import { EditorTabs } from "./EditorTabs";
 import "./workspace.css";
 
 const CONTAINER_VARIANTS = {
@@ -17,9 +19,12 @@ const CONTAINER_VARIANTS = {
 };
 
 export const WorkspaceDetailView: React.FC = () => {
-  const { activeWorkspace, activeDocument } = usePreviewContext();
+  const { activeDocumentId } = useEditorContext();
+  const { documents } = useDocumentsContext();
 
-  if (!activeWorkspace) return null;
+  const activeDocument = activeDocumentId
+    ? documents.find((d) => d.id === activeDocumentId)
+    : null;
 
   return (
     <motion.div
@@ -35,6 +40,7 @@ export const WorkspaceDetailView: React.FC = () => {
 
         {/* Middle Panel: Collaborative Editor */}
         <main className="workspace-panel workspace-editor">
+          <EditorTabs />
           {activeDocument ? (
             <div className="editor-container">
               <CollaborativeEditor docId={activeDocument.id} />

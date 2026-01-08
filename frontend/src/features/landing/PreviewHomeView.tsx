@@ -1,8 +1,8 @@
 import React from "react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { Plus, ChevronDown, ChevronRight, FileText } from "lucide-react";
-import { usePreviewContext } from "../../contexts/PreviewContext";
-import { usePreviewNavigationContext } from "../../contexts/PreviewNavigationContext";
+// import { usePreviewContext } from "../../contexts/PreviewContext";
+import { useDashboardNavigationContext } from "../../contexts/DashboardNavigationContext";
 import type { Agent } from "../../hooks/chat/usePreviewChat";
 
 interface PreviewHomeViewProps {
@@ -34,8 +34,9 @@ export const PreviewHomeView: React.FC<PreviewHomeViewProps> = ({
   sendMessage,
   agents,
 }) => {
-  const { workspaces } = usePreviewContext();
-  const { push } = usePreviewNavigationContext();
+  // const { workspaces } = usePreviewContext();
+  const workspaces: any[] = [];
+  const { push } = useDashboardNavigationContext();
 
   const containerVariants: Variants = {
     hidden: { opacity: 0 },

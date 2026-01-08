@@ -2,11 +2,11 @@ import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
 
 import { ParticleBackground } from "../landing/ParticleBackground";
-import { PreviewProvider } from "../../contexts/PreviewContext";
+import { EditorProvider } from "../../contexts/EditorContext";
 import {
-  PreviewNavigationProvider,
-  usePreviewNavigationContext,
-} from "../../contexts/PreviewNavigationContext";
+  DashboardNavigationProvider,
+  useDashboardNavigationContext,
+} from "../../contexts/DashboardNavigationContext";
 import { CreateWorkspaceView } from "./CreateWorkspaceView";
 import { WorkspaceDetailView } from "../workspace/WorkspaceDetailView";
 import { WorkspacesListView } from "./WorkspacesListView";
@@ -25,16 +25,16 @@ interface DashboardPageProps {
 
 export function DashboardPage({ user: _user }: DashboardPageProps) {
   return (
-    <PreviewNavigationProvider>
-      <PreviewProvider>
+    <DashboardNavigationProvider>
+      <EditorProvider>
         <DashboardContent />
-      </PreviewProvider>
-    </PreviewNavigationProvider>
+      </EditorProvider>
+    </DashboardNavigationProvider>
   );
 }
 
 function DashboardContent() {
-  const { current, push, pop, reset, canPop } = usePreviewNavigationContext();
+  const { current, push, pop, reset, canPop } = useDashboardNavigationContext();
   const currentView = current.view;
   const {
     isChatMode,

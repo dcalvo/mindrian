@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, PanelLeftClose } from "lucide-react";
-import { usePreviewNavigationContext } from "../../contexts/PreviewNavigationContext";
-import { usePreviewContext } from "../../contexts/PreviewContext";
+import { ArrowLeft, PanelLeftClose, Briefcase } from "lucide-react";
+import { useDashboardNavigationContext } from "../../contexts/DashboardNavigationContext";
+// import { usePreviewContext } from "../../contexts/PreviewContext";
 import { FileTree } from "./FileTree";
 import "./workspace.css";
 
@@ -11,8 +11,14 @@ const MAX_WIDTH = 480;
 const COLLAPSED_WIDTH = 60;
 
 export const WorkspaceSidebar: React.FC = () => {
-  const { activeWorkspace } = usePreviewContext();
-  const { pop } = usePreviewNavigationContext();
+  // const { activeWorkspace } = usePreviewContext();
+  const activeWorkspace = {
+    name: "Workspace",
+    icon: Briefcase,
+    bgColor: "#000000",
+    iconColor: "#ffffff",
+  }; // Placeholder
+  const { pop } = useDashboardNavigationContext();
 
   const [width, setWidth] = useState(260);
   const [isOpen, setIsOpen] = useState(true);

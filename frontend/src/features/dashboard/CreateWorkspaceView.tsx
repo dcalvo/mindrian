@@ -11,7 +11,7 @@ import {
   Zap,
   Plus,
 } from "lucide-react";
-import { usePreviewContext } from "../../contexts/PreviewContext";
+// import { usePreviewContext } from "../../contexts/PreviewContext";
 
 const AVAILABLE_ICONS = [
   { id: "briefcase", icon: Briefcase },
@@ -40,7 +40,10 @@ const ITEM_VARIANTS = {
 };
 
 export const CreateWorkspaceView: React.FC = () => {
-  const { addWorkspace } = usePreviewContext();
+  // const { addWorkspace } = usePreviewContext();
+  const addWorkspace = (workspace: any) => {
+    console.log("Adding workspace:", workspace);
+  };
   const [name, setName] = useState("");
   const [selectedIconId, setSelectedIconId] = useState("briefcase");
 

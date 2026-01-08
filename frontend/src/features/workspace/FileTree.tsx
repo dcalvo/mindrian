@@ -9,6 +9,7 @@ import type {
 } from "react-arborist";
 import { FilePlus, FolderPlus } from "lucide-react";
 import { useDocumentsContext } from "../../contexts/DocumentsContext";
+import { useEditorContext } from "../../contexts/EditorContext";
 import { FileNode } from "./FileNode";
 import { buildTree, type TreeNode } from "../../lib/tree";
 import "./FileTree.css";
@@ -18,6 +19,7 @@ interface FileTreeProps {
 }
 
 export function FileTree({ width }: FileTreeProps) {
+  const { openDocument } = useEditorContext();
   const navigate = useNavigate();
   const params = useParams({ strict: false }) as { documentId?: string };
   const currentDocumentId = params.documentId;
@@ -43,13 +45,13 @@ export function FileTree({ width }: FileTreeProps) {
   const handleActivate = useCallback(
     (node: { data: TreeNode }) => {
       if (node.data.type !== "folder") {
-        navigate({
-          to: "/document/$documentId",
-          params: { documentId: node.data.id },
-        });
+        const doc = documents.find((d) => d.id === node.data.id);
+        if (doc) {
+          openDocument(doc);
+        }
       }
     },
-    [navigate]
+    [documents, openDocument]
   );
 
   // Handle creating new items

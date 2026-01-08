@@ -1,8 +1,8 @@
 import React from "react";
 import { motion, type Variants } from "framer-motion";
 import { Plus, FileText, Clock } from "lucide-react";
-import { usePreviewContext } from "../../contexts/PreviewContext";
-import { usePreviewNavigationContext } from "../../contexts/PreviewNavigationContext";
+// import { usePreviewContext } from "../../contexts/PreviewContext";
+import { useDashboardNavigationContext } from "../../contexts/DashboardNavigationContext";
 
 interface WorkspacesListViewProps {
   itemVariants: Variants;
@@ -11,8 +11,9 @@ interface WorkspacesListViewProps {
 export const WorkspacesListView: React.FC<WorkspacesListViewProps> = ({
   itemVariants,
 }) => {
-  const { workspaces } = usePreviewContext();
-  const { push } = usePreviewNavigationContext();
+  // const { workspaces } = usePreviewContext();
+  const workspaces: any[] = [];
+  const { push } = useDashboardNavigationContext();
 
   return (
     <motion.div
@@ -126,7 +127,7 @@ export const WorkspacesListView: React.FC<WorkspacesListViewProps> = ({
 
             {workspace.collaborators && workspace.collaborators.length > 0 && (
               <div className="workspace-collaborators">
-                {workspace.collaborators.map((collab, i) => (
+                {workspace.collaborators.map((collab: any, i: number) => (
                   <div
                     key={i}
                     className="collab-avatar"
