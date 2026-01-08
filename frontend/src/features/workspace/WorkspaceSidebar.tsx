@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { ArrowLeft, PanelLeftClose } from "lucide-react";
 import { usePreviewNavigationContext } from "../../contexts/PreviewNavigationContext";
 import { usePreviewContext } from "../../contexts/PreviewContext";
 import { FileTree } from "./FileTree";
@@ -16,6 +16,7 @@ export const WorkspaceSidebar: React.FC = () => {
 
   const [width, setWidth] = useState(260);
   const [isOpen, setIsOpen] = useState(true);
+  const [isHovered, setIsHovered] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
@@ -52,22 +53,41 @@ export const WorkspaceSidebar: React.FC = () => {
     };
   }, [isResizing]);
 
+  // Handle click to expand when collapsed
+  const handleSidebarClick = (e: React.MouseEvent) => {
+    if (!isOpen) {
+      // Don't expand if clicking the back button
+      const target = e.target as HTMLElement;
+      if (!target.closest(".back-btn-area")) {
+        setIsOpen(true);
+      }
+    }
+  };
+
   if (!activeWorkspace) return null;
   const Icon = activeWorkspace.icon;
+
+  const currentWidth = isOpen ? width : isHovered ? 80 : COLLAPSED_WIDTH;
 
   return (
     <>
       <motion.aside
         ref={sidebarRef}
         className="workspace-panel workspace-sidebar"
-        animate={{ width: isOpen ? width : COLLAPSED_WIDTH }}
+        animate={{ width: currentWidth }}
+        onMouseEnter={() => !isOpen && setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
         transition={{
           type: "spring",
           stiffness: 300,
           damping: 30,
-          duration: 0.2,
         }}
-        style={{ position: "relative" }}
+        style={{
+          position: "relative",
+          cursor: !isOpen ? "pointer" : "default",
+          zIndex: !isOpen && isHovered ? 20 : 1,
+        }}
+        onClick={handleSidebarClick}
       >
         {/* Sidebar Controls */}
         <div
@@ -80,8 +100,11 @@ export const WorkspaceSidebar: React.FC = () => {
           }}
         >
           <button
-            className="icon-btn-ghost"
-            onClick={pop}
+            className="icon-btn-ghost back-btn-area"
+            onClick={(e) => {
+              e.stopPropagation();
+              pop();
+            }}
             title="Back to Dashboard"
             style={{
               padding: "6px",
@@ -110,7 +133,10 @@ export const WorkspaceSidebar: React.FC = () => {
           {isOpen && (
             <button
               className="icon-btn-ghost"
-              onClick={() => setIsOpen(false)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsOpen(false);
+              }}
               style={{
                 padding: "6px",
                 cursor: "pointer",
@@ -129,11 +155,16 @@ export const WorkspaceSidebar: React.FC = () => {
           style={{
             justifyContent: isOpen ? "flex-start" : "center",
             padding: isOpen ? "16px" : "16px 0",
+            transition: "all 0.2s ease",
           }}
         >
           <div
             className="workspace-sidebar-icon"
-            style={{ backgroundColor: activeWorkspace.bgColor }}
+            style={{
+              backgroundColor: activeWorkspace.bgColor,
+              transform: !isOpen && isHovered ? "scale(1.1)" : "scale(1)",
+              transition: "transform 0.2s ease",
+            }}
           >
             <Icon size={18} color={activeWorkspace.iconColor} />
           </div>
@@ -157,22 +188,25 @@ export const WorkspaceSidebar: React.FC = () => {
         {!isOpen && (
           <div
             style={{
+              flex: 1,
               display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
               justifyContent: "center",
-              paddingBottom: "12px",
+              paddingBottom: "40px",
+              opacity: isHovered ? 0.3 : 0,
+              transition: "opacity 0.2s ease",
             }}
           >
-            <button
-              onClick={() => setIsOpen(true)}
+            {/* Subtle indicator of interactivity */}
+            <div
               style={{
-                background: "transparent",
-                border: "none",
-                cursor: "pointer",
-                color: "var(--preview-text-tertiary)",
+                width: "2px",
+                height: "20px",
+                background: "var(--preview-text-tertiary)",
+                borderRadius: "2px",
               }}
-            >
-              <PanelLeftOpen size={16} />
-            </button>
+            />
           </div>
         )}
 

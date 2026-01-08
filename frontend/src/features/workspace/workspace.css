@@ -203,7 +203,7 @@
 .workspace-sidebar {
   width: 260px;
   flex-shrink: 0;
-  background: white;
+  background: #fafafa;
 }
 
 .sidebar-header {
