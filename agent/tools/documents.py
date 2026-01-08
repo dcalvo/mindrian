@@ -19,11 +19,16 @@ def _phoenix_request(
     payload: dict[str, Any],
     run_context: Optional[RunContext],
 ) -> dict[str, Any]:
-    """Make request to Phoenix tool endpoint with user_id."""
+    """Make request to Phoenix tool endpoint with user_id and workspace_id."""
     user_id = run_context.user_id if run_context else None
+    # workspace_id comes from Agno dependencies, originally passed via form_data
+    workspace_id = None
+    if run_context and run_context.dependencies:
+        workspace_id = run_context.dependencies.get("workspace_id")
+    
     response = httpx.post(
         f"{PHOENIX_URL}{endpoint}",
-        json={**payload, "user_id": user_id},
+        json={**payload, "user_id": user_id, "workspace_id": workspace_id},
         timeout=30.0,
     )
     response.raise_for_status()

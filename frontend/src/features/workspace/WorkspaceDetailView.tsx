@@ -131,7 +131,12 @@ export const WorkspaceDetailView: React.FC = () => {
                 className={`chat-resize-handle ${isDragging ? "dragging" : ""}`}
                 onMouseDown={handleMouseDown}
               />
-              <ChatPane onCollapse={() => setIsChatOpen(false)} />
+              <ChatPane
+                onCollapse={() => setIsChatOpen(false)}
+                workspaceId={
+                  current.workspaceId ? String(current.workspaceId) : undefined
+                }
+              />
             </>
           ) : (
             <div className="chat-collapsed-icon" title="Open Chat">

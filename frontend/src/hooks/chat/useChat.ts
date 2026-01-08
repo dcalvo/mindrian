@@ -75,14 +75,16 @@ function updateMessage(
 // Hook
 // ---------------------------------------------------------------------------
 
-export function useChat(conversationId: string) {
+export function useChat(conversationId: string, workspaceId?: string) {
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [error, setError] = useState<string | null>(null);
   const channelRef = useRef<Channel | null>(null);
 
   useEffect(() => {
     const socket = getSocket();
-    const channel = socket.channel(`chat:${conversationId}`);
+    const channel = socket.channel(`chat:${conversationId}`, {
+      workspace_id: workspaceId,
+    });
 
     channel.on("event", (event: { type: string; [key: string]: unknown }) => {
       setConversation((prev) => {

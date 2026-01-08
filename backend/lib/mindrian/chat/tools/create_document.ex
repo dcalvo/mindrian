@@ -29,8 +29,9 @@ defmodule Mindrian.Chat.Tools.CreateDocument do
   @impl true
   def execute(input, scope) do
     title = input["title"] || "Untitled"
+    workspace_id = input["workspace_id"]
 
-    case Documents.create_document(scope, %{title: title}) do
+    case Documents.create_document(scope, %{title: title, workspace_id: workspace_id}) do
       {:ok, document} ->
         {:ok, %{document_id: document.id, title: document.title}}
 

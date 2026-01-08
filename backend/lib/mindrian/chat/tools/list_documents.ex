@@ -24,8 +24,9 @@ defmodule Mindrian.Chat.Tools.ListDocuments do
   end
 
   @impl true
-  def execute(_input, scope) do
-    documents = Documents.list_documents(scope)
+  def execute(input, scope) do
+    workspace_id = input["workspace_id"]
+    documents = Documents.list_documents(scope, workspace_id)
 
     result =
       Enum.map(documents, fn doc ->

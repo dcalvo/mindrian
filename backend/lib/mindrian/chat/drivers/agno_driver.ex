@@ -44,7 +44,7 @@ defmodule Mindrian.Chat.Drivers.AgnoDriver do
         {"stream", "true"},
         {"session_id", conv.id},
         {"user_id", conv.scope.user.id},
-        {"dependencies", Jason.encode!(%{document_id: nil})}
+        {"dependencies", Jason.encode!(%{document_id: nil, workspace_id: conv.workspace_id})}
       ]
 
       {:ok, build_event_stream(url, form_data)}

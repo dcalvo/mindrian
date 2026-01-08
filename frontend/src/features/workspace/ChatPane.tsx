@@ -12,9 +12,10 @@ import "./ChatPane.css";
 
 interface ChatPaneProps {
   onCollapse?: () => void;
+  workspaceId?: string;
 }
 
-export function ChatPane({ onCollapse }: ChatPaneProps) {
+export function ChatPane({ onCollapse, workspaceId }: ChatPaneProps) {
   const [conversationId] = useState(() => crypto.randomUUID());
   const {
     conversation,
@@ -23,7 +24,7 @@ export function ChatPane({ onCollapse }: ChatPaneProps) {
     approveToolCall,
     rejectToolCall,
     cancel,
-  } = useChat(conversationId);
+  } = useChat(conversationId, workspaceId);
 
   const [input, setInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
