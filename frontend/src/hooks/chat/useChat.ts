@@ -160,7 +160,11 @@ export function useChat(conversationId: string, workspaceId?: string) {
           case "tool_call_completed":
             return updateMessage(prev, event.id as string, (msg) => {
               const tool = msg as ToolCallMessage;
-              return { ...tool, status: "completed" as const };
+              return {
+                ...tool,
+                status: "completed" as const,
+                result: event.result,
+              };
             });
 
           case "tool_call_failed":

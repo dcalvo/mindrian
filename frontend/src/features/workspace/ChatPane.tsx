@@ -8,6 +8,8 @@ import {
 } from "../../hooks/chat/useChat";
 import { ChatMessage } from "./ChatMessage";
 import { ToolApproval } from "./ToolApproval";
+import { useEditorContext } from "../../contexts/EditorContext";
+import { useDocumentsContext } from "../../contexts/DocumentsContext";
 import "./ChatPane.css";
 
 interface ChatPaneProps {
@@ -26,8 +28,12 @@ export function ChatPane({ onCollapse, workspaceId }: ChatPaneProps) {
     cancel,
   } = useChat(conversationId, workspaceId);
 
+  const { openDocument } = useEditorContext();
+  const { documents } = useDocumentsContext();
+
   const [input, setInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const openedDocsRef = useRef<Set<string>>(new Set());
 
   // Derive computed values from conversation
   const messages = useMemo(
@@ -73,6 +79,26 @@ export function ChatPane({ onCollapse, workspaceId }: ChatPaneProps) {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [pendingTool, status, cancel]);
+
+  // Auto-open documents created by the agent
+  useEffect(() => {
+    for (const msg of messages) {
+      if (msg.role !== "tool_call") continue;
+      const tool = msg as ToolCallMessage;
+      if (tool.status !== "completed") continue;
+      if (!tool.name.endsWith("create_document")) continue;
+      if (openedDocsRef.current.has(tool.id)) continue;
+
+      const result = tool.result as { document_id?: string } | undefined;
+      if (!result?.document_id) continue;
+
+      const doc = documents.find((d) => d.id === result.document_id);
+      if (doc) {
+        openedDocsRef.current.add(tool.id);
+        openDocument(doc);
+      }
+    }
+  }, [messages, documents, openDocument]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

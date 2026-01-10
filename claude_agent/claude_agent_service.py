@@ -394,11 +394,21 @@ async def process_message(message, run_id: str, session_id: str, text_started: b
                         },
                     )
                 else:
+                    # Parse the result content - extract inner result if present
+                    result = block.content
+                    if isinstance(result, list) and result:
+                        first = result[0]
+                        if isinstance(first, dict) and first.get("type") == "text":
+                            try:
+                                parsed = json.loads(first.get("text", "{}"))
+                                result = parsed.get("result", parsed)
+                            except json.JSONDecodeError:
+                                result = first.get("text", "")
                     yield format_sse_event(
                         "ToolCompleted",
                         {
                             "tool_call_id": block.tool_use_id,
-                            "result": str(block.content) if block.content else "",
+                            "result": result,
                         },
                     )
 

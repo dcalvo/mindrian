@@ -394,7 +394,7 @@ defmodule Mindrian.Chat.Conversation do
          end) do
       {:ok, messages} ->
         new_conv = %{conv | messages: messages}
-        events = [{:tool_call_completed, tool_id}]
+        events = [{:tool_call_completed, tool_id, result}]
         {:ok, new_conv, events}
 
       {:error, reason} ->
