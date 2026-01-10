@@ -32,7 +32,8 @@ defmodule Mindrian.Chat.SSEParser do
     data = buffer <> chunk
 
     # Split on double newlines (event boundaries)
-    parts = String.split(data, ~r/\n\n/)
+    # Handle both Unix (\n\n) and HTTP/Windows (\r\n\r\n) line endings
+    parts = String.split(data, ~r/\r?\n\r?\n/)
 
     case parts do
       [single] ->
@@ -68,7 +69,8 @@ defmodule Mindrian.Chat.SSEParser do
   """
   @spec parse_event(binary()) :: map() | nil
   def parse_event(event_text) do
-    lines = String.split(event_text, "\n")
+    # Handle both Unix (\n) and HTTP/Windows (\r\n) line endings
+    lines = String.split(event_text, ~r/\r?\n/)
 
     {event_name, data_lines} =
       Enum.reduce(lines, {nil, []}, fn line, {event, data} ->

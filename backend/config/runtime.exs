@@ -10,6 +10,22 @@ if agno_url = System.get_env("AGNO_URL") do
   config :mindrian, :agno_url, agno_url
 end
 
+# Claude Agent SDK microservice URL (all environments)
+if claude_agent_url = System.get_env("CLAUDE_AGENT_URL") do
+  config :mindrian, :claude_agent_url, claude_agent_url
+end
+
+# Chat driver selection (all environments)
+# CHAT_DRIVER=agno to use Agno, default is Claude Agent SDK
+case System.get_env("CHAT_DRIVER") do
+  "agno" ->
+    config :mindrian, :chat_driver, Mindrian.Chat.Drivers.AgnoDriver
+
+  _ ->
+    # Default is ClaudeAgentDriver (already set in dev.exs/prod.exs)
+    nil
+end
+
 # Agent server configuration
 # Set START_AGENT_SERVER=true to have Phoenix supervise the Python agent
 if System.get_env("START_AGENT_SERVER") in ~w(true 1) do
