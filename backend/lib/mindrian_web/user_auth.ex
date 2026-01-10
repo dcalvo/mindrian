@@ -40,6 +40,23 @@ defmodule MindrianWeb.UserAuth do
     |> redirect_after_login(user_return_to)
   end
 
+  @doc """
+  Logs the user in and returns JSON response.
+  Used by dev-only API login for CLI tools.
+  """
+  def log_in_user_api(conn, user) do
+    conn
+    |> create_or_extend_session(user, %{})
+    |> put_status(:ok)
+    |> Phoenix.Controller.json(%{
+      data: %{
+        id: user.id,
+        email: user.email,
+        message: "Logged in successfully"
+      }
+    })
+  end
+
   # In dev mode, allow redirects to localhost (for Vite dev server)
   if Application.compile_env(:mindrian, :dev_routes) do
     defp redirect_after_login(conn, "http://localhost:" <> _ = url) do

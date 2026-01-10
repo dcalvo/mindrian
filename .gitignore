@@ -23,3 +23,6 @@ __pycache__/
 dist/
 build/
 .ruff_cache/
+
+# Node.js
+node_modules/

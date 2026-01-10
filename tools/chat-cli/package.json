@@ -1,0 +1,24 @@
+{
+  "name": "mindrian-chat-cli",
+  "version": "0.1.0",
+  "description": "CLI tool for AI-friendly testing of Mindrian chat",
+  "type": "module",
+  "bin": {
+    "chat-cli": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "cli": "tsx src/cli.ts"
+  },
+  "dependencies": {
+    "commander": "^12.0.0",
+    "phoenix": "^1.8.3",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/ws": "^8.5.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}

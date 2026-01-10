@@ -1,0 +1,17 @@
+#!/bin/bash
+# Wrapper script for chat-cli tool
+# Usage: ./tools/run-chat-test session --email test@test.com --password test --workspace ws-123
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CLI_DIR="$SCRIPT_DIR/chat-cli"
+
+# Check if node_modules exists, install if not
+if [ ! -d "$CLI_DIR/node_modules" ]; then
+    echo "Installing chat-cli dependencies..." >&2
+    (cd "$CLI_DIR" && npm install) >&2
+fi
+
+# Run the CLI
+exec npm --prefix "$CLI_DIR" run cli -- "$@"

@@ -73,6 +73,13 @@ defmodule MindrianWeb.Router do
       live_dashboard "/dashboard", metrics: MindrianWeb.Telemetry
       forward "/mailbox", Plug.Swoosh.MailboxPreview
     end
+
+    # Dev-only API login for CLI tools (no CSRF required)
+    scope "/dev/api", MindrianWeb.API do
+      pipe_through :api
+
+      post "/login", DevLoginController, :create
+    end
   end
 
   ## Authentication routes
