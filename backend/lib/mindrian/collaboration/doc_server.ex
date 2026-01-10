@@ -327,7 +327,11 @@ defmodule Mindrian.Collaboration.DocServer do
   end
 
   defp apply_operation(fragment, %{"type" => "update_block", "block_id" => block_id} = op) do
-    content = op["content"] || ""
+    # Support both patterns:
+    # 1. Direct: {"type": "update_block", "block_id": "...", "content": "new text"}
+    # 2. Nested (like append_block): {"type": "update_block", "block_id": "...", "block": {"content": "new text"}}
+    block = op["block"] || %{}
+    content = op["content"] || block["content"] || ""
 
     case get_root_block_group(fragment) do
       {:ok, block_group} ->
