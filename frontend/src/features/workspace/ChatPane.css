@@ -265,6 +265,20 @@
   font-size: 0.9rem;
 }
 
+.tool-prompt-args {
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+
+.tool-prompt-arg {
+  color: var(--preview-text-secondary);
+  padding: 2px 0;
+  font-family: "SF Mono", "Monaco", ui-monospace, monospace;
+}
+
 .tool-prompt-question {
   color: var(--preview-text-secondary);
   margin-bottom: 12px;

@@ -1,6 +1,18 @@
 import { useState } from "react";
 import type { ToolCallMessage } from "../../hooks/chat/useChat";
 
+function formatToolName(name: string): string {
+  // Extract tool name from MCP format: "mcp__server__tool_name" -> "tool_name"
+  const parts = name.split("__");
+  const toolName = parts.length > 1 ? parts[parts.length - 1] : name;
+
+  // Convert snake_case to Title Case
+  return toolName
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
+}
+
 interface ToolCallDisplayProps {
   tool: ToolCallMessage;
 }
@@ -35,7 +47,7 @@ export function ToolCallDisplay({ tool }: ToolCallDisplayProps) {
         <span className={`tool-call-status-icon ${config.className}`}>
           {config.icon}
         </span>
-        <span className="tool-call-name">{tool.name}</span>
+        <span className="tool-call-name">{formatToolName(tool.name)}</span>
         <span className="tool-call-status-label">{config.label}</span>
       </div>
 

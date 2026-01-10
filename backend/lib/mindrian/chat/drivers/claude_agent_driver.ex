@@ -25,6 +25,15 @@ defmodule Mindrian.Chat.Drivers.ClaudeAgentDriver do
   # Driver Callbacks
   # ---------------------------------------------------------------------------
 
+  # Formats "mcp__mindrian__list_documents" -> "List Documents"
+  defp format_tool_name(name) do
+    name
+    |> String.split("__")
+    |> List.last()
+    |> String.split("_")
+    |> Enum.map_join(" ", &String.capitalize/1)
+  end
+
   @impl true
   def run(%Conversation{} = conv) do
     url = "#{claude_agent_url()}/agents/#{@agent_id}/runs"
@@ -263,7 +272,7 @@ defmodule Mindrian.Chat.Drivers.ClaudeAgentDriver do
           id: tool["tool_call_id"],
           name: tool["tool_name"],
           args: tool["tool_args"] || %{},
-          description: "Execute #{tool["tool_name"]}"
+          description: format_tool_name(tool["tool_name"])
         }
       end)
 
