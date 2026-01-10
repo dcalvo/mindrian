@@ -8,6 +8,7 @@ import React, {
 } from "react";
 import type { Document } from "../lib/api";
 import { useWorkspacesContext } from "./WorkspacesContext";
+import { useDocumentsContext } from "./DocumentsContext";
 
 export interface EditorContextType {
   openDocuments: Document[];
@@ -25,12 +26,34 @@ export const EditorProvider: React.FC<{ children: ReactNode }> = ({
   const [openDocuments, setOpenDocuments] = useState<Document[]>([]);
   const [activeDocumentId, setActiveDocumentId] = useState<string | null>(null);
   const { currentWorkspaceId } = useWorkspacesContext();
+  const { documents } = useDocumentsContext();
 
   // Reset editor state when workspace changes
   useEffect(() => {
     setOpenDocuments([]);
     setActiveDocumentId(null);
   }, [currentWorkspaceId]);
+
+  // Close tabs for deleted documents
+  useEffect(() => {
+    const documentIds = new Set(documents.map((d) => d.id));
+    setOpenDocuments((prev) => {
+      if (prev.length === 0) return prev;
+
+      const filtered = prev.filter((d) => documentIds.has(d.id));
+      if (filtered.length === prev.length) return prev;
+
+      // If active document was closed, switch to another
+      setActiveDocumentId((currentActive) => {
+        if (currentActive && !documentIds.has(currentActive)) {
+          return filtered.length > 0 ? filtered[filtered.length - 1].id : null;
+        }
+        return currentActive;
+      });
+
+      return filtered;
+    });
+  }, [documents]);
 
   const openDocument = useCallback((doc: Document) => {
     setOpenDocuments((prev) => {
