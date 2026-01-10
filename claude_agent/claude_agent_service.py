@@ -33,6 +33,7 @@ from claude_agent_sdk import (  # noqa: E402
     SystemMessage,
     ToolResultBlock,
     ToolUseBlock,
+    UserMessage,
     create_sdk_mcp_server,
 )
 from claude_agent_sdk.types import StreamEvent  # noqa: E402
@@ -377,6 +378,27 @@ async def process_message(message, run_id: str, session_id: str, text_started: b
                         {
                             "tool_call_id": block.tool_use_id,
                             "result": block.content,
+                        },
+                    )
+
+    # UserMessage with ToolResultBlock - tool execution completed
+    elif isinstance(message, UserMessage):
+        for block in message.content:
+            if isinstance(block, ToolResultBlock):
+                if block.is_error:
+                    yield format_sse_event(
+                        "ToolFailed",
+                        {
+                            "tool_call_id": block.tool_use_id,
+                            "error": str(block.content),
+                        },
+                    )
+                else:
+                    yield format_sse_event(
+                        "ToolCompleted",
+                        {
+                            "tool_call_id": block.tool_use_id,
+                            "result": str(block.content) if block.content else "",
                         },
                     )
 
