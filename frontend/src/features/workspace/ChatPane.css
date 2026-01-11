@@ -500,11 +500,10 @@
 }
 
 .tool-call-expand-icon {
-  font-size: 0.85rem;
   color: #94a3b8;
   margin-left: 4px;
-  display: inline-block;
-  transform: scale(2);
+  display: inline-flex;
+  align-items: center;
 }
 
 .tool-call-status-icon {
@@ -611,27 +610,31 @@
 .tool-call-toggle {
   display: flex;
   align-items: center;
+  width: 100%;
   gap: 6px;
   background: none;
   border: none;
-  padding: 4px 0;
+  padding: 4px 8px;
+  margin: 0 -8px;
+  border-radius: 6px;
   font-size: 0.75rem;
   color: #64748b;
   cursor: pointer;
   font-family: inherit;
   font-weight: 500;
-  transition: color 0.15s ease;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
 }
 
 .tool-call-toggle:hover {
   color: #475569;
+  background-color: rgba(0, 0, 0, 0.04);
 }
 
 .tool-call-toggle-icon {
-  font-size: 0.625rem;
-  width: 0.75rem;
-  display: inline-block;
-  transform: scale(2);
+  display: inline-flex;
+  align-items: center;
 }
 
 .tool-call-json {

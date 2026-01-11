@@ -8,16 +8,32 @@ import {
   Globe,
   ShieldCheck,
 } from "lucide-react";
-// import { usePreviewContext } from "../../contexts/PreviewContext";
+
+const DEFAULT_ITEM_VARIANTS: Variants = {
+  hidden: { opacity: 0, y: 30 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      type: "spring" as const,
+      stiffness: 100,
+      damping: 15,
+    },
+  },
+  exit: {
+    opacity: 0,
+    y: -20,
+    transition: { duration: 0.2 },
+  },
+};
 
 interface ExtensionsViewProps {
-  itemVariants: Variants;
+  itemVariants?: Variants;
 }
 
 export const ExtensionsView: React.FC<ExtensionsViewProps> = ({
-  itemVariants,
+  itemVariants = DEFAULT_ITEM_VARIANTS,
 }) => {
-  // const { extensions } = usePreviewContext();
   const extensions: any[] = [
     {
       id: "dummy",
@@ -33,7 +49,6 @@ export const ExtensionsView: React.FC<ExtensionsViewProps> = ({
     },
   ];
   const [searchQuery, setSearchQuery] = useState("");
-  // const [selectedId, setSelectedId] = useState<string>(extensions[0].id);
   const [selectedId, setSelectedId] = useState<string>(extensions[0]?.id || "");
 
   const filteredExtensions = extensions.filter(

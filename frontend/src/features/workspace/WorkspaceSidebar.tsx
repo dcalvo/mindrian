@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, PanelLeftClose } from "lucide-react";
-import { useDashboardNavigationContext } from "../../contexts/DashboardNavigationContext";
+import { useNavigate, useParams } from "@tanstack/react-router";
 import { useWorkspacesContext } from "../../contexts/WorkspacesContext";
 import { FileTree } from "./FileTree";
 import {
@@ -21,9 +21,11 @@ const MAX_WIDTH = 480;
 const COLLAPSED_WIDTH = 60;
 
 export const WorkspaceSidebar: React.FC = () => {
-  const { current } = useDashboardNavigationContext();
+  const { workspaceId } = useParams({ strict: false }) as {
+    workspaceId?: string;
+  };
   const { workspaces, currentWorkspaceId } = useWorkspacesContext();
-  const { pop } = useDashboardNavigationContext();
+  const navigate = useNavigate();
 
   const getIcon = (iconId: string) => {
     switch (iconId) {
@@ -48,9 +50,9 @@ export const WorkspaceSidebar: React.FC = () => {
     }
   };
 
-  const workspaceId = currentWorkspaceId || current.workspaceId;
-  const activeWorkspace = workspaceId
-    ? workspaces.find((w) => w.id === workspaceId)
+  const activeWorkspaceId = currentWorkspaceId || workspaceId;
+  const activeWorkspace = activeWorkspaceId
+    ? workspaces.find((w) => String(w.id) === activeWorkspaceId)
     : null;
 
   const workspaceData = activeWorkspace
@@ -156,7 +158,7 @@ export const WorkspaceSidebar: React.FC = () => {
             className="icon-btn-ghost back-btn-area"
             onClick={(e) => {
               e.stopPropagation();
-              pop();
+              navigate({ to: "/" });
             }}
             title="Back to Dashboard"
             style={{

@@ -9,104 +9,228 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from "./routes/__root"
-import { Route as PreviewRouteImport } from "./routes/preview"
-import { Route as LandingRouteImport } from "./routes/landing"
-import { Route as IndexRouteImport } from "./routes/index"
-import { Route as DocumentDocumentIdRouteImport } from "./routes/document.$documentId"
+import { Route as AuthRouteImport } from "./routes/_auth"
+import { Route as AuthIndexRouteImport } from "./routes/_auth.index"
+import { Route as AuthWorkspacesRouteImport } from "./routes/_auth.workspaces"
+import { Route as AuthExtensionsRouteImport } from "./routes/_auth.extensions"
+import { Route as AuthWorkspacesNewRouteImport } from "./routes/_auth.workspaces.new"
+import { Route as AuthWorkspaceWorkspaceIdRouteImport } from "./routes/_auth.workspace.$workspaceId"
+import { Route as AuthWorkspaceWorkspaceIdIndexRouteImport } from "./routes/_auth.workspace.$workspaceId.index"
+import { Route as AuthWorkspaceWorkspaceIdDocDocIdRouteImport } from "./routes/_auth.workspace.$workspaceId.doc.$docId"
 
-const PreviewRoute = PreviewRouteImport.update({
-  id: "/preview",
-  path: "/preview",
+const AuthRoute = AuthRouteImport.update({
+  id: "/_auth",
   getParentRoute: () => rootRouteImport,
 } as any)
-const LandingRoute = LandingRouteImport.update({
-  id: "/landing",
-  path: "/landing",
-  getParentRoute: () => rootRouteImport,
-} as any)
-const IndexRoute = IndexRouteImport.update({
+const AuthIndexRoute = AuthIndexRouteImport.update({
   id: "/",
   path: "/",
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthRoute,
 } as any)
-const DocumentDocumentIdRoute = DocumentDocumentIdRouteImport.update({
-  id: "/document/$documentId",
-  path: "/document/$documentId",
-  getParentRoute: () => rootRouteImport,
+const AuthWorkspacesRoute = AuthWorkspacesRouteImport.update({
+  id: "/workspaces",
+  path: "/workspaces",
+  getParentRoute: () => AuthRoute,
 } as any)
+const AuthExtensionsRoute = AuthExtensionsRouteImport.update({
+  id: "/extensions",
+  path: "/extensions",
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthWorkspacesNewRoute = AuthWorkspacesNewRouteImport.update({
+  id: "/new",
+  path: "/new",
+  getParentRoute: () => AuthWorkspacesRoute,
+} as any)
+const AuthWorkspaceWorkspaceIdRoute =
+  AuthWorkspaceWorkspaceIdRouteImport.update({
+    id: "/workspace/$workspaceId",
+    path: "/workspace/$workspaceId",
+    getParentRoute: () => AuthRoute,
+  } as any)
+const AuthWorkspaceWorkspaceIdIndexRoute =
+  AuthWorkspaceWorkspaceIdIndexRouteImport.update({
+    id: "/",
+    path: "/",
+    getParentRoute: () => AuthWorkspaceWorkspaceIdRoute,
+  } as any)
+const AuthWorkspaceWorkspaceIdDocDocIdRoute =
+  AuthWorkspaceWorkspaceIdDocDocIdRouteImport.update({
+    id: "/doc/$docId",
+    path: "/doc/$docId",
+    getParentRoute: () => AuthWorkspaceWorkspaceIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
-  "/": typeof IndexRoute
-  "/landing": typeof LandingRoute
-  "/preview": typeof PreviewRoute
-  "/document/$documentId": typeof DocumentDocumentIdRoute
+  "/extensions": typeof AuthExtensionsRoute
+  "/workspaces": typeof AuthWorkspacesRouteWithChildren
+  "/": typeof AuthIndexRoute
+  "/workspace/$workspaceId": typeof AuthWorkspaceWorkspaceIdRouteWithChildren
+  "/workspaces/new": typeof AuthWorkspacesNewRoute
+  "/workspace/$workspaceId/": typeof AuthWorkspaceWorkspaceIdIndexRoute
+  "/workspace/$workspaceId/doc/$docId": typeof AuthWorkspaceWorkspaceIdDocDocIdRoute
 }
 export interface FileRoutesByTo {
-  "/": typeof IndexRoute
-  "/landing": typeof LandingRoute
-  "/preview": typeof PreviewRoute
-  "/document/$documentId": typeof DocumentDocumentIdRoute
+  "/extensions": typeof AuthExtensionsRoute
+  "/workspaces": typeof AuthWorkspacesRouteWithChildren
+  "/": typeof AuthIndexRoute
+  "/workspaces/new": typeof AuthWorkspacesNewRoute
+  "/workspace/$workspaceId": typeof AuthWorkspaceWorkspaceIdIndexRoute
+  "/workspace/$workspaceId/doc/$docId": typeof AuthWorkspaceWorkspaceIdDocDocIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  "/": typeof IndexRoute
-  "/landing": typeof LandingRoute
-  "/preview": typeof PreviewRoute
-  "/document/$documentId": typeof DocumentDocumentIdRoute
+  "/_auth": typeof AuthRouteWithChildren
+  "/_auth/extensions": typeof AuthExtensionsRoute
+  "/_auth/workspaces": typeof AuthWorkspacesRouteWithChildren
+  "/_auth/": typeof AuthIndexRoute
+  "/_auth/workspace/$workspaceId": typeof AuthWorkspaceWorkspaceIdRouteWithChildren
+  "/_auth/workspaces/new": typeof AuthWorkspacesNewRoute
+  "/_auth/workspace/$workspaceId/": typeof AuthWorkspaceWorkspaceIdIndexRoute
+  "/_auth/workspace/$workspaceId/doc/$docId": typeof AuthWorkspaceWorkspaceIdDocDocIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: "/" | "/landing" | "/preview" | "/document/$documentId"
+  fullPaths:
+    | "/extensions"
+    | "/workspaces"
+    | "/"
+    | "/workspace/$workspaceId"
+    | "/workspaces/new"
+    | "/workspace/$workspaceId/"
+    | "/workspace/$workspaceId/doc/$docId"
   fileRoutesByTo: FileRoutesByTo
-  to: "/" | "/landing" | "/preview" | "/document/$documentId"
-  id: "__root__" | "/" | "/landing" | "/preview" | "/document/$documentId"
+  to:
+    | "/extensions"
+    | "/workspaces"
+    | "/"
+    | "/workspaces/new"
+    | "/workspace/$workspaceId"
+    | "/workspace/$workspaceId/doc/$docId"
+  id:
+    | "__root__"
+    | "/_auth"
+    | "/_auth/extensions"
+    | "/_auth/workspaces"
+    | "/_auth/"
+    | "/_auth/workspace/$workspaceId"
+    | "/_auth/workspaces/new"
+    | "/_auth/workspace/$workspaceId/"
+    | "/_auth/workspace/$workspaceId/doc/$docId"
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  LandingRoute: typeof LandingRoute
-  PreviewRoute: typeof PreviewRoute
-  DocumentDocumentIdRoute: typeof DocumentDocumentIdRoute
+  AuthRoute: typeof AuthRouteWithChildren
 }
 
 declare module "@tanstack/react-router" {
   interface FileRoutesByPath {
-    "/preview": {
-      id: "/preview"
-      path: "/preview"
-      fullPath: "/preview"
-      preLoaderRoute: typeof PreviewRouteImport
+    "/_auth": {
+      id: "/_auth"
+      path: ""
+      fullPath: ""
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    "/landing": {
-      id: "/landing"
-      path: "/landing"
-      fullPath: "/landing"
-      preLoaderRoute: typeof LandingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    "/": {
-      id: "/"
+    "/_auth/": {
+      id: "/_auth/"
       path: "/"
       fullPath: "/"
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthIndexRouteImport
+      parentRoute: typeof AuthRoute
     }
-    "/document/$documentId": {
-      id: "/document/$documentId"
-      path: "/document/$documentId"
-      fullPath: "/document/$documentId"
-      preLoaderRoute: typeof DocumentDocumentIdRouteImport
-      parentRoute: typeof rootRouteImport
+    "/_auth/workspaces": {
+      id: "/_auth/workspaces"
+      path: "/workspaces"
+      fullPath: "/workspaces"
+      preLoaderRoute: typeof AuthWorkspacesRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    "/_auth/extensions": {
+      id: "/_auth/extensions"
+      path: "/extensions"
+      fullPath: "/extensions"
+      preLoaderRoute: typeof AuthExtensionsRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    "/_auth/workspaces/new": {
+      id: "/_auth/workspaces/new"
+      path: "/new"
+      fullPath: "/workspaces/new"
+      preLoaderRoute: typeof AuthWorkspacesNewRouteImport
+      parentRoute: typeof AuthWorkspacesRoute
+    }
+    "/_auth/workspace/$workspaceId": {
+      id: "/_auth/workspace/$workspaceId"
+      path: "/workspace/$workspaceId"
+      fullPath: "/workspace/$workspaceId"
+      preLoaderRoute: typeof AuthWorkspaceWorkspaceIdRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    "/_auth/workspace/$workspaceId/": {
+      id: "/_auth/workspace/$workspaceId/"
+      path: "/"
+      fullPath: "/workspace/$workspaceId/"
+      preLoaderRoute: typeof AuthWorkspaceWorkspaceIdIndexRouteImport
+      parentRoute: typeof AuthWorkspaceWorkspaceIdRoute
+    }
+    "/_auth/workspace/$workspaceId/doc/$docId": {
+      id: "/_auth/workspace/$workspaceId/doc/$docId"
+      path: "/doc/$docId"
+      fullPath: "/workspace/$workspaceId/doc/$docId"
+      preLoaderRoute: typeof AuthWorkspaceWorkspaceIdDocDocIdRouteImport
+      parentRoute: typeof AuthWorkspaceWorkspaceIdRoute
     }
   }
 }
 
+interface AuthWorkspacesRouteChildren {
+  AuthWorkspacesNewRoute: typeof AuthWorkspacesNewRoute
+}
+
+const AuthWorkspacesRouteChildren: AuthWorkspacesRouteChildren = {
+  AuthWorkspacesNewRoute: AuthWorkspacesNewRoute,
+}
+
+const AuthWorkspacesRouteWithChildren = AuthWorkspacesRoute._addFileChildren(
+  AuthWorkspacesRouteChildren,
+)
+
+interface AuthWorkspaceWorkspaceIdRouteChildren {
+  AuthWorkspaceWorkspaceIdIndexRoute: typeof AuthWorkspaceWorkspaceIdIndexRoute
+  AuthWorkspaceWorkspaceIdDocDocIdRoute: typeof AuthWorkspaceWorkspaceIdDocDocIdRoute
+}
+
+const AuthWorkspaceWorkspaceIdRouteChildren: AuthWorkspaceWorkspaceIdRouteChildren =
+  {
+    AuthWorkspaceWorkspaceIdIndexRoute: AuthWorkspaceWorkspaceIdIndexRoute,
+    AuthWorkspaceWorkspaceIdDocDocIdRoute:
+      AuthWorkspaceWorkspaceIdDocDocIdRoute,
+  }
+
+const AuthWorkspaceWorkspaceIdRouteWithChildren =
+  AuthWorkspaceWorkspaceIdRoute._addFileChildren(
+    AuthWorkspaceWorkspaceIdRouteChildren,
+  )
+
+interface AuthRouteChildren {
+  AuthExtensionsRoute: typeof AuthExtensionsRoute
+  AuthWorkspacesRoute: typeof AuthWorkspacesRouteWithChildren
+  AuthIndexRoute: typeof AuthIndexRoute
+  AuthWorkspaceWorkspaceIdRoute: typeof AuthWorkspaceWorkspaceIdRouteWithChildren
+}
+
+const AuthRouteChildren: AuthRouteChildren = {
+  AuthExtensionsRoute: AuthExtensionsRoute,
+  AuthWorkspacesRoute: AuthWorkspacesRouteWithChildren,
+  AuthIndexRoute: AuthIndexRoute,
+  AuthWorkspaceWorkspaceIdRoute: AuthWorkspaceWorkspaceIdRouteWithChildren,
+}
+
+const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  LandingRoute: LandingRoute,
-  PreviewRoute: PreviewRoute,
-  DocumentDocumentIdRoute: DocumentDocumentIdRoute,
+  AuthRoute: AuthRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

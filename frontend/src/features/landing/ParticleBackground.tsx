@@ -1,5 +1,5 @@
 import { useEffect, useRef, useMemo } from "react";
-import { useDashboardNavigationContext } from "../../contexts/DashboardNavigationContext";
+import { useLocation } from "@tanstack/react-router";
 
 interface Particle {
   x: number;
@@ -14,8 +14,11 @@ interface Particle {
 export const ParticleBackground = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const { current } = useDashboardNavigationContext();
-  const currentView = current.view;
+  const location = useLocation();
+  const pathname = location.pathname;
+
+  // Determine if visible based on pathname
+  const isWorkspaceDetail = pathname.startsWith("/workspace/");
 
   // Settings
   const particleCount = 1024;
@@ -33,6 +36,9 @@ export const ParticleBackground = () => {
     () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
     []
   );
+
+  // Check if we should be visible and animating
+  const isVisible = !isWorkspaceDetail && !prefersReducedMotion;
 
   // Initialize particles
   useEffect(() => {
@@ -56,12 +62,6 @@ export const ParticleBackground = () => {
     }
     particles.current = newParticles;
   }, []);
-
-  // Check if we should be visible and animating
-  const isVisible = currentView !== "workspace-detail" && !prefersReducedMotion;
-
-  // If the user prefers reduced motion, we don't render at all.
-  if (prefersReducedMotion) return null;
 
   // Animation Loop
   useEffect(() => {
@@ -157,6 +157,9 @@ export const ParticleBackground = () => {
       window.removeEventListener("mousemove", handleMouseMove);
     };
   }, [isVisible]);
+
+  // If the user prefers reduced motion, we don't render at all.
+  if (prefersReducedMotion) return null;
 
   return (
     <div

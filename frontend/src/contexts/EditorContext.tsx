@@ -14,7 +14,7 @@ import { useDocumentsContext } from "./DocumentsContext";
 export interface EditorContextType {
   openDocuments: Document[];
   activeDocumentId: string | null;
-  openDocument: (doc: Document) => void;
+  openDocument: (doc: Document, shouldNavigate?: boolean) => void;
   closeDocument: (docId: string) => void;
   setActiveDocument: (docId: string) => void;
 }
@@ -58,7 +58,7 @@ export const EditorProvider: React.FC<{ children: ReactNode }> = ({
   }, [documents]);
 
   const openDocument = useCallback(
-    (doc: Document) => {
+    (doc: Document, shouldNavigate = true) => {
       setOpenDocuments((prev) => {
         // Add if not already open
         if (!prev.find((d) => d.id === doc.id)) {
@@ -67,12 +67,14 @@ export const EditorProvider: React.FC<{ children: ReactNode }> = ({
         return prev;
       });
       setActiveDocumentId(doc.id);
-      navigate({
-        to: "/document/$documentId",
-        params: { documentId: doc.id },
-      });
+      if (shouldNavigate && currentWorkspaceId) {
+        navigate({
+          to: "/workspace/$workspaceId/doc/$docId",
+          params: { workspaceId: currentWorkspaceId, docId: doc.id },
+        });
+      }
     },
-    [navigate]
+    [navigate, currentWorkspaceId]
   );
 
   const closeDocument = useCallback((docId: string) => {

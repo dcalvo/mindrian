@@ -1,15 +1,16 @@
+import { createFileRoute, Outlet, useParams } from "@tanstack/react-router";
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
-import { FileText, MessageSquare } from "lucide-react";
-import { useParams } from "@tanstack/react-router";
-import { useEditorContext } from "../../contexts/EditorContext";
-import { useDocumentsContext } from "../../contexts/DocumentsContext";
-import { useWorkspacesContext } from "../../contexts/WorkspacesContext";
-import { ChatPane } from "./ChatPane";
-import { CollaborativeEditor } from "./CollaborativeEditor";
-import { WorkspaceSidebar } from "./WorkspaceSidebar";
-import { EditorTabs } from "./EditorTabs";
-import "./workspace.css";
+import { MessageSquare } from "lucide-react";
+import { useWorkspacesContext } from "../contexts/WorkspacesContext";
+import { ChatPane } from "../features/workspace/ChatPane";
+import { WorkspaceSidebar } from "../features/workspace/WorkspaceSidebar";
+import { EditorTabs } from "../features/workspace/EditorTabs";
+import "../features/workspace/workspace.css";
+
+export const Route = createFileRoute("/_auth/workspace/$workspaceId")({
+  component: WorkspaceLayout,
+});
 
 const CONTAINER_VARIANTS = {
   hidden: { opacity: 0 },
@@ -24,12 +25,10 @@ const MIN_CHAT_WIDTH = 280;
 const MAX_CHAT_WIDTH = 600;
 const DEFAULT_CHAT_WIDTH = 360;
 
-export const WorkspaceDetailView: React.FC = () => {
-  const { activeDocumentId } = useEditorContext();
-  const { documents } = useDocumentsContext();
-  const { workspaceId } = useParams({ strict: false }) as {
-    workspaceId?: string;
-  };
+function WorkspaceLayout() {
+  const { workspaceId } = useParams({
+    from: "/_auth/workspace/$workspaceId",
+  });
   const { setCurrentWorkspaceId } = useWorkspacesContext();
 
   // Chat panel resize state
@@ -79,14 +78,9 @@ export const WorkspaceDetailView: React.FC = () => {
       setCurrentWorkspaceId(workspaceId);
     }
     return () => {
-      // Clear workspace when leaving this view
       setCurrentWorkspaceId(null);
     };
   }, [workspaceId, setCurrentWorkspaceId]);
-
-  const activeDocument = activeDocumentId
-    ? documents.find((d) => d.id === activeDocumentId)
-    : null;
 
   return (
     <motion.div
@@ -100,25 +94,12 @@ export const WorkspaceDetailView: React.FC = () => {
         {/* Left Panel: Workspace Identity + File System */}
         <WorkspaceSidebar />
 
-        {/* Middle Panel: Collaborative Editor */}
+        {/* Middle Panel: Editor with Tabs */}
         <main className="workspace-panel workspace-editor">
           <EditorTabs />
-          {activeDocument ? (
-            <div className="editor-container">
-              <CollaborativeEditor
-                key={activeDocument.id}
-                docId={activeDocument.id}
-              />
-            </div>
-          ) : (
-            <div className="editor-empty-state">
-              <div className="empty-icon">
-                <FileText size={48} strokeWidth={1} />
-              </div>
-              <h3>Select a document</h3>
-              <p>Pick a document from the sidebar to start working</p>
-            </div>
-          )}
+          <div className="editor-container">
+            <Outlet />
+          </div>
         </main>
 
         {/* Right Panel: Contextual Chat */}
@@ -149,4 +130,4 @@ export const WorkspaceDetailView: React.FC = () => {
       </div>
     </motion.div>
   );
-};
+}

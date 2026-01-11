@@ -13,18 +13,36 @@ import {
   Globe,
   Zap,
 } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
 import { useWorkspacesContext } from "../../contexts/WorkspacesContext";
-import { useDashboardNavigationContext } from "../../contexts/DashboardNavigationContext";
+
+const DEFAULT_ITEM_VARIANTS: Variants = {
+  hidden: { opacity: 0, y: 30 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      type: "spring" as const,
+      stiffness: 100,
+      damping: 15,
+    },
+  },
+  exit: {
+    opacity: 0,
+    y: -20,
+    transition: { duration: 0.2 },
+  },
+};
 
 interface WorkspacesListViewProps {
-  itemVariants: Variants;
+  itemVariants?: Variants;
 }
 
 export const WorkspacesListView: React.FC<WorkspacesListViewProps> = ({
-  itemVariants,
+  itemVariants = DEFAULT_ITEM_VARIANTS,
 }) => {
   const { workspaces, loading } = useWorkspacesContext();
-  const { push } = useDashboardNavigationContext();
+  const navigate = useNavigate();
 
   const getIcon = (iconId: string) => {
     switch (iconId) {
@@ -103,7 +121,7 @@ export const WorkspacesListView: React.FC<WorkspacesListViewProps> = ({
         <motion.button
           variants={itemVariants}
           className="create-workspace-btn-small"
-          onClick={() => push("create-workspace")}
+          onClick={() => navigate({ to: "/workspaces/new" })}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           style={{
@@ -158,7 +176,10 @@ export const WorkspacesListView: React.FC<WorkspacesListViewProps> = ({
               className="workspace-card"
               variants={itemVariants}
               onClick={() =>
-                push("workspace-detail", { workspaceId: workspace.id })
+                navigate({
+                  to: "/workspace/$workspaceId",
+                  params: { workspaceId: String(workspace.id) },
+                })
               }
               whileHover={{ y: -5, boxShadow: "0 12px 30px rgba(0,0,0,0.08)" }}
             >

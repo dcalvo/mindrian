@@ -104,7 +104,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   const handleLogoClick = () => {
     if (isAuthenticated) {
-      navigate({ to: "/landing" });
+      navigate({ to: "/" });
     }
   };
 

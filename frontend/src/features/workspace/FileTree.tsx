@@ -21,8 +21,12 @@ interface FileTreeProps {
 export function FileTree({ width }: FileTreeProps) {
   const { openDocument } = useEditorContext();
   const navigate = useNavigate();
-  const params = useParams({ strict: false }) as { documentId?: string };
-  const currentDocumentId = params.documentId;
+  const params = useParams({ strict: false }) as {
+    workspaceId?: string;
+    docId?: string;
+  };
+  const { workspaceId } = params;
+  const currentDocumentId = params.docId;
   const {
     folders,
     documents,
@@ -60,10 +64,12 @@ export function FileTree({ width }: FileTreeProps) {
       try {
         if (type === "leaf") {
           const doc = await addDocument("Untitled", parentId);
-          navigate({
-            to: "/document/$documentId",
-            params: { documentId: doc.id },
-          });
+          if (workspaceId) {
+            navigate({
+              to: "/workspace/$workspaceId/doc/$docId",
+              params: { workspaceId, docId: doc.id },
+            });
+          }
           return {
             id: doc.id,
             name: doc.title,
@@ -85,7 +91,7 @@ export function FileTree({ width }: FileTreeProps) {
         return null;
       }
     },
-    [addDocument, addFolder, navigate]
+    [addDocument, addFolder, navigate, workspaceId]
   );
 
   // Handle renaming
@@ -157,7 +163,13 @@ export function FileTree({ width }: FileTreeProps) {
             }
 
             if (ids.some((id) => ancestry.has(id))) {
-              navigate({ to: "/" });
+              // Navigate back to workspace index
+              if (workspaceId) {
+                navigate({
+                  to: "/workspace/$workspaceId",
+                  params: { workspaceId },
+                });
+              }
             }
           }
         }
@@ -169,21 +181,23 @@ export function FileTree({ width }: FileTreeProps) {
         console.error("Failed to delete:", err);
       }
     },
-    [removeItem, currentDocumentId, documents, folders, navigate]
+    [removeItem, currentDocumentId, documents, folders, navigate, workspaceId]
   );
 
   // Create new document at root
   const handleCreateDocument = useCallback(async () => {
     try {
       const doc = await addDocument("Untitled", null);
-      navigate({
-        to: "/document/$documentId",
-        params: { documentId: doc.id },
-      });
+      if (workspaceId) {
+        navigate({
+          to: "/workspace/$workspaceId/doc/$docId",
+          params: { workspaceId, docId: doc.id },
+        });
+      }
     } catch (err) {
       console.error("Failed to create document:", err);
     }
-  }, [addDocument, navigate]);
+  }, [addDocument, navigate, workspaceId]);
 
   // Create new folder at root
   const handleCreateFolder = useCallback(async () => {
@@ -281,10 +295,12 @@ export function FileTree({ width }: FileTreeProps) {
                 onCreateFile={async (parentId: string) => {
                   try {
                     const doc = await addDocument("Untitled", parentId);
-                    navigate({
-                      to: "/document/$documentId",
-                      params: { documentId: doc.id },
-                    });
+                    if (workspaceId) {
+                      navigate({
+                        to: "/workspace/$workspaceId/doc/$docId",
+                        params: { workspaceId, docId: doc.id },
+                      });
+                    }
                   } catch (e) {
                     console.error(e);
                   }

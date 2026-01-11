@@ -11,8 +11,8 @@ import {
   Zap,
   Plus,
 } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
 import { useWorkspacesContext } from "../../contexts/WorkspacesContext";
-import { useDashboardNavigationContext } from "../../contexts/DashboardNavigationContext";
 
 const AVAILABLE_ICONS = [
   { id: "briefcase", icon: Briefcase },
@@ -42,7 +42,7 @@ const ITEM_VARIANTS = {
 
 export const CreateWorkspaceView: React.FC = () => {
   const { createWorkspace } = useWorkspacesContext();
-  const { push } = useDashboardNavigationContext();
+  const navigate = useNavigate();
 
   const [name, setName] = useState("");
   const [selectedIconId, setSelectedIconId] = useState("briefcase");
@@ -58,8 +58,8 @@ export const CreateWorkspaceView: React.FC = () => {
       setIsSubmitting(true);
       await createWorkspace(name, selectedIconId, "#000000", "#ffffff");
 
-      // Navigate to the dashboard (workspaces list) or the new workspace detail
-      push("workspaces-list");
+      // Navigate to the workspaces list
+      navigate({ to: "/workspaces" });
     } catch (error) {
       console.error("Failed to create workspace", error);
     } finally {

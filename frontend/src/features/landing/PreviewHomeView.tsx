@@ -1,9 +1,9 @@
 import React from "react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { Plus, ChevronDown, ChevronRight, FileText } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
 import { useWorkspacesContext } from "../../contexts/WorkspacesContext";
-import { useDashboardNavigationContext } from "../../contexts/DashboardNavigationContext";
-import type { Agent } from "../../hooks/chat/usePreviewChat";
+import { usePreviewChat, type Agent } from "../../hooks/chat/usePreviewChat";
 import {
   Briefcase,
   TrendingUp,
@@ -15,37 +15,59 @@ import {
   Zap,
 } from "lucide-react";
 
+const DEFAULT_ITEM_VARIANTS: Variants = {
+  hidden: { opacity: 0, y: 30 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      type: "spring" as const,
+      stiffness: 100,
+      damping: 15,
+    },
+  },
+  exit: {
+    opacity: 0,
+    y: -20,
+    transition: { duration: 0.2 },
+  },
+};
+
 interface PreviewHomeViewProps {
-  itemVariants: Variants;
-  isChatMode: boolean;
-  isDropdownOpen: boolean;
-  setIsDropdownOpen: (open: boolean) => void;
-  selectedAgent: Agent;
-  setSelectedAgent: (agent: Agent) => void;
-  chatInput: string;
-  setChatInput: (input: string) => void;
-  enterChatMode: () => void;
-  handleBlur: (e: React.FocusEvent) => void;
-  sendMessage: () => void;
-  agents: Agent[];
+  itemVariants?: Variants;
+  isChatMode?: boolean;
+  isDropdownOpen?: boolean;
+  setIsDropdownOpen?: (open: boolean) => void;
+  selectedAgent?: Agent;
+  setSelectedAgent?: (agent: Agent) => void;
+  chatInput?: string;
+  setChatInput?: (input: string) => void;
+  enterChatMode?: () => void;
+  handleBlur?: (e: React.FocusEvent) => void;
+  sendMessage?: () => void;
+  agents?: Agent[];
 }
 
-export const PreviewHomeView: React.FC<PreviewHomeViewProps> = ({
-  itemVariants,
-  isChatMode,
-  isDropdownOpen,
-  setIsDropdownOpen,
-  selectedAgent,
-  setSelectedAgent,
-  chatInput,
-  setChatInput,
-  enterChatMode,
-  handleBlur,
-  sendMessage,
-  agents,
-}) => {
+export const PreviewHomeView: React.FC<PreviewHomeViewProps> = (props) => {
   const { workspaces } = useWorkspacesContext();
-  const { push } = useDashboardNavigationContext();
+  const navigate = useNavigate();
+
+  // Use chat hook if props not provided
+  const chatHook = usePreviewChat();
+
+  const itemVariants = props.itemVariants ?? DEFAULT_ITEM_VARIANTS;
+  const isChatMode = props.isChatMode ?? chatHook.isChatMode;
+  const isDropdownOpen = props.isDropdownOpen ?? chatHook.isDropdownOpen;
+  const setIsDropdownOpen =
+    props.setIsDropdownOpen ?? chatHook.setIsDropdownOpen;
+  const selectedAgent = props.selectedAgent ?? chatHook.selectedAgent;
+  const setSelectedAgent = props.setSelectedAgent ?? chatHook.setSelectedAgent;
+  const chatInput = props.chatInput ?? chatHook.chatInput;
+  const setChatInput = props.setChatInput ?? chatHook.setChatInput;
+  const enterChatMode = props.enterChatMode ?? chatHook.enterChatMode;
+  const handleBlur = props.handleBlur ?? chatHook.handleBlur;
+  const sendMessage = props.sendMessage ?? chatHook.sendMessage;
+  const agents = props.agents ?? chatHook.agents;
 
   const getIcon = (iconId: string) => {
     switch (iconId) {
@@ -233,7 +255,7 @@ export const PreviewHomeView: React.FC<PreviewHomeViewProps> = ({
           </h2>
           <motion.button
             className="see-all-btn"
-            onClick={() => push("workspaces-list")}
+            onClick={() => navigate({ to: "/workspaces" })}
             whileHover={{ x: 3 }}
             style={{
               display: "flex",
@@ -254,7 +276,7 @@ export const PreviewHomeView: React.FC<PreviewHomeViewProps> = ({
         <div className="workspaces-grid">
           <motion.div
             className="workspace-card create-card"
-            onClick={() => push("create-workspace")}
+            onClick={() => navigate({ to: "/workspaces/new" })}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{
@@ -277,7 +299,10 @@ export const PreviewHomeView: React.FC<PreviewHomeViewProps> = ({
                 key={workspace.id}
                 className="workspace-card"
                 onClick={() =>
-                  push("workspace-detail", { workspaceId: workspace.id })
+                  navigate({
+                    to: "/workspace/$workspaceId",
+                    params: { workspaceId: String(workspace.id) },
+                  })
                 }
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}

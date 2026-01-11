@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ChevronRight, ChevronDown } from "lucide-react";
 import type { ToolCallMessage } from "../../hooks/chat/useChat";
 
 // Friendly labels for subagent types
@@ -82,7 +83,9 @@ export function ToolCallDisplay({ tool }: ToolCallDisplayProps) {
         </span>
         <span className="tool-call-status-label">{config.label}</span>
         {isTerminal && hasContent && (
-          <span className="tool-call-expand-icon">{collapsed ? "▸" : "▾"}</span>
+          <span className="tool-call-expand-icon">
+            {collapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+          </span>
         )}
       </div>
 
@@ -95,7 +98,11 @@ export function ToolCallDisplay({ tool }: ToolCallDisplayProps) {
                 onClick={() => setArgsExpanded(!argsExpanded)}
               >
                 <span className="tool-call-toggle-icon">
-                  {argsExpanded ? "▾" : "▸"}
+                  {argsExpanded ? (
+                    <ChevronDown size={12} />
+                  ) : (
+                    <ChevronRight size={12} />
+                  )}
                 </span>
                 Arguments
               </button>
@@ -114,7 +121,11 @@ export function ToolCallDisplay({ tool }: ToolCallDisplayProps) {
                 onClick={() => setResultExpanded(!resultExpanded)}
               >
                 <span className="tool-call-toggle-icon">
-                  {resultExpanded ? "▾" : "▸"}
+                  {resultExpanded ? (
+                    <ChevronDown size={12} />
+                  ) : (
+                    <ChevronRight size={12} />
+                  )}
                 </span>
                 Result
               </button>
