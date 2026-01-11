@@ -31,5 +31,5 @@ export const Mention = createReactInlineContentSpec(
   },
   {
     render: (props) => <MentionNode inlineContent={props.inlineContent} />,
-  },
+  }
 );

@@ -17,7 +17,8 @@ defmodule MindrianWeb.API.AgentToolsController do
     CreateDocument,
     ReadDocument,
     EditDocument,
-    DeleteDocument
+    DeleteDocument,
+    OpenDocument
   }
 
   plug :load_user_from_body
@@ -111,6 +112,20 @@ defmodule MindrianWeb.API.AgentToolsController do
     params = Map.put(params, "workspace_id", conn.assigns.workspace_id)
 
     case DeleteDocument.execute(params, conn.assigns.current_scope) do
+      {:ok, result} ->
+        json(conn, %{success: true, result: result})
+
+      {:error, reason} ->
+        conn
+        |> put_status(:unprocessable_entity)
+        |> json(%{success: false, error: reason})
+    end
+  end
+
+  def open_document(conn, params) do
+    params = Map.put(params, "workspace_id", conn.assigns.workspace_id)
+
+    case OpenDocument.execute(params, conn.assigns.current_scope) do
       {:ok, result} ->
         json(conn, %{success: true, result: result})
 

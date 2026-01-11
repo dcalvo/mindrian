@@ -7,10 +7,7 @@ const SUBAGENT_LABELS: Record<string, string> = {
   larry: "Thinking with Larry...",
 };
 
-function formatToolName(
-  name: string,
-  args?: Record<string, unknown>,
-): string {
+function formatToolName(name: string, args?: Record<string, unknown>): string {
   // For Task tool, use friendly subagent label if available
   if (name === "Task" && args?.subagent_type) {
     const subagentType = String(args.subagent_type);
@@ -62,7 +59,9 @@ export function ToolCallDisplay({ tool }: ToolCallDisplayProps) {
         <span className={`tool-call-status-icon ${config.className}`}>
           {config.icon}
         </span>
-        <span className="tool-call-name">{formatToolName(tool.name, tool.arguments)}</span>
+        <span className="tool-call-name">
+          {formatToolName(tool.name, tool.arguments)}
+        </span>
         <span className="tool-call-status-label">{config.label}</span>
       </div>
 

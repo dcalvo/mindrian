@@ -1,7 +1,5 @@
 import { BlockNoteEditor } from "@blocknote/core";
-import {
-  filterSuggestionItems,
-} from "@blocknote/core/extensions";
+import { filterSuggestionItems } from "@blocknote/core/extensions";
 import "@blocknote/core/fonts/inter.css";
 import { BlockNoteView } from "@blocknote/mantine";
 import "@blocknote/mantine/style.css";
@@ -14,14 +12,13 @@ import SlashAgent from "./SlashAgent";
 
 // List containing all default Slash Menu Items, as well as our custom one.
 const getCustomSlashMenuItems = (
-  editor: BlockNoteEditor,
+  editor: BlockNoteEditor
 ): DefaultReactSuggestionItem[] => [
   ...getDefaultReactSlashMenuItems(editor),
   SlashAgent(editor),
 ];
 
-export default function BlocknoteWithSlash( editor: BlockNoteEditor) {
-
+export default function BlocknoteWithSlash(editor: BlockNoteEditor) {
   // Renders the editor instance.
   return (
     <BlockNoteView editor={editor} slashMenu={false}>

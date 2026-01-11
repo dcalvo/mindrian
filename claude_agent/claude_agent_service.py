@@ -49,6 +49,7 @@ from mcp_tools.documents import (  # noqa: E402
     edit_document,
     get_workspace_summary,
     list_documents,
+    open_document,
     read_document,
     search_documents,
     set_session_context,
@@ -92,6 +93,8 @@ search through documents and return a comprehensive summary. Use this when:
 - A simple search isn't enough to answer the question
 
 When working with documents:
+- Always use open_document before modifying an existing document so the user can see the changes
+- Newly created documents are automatically opened, no need to call open_document after
 - Use read_document to understand what's already in a document before making changes
 - Use edit_document with appropriate operations to make changes
 - Be precise with block operations - you can insert, update, delete, or append blocks
@@ -155,6 +158,7 @@ mindrian_mcp = create_sdk_mcp_server(
         get_workspace_summary,
         create_document,
         read_document,
+        open_document,
         edit_document,
         delete_document,
     ],
@@ -341,6 +345,7 @@ def get_client_options(sdk_session_id: str | None = None) -> ClaudeAgentOptions:
             "mcp__mindrian__get_workspace_summary",
             "mcp__mindrian__create_document",
             "mcp__mindrian__read_document",
+            "mcp__mindrian__open_document",
             "mcp__mindrian__edit_document",
             "mcp__mindrian__delete_document",
             # Built-in web tools

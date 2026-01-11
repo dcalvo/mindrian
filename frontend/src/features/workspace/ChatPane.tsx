@@ -76,13 +76,16 @@ export function ChatPane({ onCollapse, workspaceId }: ChatPaneProps) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [pendingTool, status, cancel]);
 
-  // Auto-open documents created by the agent
+  // Auto-open documents created or opened by the agent
   useEffect(() => {
     for (const msg of messages) {
       if (msg.role !== "tool_call") continue;
       const tool = msg as ToolCallMessage;
       if (tool.status !== "completed") continue;
-      if (!tool.name.endsWith("create_document")) continue;
+      const isOpenTool =
+        tool.name.endsWith("create_document") ||
+        tool.name.endsWith("open_document");
+      if (!isOpenTool) continue;
       if (openedDocsRef.current.has(tool.id)) continue;
 
       const result = tool.result as { document_id?: string } | undefined;

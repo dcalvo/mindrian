@@ -58,6 +58,7 @@ defmodule MindrianWeb.Router do
     post "/read_document", AgentToolsController, :read_document
     post "/edit_document", AgentToolsController, :edit_document
     post "/delete_document", AgentToolsController, :delete_document
+    post "/open_document", AgentToolsController, :open_document
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development

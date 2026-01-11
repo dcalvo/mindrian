@@ -132,7 +132,7 @@ async def get_workspace_summary(args: dict[str, Any]) -> dict[str, Any]:
 
 @tool(
     "create_document",
-    "Create a new document in the user's workspace. User confirmation is built-in, so call this directly without asking first.",
+    "Create a new document. Confirmation is built-in, so call directly without asking.",
     {"title": str},
 )
 async def create_document(args: dict[str, Any]) -> dict[str, Any]:
@@ -188,7 +188,7 @@ async def read_document(args: dict[str, Any]) -> dict[str, Any]:
 
 @tool(
     "edit_document",
-    "Edit a document by applying block-level operations. User confirmation is built-in, so call this directly without asking first.",
+    "Edit a document with block operations. Confirmation is built-in, call directly.",
     {
         "type": "object",
         "properties": {
@@ -267,8 +267,37 @@ async def edit_document(args: dict[str, Any]) -> dict[str, Any]:
 
 
 @tool(
+    "open_document",
+    "Open a document in the user's editor. Use this to show the user a relevant document.",
+    {"document_id": str},
+)
+async def open_document(args: dict[str, Any]) -> dict[str, Any]:
+    """Open a document in the user's editor.
+
+    This signals the frontend to open and display the specified document.
+    Use this when you want to show the user a document that's relevant to the conversation.
+
+    Args:
+        document_id: The ID of the document to open
+
+    Returns:
+        Confirmation with document_id and title
+    """
+    try:
+        result = await _phoenix_request(
+            "/api/agent/tools/open_document",
+            {"document_id": args["document_id"]},
+        )
+        return _format_success(result)
+    except httpx.HTTPStatusError as e:
+        return _format_error(f"Failed to open document: {e.response.text}")
+    except Exception as e:
+        return _format_error(f"Error: {e}")
+
+
+@tool(
     "delete_document",
-    "Delete a document from the user's workspace. User confirmation is built-in, so call this directly without asking first.",
+    "Delete a document. Confirmation is built-in, so call directly without asking.",
     {"document_id": str},
 )
 async def delete_document(args: dict[str, Any]) -> dict[str, Any]:

@@ -1,7 +1,4 @@
-import {
-  BlockNoteSchema,
-  defaultInlineContentSpecs,
-} from "@blocknote/core";
+import { BlockNoteSchema, defaultInlineContentSpecs } from "@blocknote/core";
 import { filterSuggestionItems } from "@blocknote/core/extensions";
 import "@blocknote/core/fonts/inter.css";
 import { BlockNoteView } from "@blocknote/mantine";
@@ -24,7 +21,7 @@ const schema = BlockNoteSchema.create({
 });
 // Function which gets all users for the mentions menu.
 const getMentionMenuItems = (
-  editor: typeof schema.BlockNoteEditor,
+  editor: typeof schema.BlockNoteEditor
 ): DefaultReactSuggestionItem[] => {
   const users = ["Research Agent", "Coding Assistant", "Lawrence AI"];
   return users.map((user) => ({

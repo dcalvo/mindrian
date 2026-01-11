@@ -12,7 +12,9 @@ const SlashAgent = (editor: BlockNoteEditor) => ({
     agentFunction();
     insertOrUpdateBlockForSlashMenu(editor, {
       type: "paragraph",
-      content: [{ type: "text", text: "Enter Prompt ...", styles: { bold: true } }],
+      content: [
+        { type: "text", text: "Enter Prompt ...", styles: { bold: true } },
+      ],
     });
   },
   aliases: ["agent", "ai"],
@@ -20,6 +22,5 @@ const SlashAgent = (editor: BlockNoteEditor) => ({
   icon: <HiOutlineGlobeAlt size={18} />,
   subtext: "Used to interact with AI Agent",
 });
-
 
 export default SlashAgent;
