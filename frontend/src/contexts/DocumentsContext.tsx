@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import {
   useState,
   useEffect,
@@ -23,7 +24,7 @@ import {
 import { getSocket } from "../lib/socket";
 import { toast } from "sonner";
 import { createContext, useContext } from "react";
-import { useWorkspacesContext } from "./WorkspacesContext";
+import { WorkspacesContext } from "./WorkspacesContext";
 
 export interface DocumentsContextValue {
   folders: Folder[];
@@ -66,13 +67,8 @@ export function useDocumentsContext() {
 
 // Helper hook to safely get workspace ID (handles case where WorkspacesProvider might not be available)
 function useWorkspaceIdSafe(): string | null {
-  try {
-    const { currentWorkspaceId } = useWorkspacesContext();
-    return currentWorkspaceId;
-  } catch {
-    // WorkspacesContext not available (e.g., DocumentsProvider is outside WorkspacesProvider)
-    return null;
-  }
+  const workspacesContext = useContext(WorkspacesContext);
+  return workspacesContext?.currentWorkspaceId ?? null;
 }
 
 export function DocumentsProvider({ children }: { children: ReactNode }) {

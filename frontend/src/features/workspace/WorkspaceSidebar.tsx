@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, PanelLeftClose } from "lucide-react";
 import { useNavigate, useParams } from "@tanstack/react-router";
@@ -80,19 +80,19 @@ export const WorkspaceSidebar: React.FC = () => {
     setIsResizing(true);
   };
 
-  const stopResizing = () => {
+  const stopResizing = useCallback(() => {
     setIsResizing(false);
-  };
+  }, []);
 
-  const resize = (e: MouseEvent) => {
-    if (isResizing && sidebarRef.current) {
+  const resize = useCallback((e: MouseEvent) => {
+    if (sidebarRef.current) {
       const newWidth =
         e.clientX - sidebarRef.current.getBoundingClientRect().left;
       if (newWidth >= MIN_WIDTH && newWidth <= MAX_WIDTH) {
         setWidth(newWidth);
       }
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (isResizing) {
@@ -106,7 +106,7 @@ export const WorkspaceSidebar: React.FC = () => {
       window.removeEventListener("mousemove", resize);
       window.removeEventListener("mouseup", stopResizing);
     };
-  }, [isResizing]);
+  }, [isResizing, resize, stopResizing]);
 
   // Handle click to expand when collapsed
   const handleSidebarClick = (e: React.MouseEvent) => {

@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, {
   createContext,
   useContext,
@@ -29,9 +30,9 @@ interface WorkspacesContextType {
   deleteWorkspace: (id: string) => Promise<void>;
 }
 
-const WorkspacesContext = createContext<WorkspacesContextType | undefined>(
-  undefined
-);
+export const WorkspacesContext = createContext<
+  WorkspacesContextType | undefined
+>(undefined);
 
 export const WorkspacesProvider: React.FC<{ children: ReactNode }> = ({
   children,

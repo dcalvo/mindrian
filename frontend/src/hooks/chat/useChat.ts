@@ -214,7 +214,7 @@ export function useChat(conversationId: string, workspaceId?: string) {
       channel.leave();
       channelRef.current = null;
     };
-  }, [conversationId]);
+  }, [conversationId, workspaceId]);
 
   const sendMessage = useCallback(
     (content: string) => {

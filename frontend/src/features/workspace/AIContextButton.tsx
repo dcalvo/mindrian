@@ -1,4 +1,6 @@
 // Keeping in here as a reference for now. Delete later.
+// BlockNote's useSelectedBlocks returns Block<any, any, any>[] - the library uses `any` in its types
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import "@blocknote/mantine/style.css";
 import { useComponentsContext, useSelectedBlocks } from "@blocknote/react";
 import type { Block } from "@blocknote/core";

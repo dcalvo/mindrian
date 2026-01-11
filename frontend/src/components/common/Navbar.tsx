@@ -6,6 +6,7 @@ import {
   Blocks,
   LogOut,
   ChevronDown,
+  type LucideIcon,
 } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useAuth } from "../../hooks/auth/useAuth";
@@ -16,7 +17,7 @@ const NavItem = ({
   label,
   onClick,
 }: {
-  icon: any;
+  icon: LucideIcon;
   label: string;
   onClick?: () => void;
 }) => {

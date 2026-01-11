@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { useRef, type ReactNode } from "react";
 import * as Y from "yjs";
 import { PhoenixChannelProvider } from "y-phoenix-channel";

@@ -5,6 +5,7 @@ import {
   useChat,
   type AgentMessage,
   type ToolCallMessage,
+  type Message,
 } from "../../hooks/chat/useChat";
 import { ChatMessage } from "./ChatMessage";
 import { ToolApproval } from "./ToolApproval";
@@ -44,20 +45,18 @@ export function ChatPane({ onCollapse, workspaceId }: ChatPaneProps) {
 
   // Find streaming message (agent message with status "streaming")
   const streamingMessage = messages.find(
-    (m: any): m is AgentMessage =>
-      m.role === "agent" && m.status === "streaming"
+    (m): m is AgentMessage => m.role === "agent" && m.status === "streaming"
   );
 
   // Find pending tool (tool_call with status "pending_approval")
   const pendingTool = messages.find(
-    (m: any): m is ToolCallMessage =>
+    (m): m is ToolCallMessage =>
       m.role === "tool_call" && m.status === "pending_approval"
   );
 
   // Filter out streaming messages from the main list (pending tools are shown)
   const displayMessages = messages.filter(
-    (m: any) =>
-      !(m.role === "agent" && (m as AgentMessage).status === "streaming")
+    (m) => !(m.role === "agent" && (m as AgentMessage).status === "streaming")
   );
 
   // Auto-scroll to bottom when new messages arrive or streaming updates
@@ -150,7 +149,7 @@ export function ChatPane({ onCollapse, workspaceId }: ChatPaneProps) {
           </div>
         )}
 
-        {displayMessages.map((message: any) => (
+        {displayMessages.map((message: Message) => (
           <ChatMessage key={message.id} message={message} />
         ))}
 

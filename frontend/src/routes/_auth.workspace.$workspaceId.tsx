@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createFileRoute, Outlet, useParams } from "@tanstack/react-router";
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { motion } from "framer-motion";

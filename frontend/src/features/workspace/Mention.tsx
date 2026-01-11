@@ -1,9 +1,18 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createReactInlineContentSpec } from "@blocknote/react";
 import { useEffect, useRef } from "react";
 
 const loggedMentions = new WeakSet<object>();
 
-function MentionNode({ inlineContent }: { inlineContent: any }) {
+interface MentionInlineContent {
+  props: { user: string };
+}
+
+function MentionNode({
+  inlineContent,
+}: {
+  inlineContent: MentionInlineContent;
+}) {
   const loggedRef = useRef(false);
   const user = inlineContent.props.user as string;
 

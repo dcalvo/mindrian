@@ -37,6 +37,8 @@ export const LandingParticleBackground = () => {
 
   // Initialize particles
   useEffect(() => {
+    if (prefersReducedMotion) return;
+
     const newParticles: Particle[] = [];
     const size = window.innerHeight * 0.35;
 
@@ -56,13 +58,11 @@ export const LandingParticleBackground = () => {
       });
     }
     particles.current = newParticles;
-  }, []);
-
-  // If the user prefers reduced motion, we don't render at all.
-  if (prefersReducedMotion) return null;
+  }, [prefersReducedMotion]);
 
   // Animation Loop
   useEffect(() => {
+    if (prefersReducedMotion) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -150,7 +150,10 @@ export const LandingParticleBackground = () => {
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("mousemove", handleMouseMove);
     };
-  }, []);
+  }, [prefersReducedMotion]);
+
+  // If the user prefers reduced motion, we don't render at all.
+  if (prefersReducedMotion) return null;
 
   return (
     <div

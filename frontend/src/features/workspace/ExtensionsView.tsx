@@ -27,6 +27,19 @@ const DEFAULT_ITEM_VARIANTS: Variants = {
   },
 };
 
+interface Extension {
+  id: string;
+  name: string;
+  description: string;
+  color: string;
+  icon: React.ComponentType<{ size?: number }>;
+  isInstalled: boolean;
+  author: string;
+  downloads: number;
+  rating: number;
+  fullDescription: string;
+}
+
 interface ExtensionsViewProps {
   itemVariants?: Variants;
 }
@@ -34,7 +47,7 @@ interface ExtensionsViewProps {
 export const ExtensionsView: React.FC<ExtensionsViewProps> = ({
   itemVariants = DEFAULT_ITEM_VARIANTS,
 }) => {
-  const extensions: any[] = [
+  const extensions: Extension[] = [
     {
       id: "dummy",
       name: "Extension Store",

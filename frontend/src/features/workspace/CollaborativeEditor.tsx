@@ -110,12 +110,14 @@ export function CollaborativeEditor({ docId }: CollaborativeEditorProps) {
       <SuggestionMenuController
         triggerCharacter={"@"}
         getItems={async (query) =>
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           filterSuggestionItems(getMentionMenuItems(editor as any), query)
         }
       />
       <SuggestionMenuController
         triggerCharacter={"/"}
         getItems={async (query) =>
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           filterSuggestionItems(getCustomSlashMenuItems(editor as any), query)
         }
       />
