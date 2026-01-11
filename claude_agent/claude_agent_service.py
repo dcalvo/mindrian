@@ -26,6 +26,7 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 from claude_agent_sdk import (  # noqa: E402
+    AgentDefinition,
     AssistantMessage,
     ClaudeAgentOptions,
     ClaudeSDKClient,
@@ -70,6 +71,13 @@ You can help users:
 - Read and understand document content
 - Edit documents by adding, updating, or removing content blocks
 - Delete documents when no longer needed
+
+For complex research questions about the user's workspace, use the Task tool with \
+subagent_type="explore" to spawn an exploration agent. This agent will thoroughly \
+search through documents and return a comprehensive summary. Use this when:
+- The user asks "what do I have about X?" or similar exploratory questions
+- You need to find connections across multiple documents
+- A simple search isn't enough to answer the question
 
 When working with documents:
 - Use read_document to understand what's already in a document before making changes
@@ -144,6 +152,29 @@ def emit_pause_event(
 # Set the callback for MCP tools to emit pause events
 set_emit_pause_callback(emit_pause_event)
 
+# Define subagents
+EXPLORE_AGENT = AgentDefinition(
+    description="Explore the workspace to find and analyze documents relevant to a question",
+    prompt="""You are a workspace exploration agent for Mindrian. Your job is to thoroughly \
+explore the user's workspace to find information relevant to their question.
+
+Your approach:
+1. First get an overview of the workspace using get_workspace_summary
+2. Search for documents by title using search_documents with relevant keywords
+3. Read promising documents using read_document to understand their content
+4. Synthesize what you find into a clear, comprehensive answer
+
+Be thorough - check multiple documents if needed. Return a summary of what you found, \
+including which documents contained relevant information.""",
+    tools=[
+        "mcp__mindrian__list_documents",
+        "mcp__mindrian__search_documents",
+        "mcp__mindrian__get_workspace_summary",
+        "mcp__mindrian__read_document",
+    ],
+    model="haiku",  # Use faster model for exploration
+)
+
 
 def get_client_options(sdk_session_id: str | None = None) -> ClaudeAgentOptions:
     """Create ClaudeAgentOptions for a new client.
@@ -166,7 +197,10 @@ def get_client_options(sdk_session_id: str | None = None) -> ClaudeAgentOptions:
             # Built-in web tools
             "WebSearch",
             "WebFetch",
+            # Task tool for spawning subagents
+            "Task",
         ],
+        agents={"explore": EXPLORE_AGENT},
         include_partial_messages=True,  # For streaming chunks
         resume=sdk_session_id,  # Resume previous conversation if provided
     )
