@@ -87,6 +87,31 @@ defmodule Mindrian.Documents do
     }
   end
 
+  @doc """
+  Searches documents by title using case-insensitive ILIKE matching.
+  Optionally filters by workspace_id.
+  Returns matching documents with their IDs, titles, and timestamps.
+  """
+  def search_documents(%Scope{user: user}, query, workspace_id \\ nil) do
+    search_term = "%#{query}%"
+
+    base_query =
+      from(d in Document,
+        where: d.user_id == ^user.id,
+        where: ilike(d.title, ^search_term),
+        order_by: [desc: d.updated_at]
+      )
+
+    base_query =
+      if workspace_id do
+        from(d in base_query, where: d.workspace_id == ^workspace_id)
+      else
+        from(d in base_query, where: not is_nil(d.workspace_id))
+      end
+
+    Repo.all(base_query)
+  end
+
   # =============================================================================
   # GET OPERATIONS
   # =============================================================================
@@ -363,14 +388,20 @@ defmodule Mindrian.Documents do
   defp next_folder_position(user_id, parent_folder_id, workspace_id) do
     query =
       if is_nil(parent_folder_id) do
-        base_query = from(f in Folder, where: f.user_id == ^user_id and is_nil(f.parent_folder_id))
+        base_query =
+          from(f in Folder, where: f.user_id == ^user_id and is_nil(f.parent_folder_id))
+
         if workspace_id do
           from(f in base_query, where: f.workspace_id == ^workspace_id, select: max(f.position))
         else
           from(f in base_query, select: max(f.position))
         end
       else
-        base_query = from(f in Folder, where: f.user_id == ^user_id and f.parent_folder_id == ^parent_folder_id)
+        base_query =
+          from(f in Folder,
+            where: f.user_id == ^user_id and f.parent_folder_id == ^parent_folder_id
+          )
+
         if workspace_id do
           from(f in base_query, where: f.workspace_id == ^workspace_id, select: max(f.position))
         else
@@ -390,13 +421,16 @@ defmodule Mindrian.Documents do
     query =
       if is_nil(folder_id) do
         base_query = from(d in Document, where: d.user_id == ^user_id and is_nil(d.folder_id))
+
         if workspace_id do
           from(d in base_query, where: d.workspace_id == ^workspace_id, select: max(d.position))
         else
           from(d in base_query, select: max(d.position))
         end
       else
-        base_query = from(d in Document, where: d.user_id == ^user_id and d.folder_id == ^folder_id)
+        base_query =
+          from(d in Document, where: d.user_id == ^user_id and d.folder_id == ^folder_id)
+
         if workspace_id do
           from(d in base_query, where: d.workspace_id == ^workspace_id, select: max(d.position))
         else
@@ -412,11 +446,13 @@ defmodule Mindrian.Documents do
     end
   end
 
-  defp validate_folder_not_circular(%Folder{id: id}, parent_folder_id) when id == parent_folder_id do
+  defp validate_folder_not_circular(%Folder{id: id}, parent_folder_id)
+       when id == parent_folder_id do
     {:error, :circular_reference}
   end
 
-  defp validate_folder_not_circular(%Folder{id: id}, parent_folder_id) when not is_nil(parent_folder_id) do
+  defp validate_folder_not_circular(%Folder{id: id}, parent_folder_id)
+       when not is_nil(parent_folder_id) do
     if is_folder_descendant?(parent_folder_id, id) do
       {:error, :circular_reference}
     else

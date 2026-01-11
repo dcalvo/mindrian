@@ -195,7 +195,9 @@ defmodule MindrianWeb.API.DocumentController do
     case Documents.get_document(scope, id) do
       %Document{} = document ->
         case Documents.delete_document(document) do
-          {:ok, _} -> send_resp(conn, :no_content, "")
+          {:ok, _} ->
+            send_resp(conn, :no_content, "")
+
           {:error, _} ->
             conn
             |> put_status(:internal_server_error)
@@ -206,7 +208,9 @@ defmodule MindrianWeb.API.DocumentController do
         case Documents.get_folder(scope, id) do
           %Folder{} = folder ->
             case Documents.delete_folder(folder) do
-              {:ok, _} -> send_resp(conn, :no_content, "")
+              {:ok, _} ->
+                send_resp(conn, :no_content, "")
+
               {:error, _} ->
                 conn
                 |> put_status(:internal_server_error)

@@ -264,7 +264,10 @@ defmodule Mindrian.Chat.Drivers.ClaudeAgentDriver do
 
   defp translate_event(%{"event" => "RunPaused", "run_id" => run_id, "tools" => tools}) do
     tool_names = Enum.map(tools, & &1["tool_name"]) |> Enum.join(", ")
-    Logger.info("ClaudeAgentDriver: run paused for approval run_id=#{run_id} tools=[#{tool_names}]")
+
+    Logger.info(
+      "ClaudeAgentDriver: run paused for approval run_id=#{run_id} tools=[#{tool_names}]"
+    )
 
     tool_infos =
       Enum.map(tools, fn tool ->

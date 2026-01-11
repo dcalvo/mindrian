@@ -36,7 +36,10 @@ defmodule MindrianWeb.UserSessionController do
       {:error, :not_found} ->
         conn
         |> put_flash(:error, "The link is invalid or it has expired.")
-        |> render(:new, form: Phoenix.Component.to_form(%{}, as: "user"), back_url: get_session(conn, :user_return_to) || "/")
+        |> render(:new,
+          form: Phoenix.Component.to_form(%{}, as: "user"),
+          back_url: get_session(conn, :user_return_to) || "/"
+        )
     end
   end
 

@@ -15,7 +15,8 @@ defmodule MindrianWeb.API.AgentToolsController do
     CreateDocument,
     ReadDocument,
     EditDocument,
-    DeleteDocument
+    DeleteDocument,
+    SearchDocuments
   }
 
   plug :load_user_from_body
@@ -40,6 +41,12 @@ defmodule MindrianWeb.API.AgentToolsController do
   def list_documents(conn, params) do
     params = Map.put(params, "workspace_id", conn.assigns.workspace_id)
     {:ok, result} = ListDocuments.execute(params, conn.assigns.current_scope)
+    json(conn, %{success: true, result: result})
+  end
+
+  def search_documents(conn, params) do
+    params = Map.put(params, "workspace_id", conn.assigns.workspace_id)
+    {:ok, result} = SearchDocuments.execute(params, conn.assigns.current_scope)
     json(conn, %{success: true, result: result})
   end
 

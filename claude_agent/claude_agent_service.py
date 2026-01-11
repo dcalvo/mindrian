@@ -45,6 +45,7 @@ from mcp_tools.documents import (  # noqa: E402
     list_documents,
     read_document,
     resolve_tool_confirmation,
+    search_documents,
     set_emit_pause_callback,
     set_session_context,
 )
@@ -60,6 +61,7 @@ SYSTEM_PROMPT = """You are a helpful AI assistant for Mindrian, a deep-research 
 platform for uncovering non-obvious connections.
 
 You can help users:
+- Search for documents by title using search_documents
 - Create new documents to organize their research
 - Read and understand document content
 - Edit documents by adding, updating, or removing content blocks
@@ -80,7 +82,14 @@ document management tasks."""
 mindrian_mcp = create_sdk_mcp_server(
     name="mindrian",
     version="1.0.0",
-    tools=[list_documents, create_document, read_document, edit_document, delete_document],
+    tools=[
+        list_documents,
+        search_documents,
+        create_document,
+        read_document,
+        edit_document,
+        delete_document,
+    ],
 )
 
 # SSE event queues for each session - used to emit pause events from MCP tools
@@ -142,6 +151,7 @@ def get_client_options(sdk_session_id: str | None = None) -> ClaudeAgentOptions:
         mcp_servers={"mindrian": mindrian_mcp},
         allowed_tools=[
             "mcp__mindrian__list_documents",
+            "mcp__mindrian__search_documents",
             "mcp__mindrian__create_document",
             "mcp__mindrian__read_document",
             "mcp__mindrian__edit_document",

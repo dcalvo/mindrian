@@ -64,7 +64,8 @@ defmodule MindrianWeb.API.WorkspaceController do
 
     if workspace = Documents.get_workspace(scope, id) do
       case Documents.delete_workspace(workspace) do
-        {:ok, _} -> send_resp(conn, :no_content, "")
+        {:ok, _} ->
+          send_resp(conn, :no_content, "")
 
         {:error, _} ->
           conn

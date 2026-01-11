@@ -157,6 +157,28 @@ async def list_documents(args: dict[str, Any]) -> dict[str, Any]:
         return _format_error(f"Error: {e}")
 
 
+@tool("search_documents", "Search documents by title", {"query": str})
+async def search_documents(args: dict[str, Any]) -> dict[str, Any]:
+    """Search documents by title in the user's workspace.
+
+    Args:
+        query: Search query to match against document titles
+
+    Returns:
+        List of matching documents with document_id, title, created_at, and updated_at
+    """
+    try:
+        result = await _phoenix_request(
+            "/api/agent/tools/search_documents",
+            {"query": args["query"]},
+        )
+        return _format_success(result)
+    except httpx.HTTPStatusError as e:
+        return _format_error(f"Failed to search documents: {e.response.text}")
+    except Exception as e:
+        return _format_error(f"Error: {e}")
+
+
 @tool(
     "create_document",
     "Create a new document in the user's workspace",

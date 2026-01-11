@@ -18,11 +18,13 @@ defmodule MindrianWeb.API.WorkspaceJSON do
   def error(%{changeset: changeset}) do
     # Simple error rendering, usually you'd use a dedicated ErrorJSON helper
     # Assuming MindrianWeb.ChangesetJSON or similar exists, or simple manual traversal
-    errors = Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
-      Regex.replace(~r"%{(\w+)}", msg, fn _, key ->
-        opts |> Keyword.get(String.to_existing_atom(key), key) |> to_string()
+    errors =
+      Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
+        Regex.replace(~r"%{(\w+)}", msg, fn _, key ->
+          opts |> Keyword.get(String.to_existing_atom(key), key) |> to_string()
+        end)
       end)
-    end)
+
     %{errors: errors}
   end
 
