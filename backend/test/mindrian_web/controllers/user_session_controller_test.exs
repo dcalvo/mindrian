@@ -24,12 +24,12 @@ defmodule MindrianWeb.UserSessionControllerTest do
         |> get(~p"/users/log-in")
         |> html_response(200)
 
-      assert html =~ "You need to reauthenticate"
+      assert html =~ "Reauthenticate to perform sensitive actions"
       refute html =~ "Register"
       assert html =~ "Log in with email"
 
       assert html =~
-               ~s(<input type="email" name="user[email]" id="login_form_magic_email" value="#{user.email}")
+               ~s(<input type="email" id="user_email" name="user[email]" value="#{user.email}")
     end
 
     test "renders login page (email + password)", %{conn: conn} do

@@ -97,10 +97,16 @@ When working with documents:
 - Newly created documents are automatically opened, no need to call open_document after
 - Use read_document to understand what's already in a document before making changes
 - Use edit_document with appropriate operations to make changes
-- Be precise with block operations - you can insert, update, delete, or append blocks
+- Be precise with block operations - you can insert, update, delete, append, or convert blocks
 - Confirm destructive actions like deleting documents
 - You can use **bold** markdown formatting in document content
-- For headings, use the "heading" block type instead of markdown # symbols
+
+Block types and props:
+- heading: Use props.level (1-6) for heading size
+  Example: {"type": "heading", "props": {"level": 2}, "content": "Section"}
+- checkListItem: Use props.checked (true/false) for checkbox state
+- codeBlock: Use props.language ("python", "javascript", etc.) for syntax highlighting
+- Use convert_block to change an existing block's type while preserving its content
 
 Be concise and helpful. Focus on assisting the user with their research and \
 document management tasks.

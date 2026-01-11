@@ -299,22 +299,23 @@ defmodule Mindrian.Collaboration.DocServer do
     block = op["block"] || %{}
     block_type = block["type"] || "paragraph"
     content = block["content"] || ""
+    props = block["props"] || %{}
 
-    Logger.debug("append_block: type=#{block_type}, content=#{content}")
+    Logger.debug("append_block: type=#{block_type}, content=#{content}, props=#{inspect(props)}")
 
     # BlockNote structure: fragment > blockGroup > blockContainer > paragraph/heading/etc > text
     # We need to find the root blockGroup and append a blockContainer inside it
     case get_root_block_group(fragment) do
       {:ok, block_group} ->
         block_id = generate_block_id()
-        block_container = create_block_container(block_type, block_id, content)
+        block_container = create_block_container(block_type, block_id, content, props)
         Yex.XmlElement.push(block_group, block_container)
 
       :error ->
         # No blockGroup exists - create the full structure
         Logger.debug("No blockGroup found, creating full structure")
         block_id = generate_block_id()
-        prelim = create_full_block_structure(block_type, block_id, content)
+        prelim = create_full_block_structure(block_type, block_id, content, props)
         Yex.XmlFragment.push(fragment, prelim)
     end
   end
@@ -323,12 +324,13 @@ defmodule Mindrian.Collaboration.DocServer do
     block = op["block"] || %{}
     block_type = block["type"] || "paragraph"
     content = block["content"] || ""
+    props = block["props"] || %{}
     after_id = op["after_id"]
 
     case get_root_block_group(fragment) do
       {:ok, block_group} ->
         block_id = generate_block_id()
-        block_container = create_block_container(block_type, block_id, content)
+        block_container = create_block_container(block_type, block_id, content, props)
 
         if after_id do
           # Find the index of the blockContainer with the given ID inside blockGroup
@@ -348,7 +350,7 @@ defmodule Mindrian.Collaboration.DocServer do
       :error ->
         # No blockGroup - create full structure
         block_id = generate_block_id()
-        prelim = create_full_block_structure(block_type, block_id, content)
+        prelim = create_full_block_structure(block_type, block_id, content, props)
         Yex.XmlFragment.push(fragment, prelim)
     end
   end
@@ -374,19 +376,67 @@ defmodule Mindrian.Collaboration.DocServer do
     # 1. Direct: {"type": "update_block", "block_id": "...", "content": "new text"}
     # 2. Nested (like append_block): {"type": "update_block", "block_id": "...", "block": {"content": "new text"}}
     block = op["block"] || %{}
-    content = op["content"] || block["content"] || ""
+    content = op["content"] || block["content"]
+    props = op["props"] || block["props"] || %{}
 
     case get_root_block_group(fragment) do
       {:ok, block_group} ->
         case find_block_container_index(block_group, block_id) do
           {:ok, index} ->
-            # Get the existing blockContainer to find the inner block type
+            # Get the existing blockContainer to find the inner block type and props
             {:ok, existing_container} = Yex.XmlElement.fetch(block_group, index)
             block_type = get_inner_block_type(existing_container)
+            existing_props = get_inner_block_props(existing_container)
 
-            # Delete and re-insert with new content
+            # Use provided content or keep existing
+            final_content = content || extract_text_content(existing_container)
+            # Merge existing props with new props (new props take precedence)
+            final_props = Map.merge(existing_props, props)
+
+            # Delete and re-insert with updated content/props
             Yex.XmlElement.delete(block_group, index, 1)
-            block_container = create_block_container(block_type, block_id, content)
+
+            block_container =
+              create_block_container(block_type, block_id, final_content, final_props)
+
+            Yex.XmlElement.insert(block_group, index, block_container)
+
+          :error ->
+            {:error, "Block not found: #{block_id}"}
+        end
+
+      :error ->
+        {:error, "No blockGroup found in document"}
+    end
+  end
+
+  defp apply_operation(fragment, %{"type" => "convert_block", "block_id" => block_id} = op) do
+    to_type = op["to_type"] || "paragraph"
+    props = op["props"] || %{}
+
+    case get_root_block_group(fragment) do
+      {:ok, block_group} ->
+        case find_block_container_index(block_group, block_id) do
+          {:ok, index} ->
+            {:ok, existing_container} = Yex.XmlElement.fetch(block_group, index)
+
+            # Get the inner block element (paragraph, bulletListItem, etc.)
+            # and extract content from it - same pattern as extract_block_from_container
+            inner_block = get_inner_block_element(existing_container)
+
+            existing_content =
+              case inner_block do
+                nil -> ""
+                block -> extract_text_content(block)
+              end
+
+            Logger.debug(
+              "convert_block: #{block_id} from #{get_inner_block_type(existing_container)} to #{to_type}, content=#{inspect(existing_content)}"
+            )
+
+            # Delete and re-insert with new type
+            Yex.XmlElement.delete(block_group, index, 1)
+            block_container = create_block_container(to_type, block_id, existing_content, props)
             Yex.XmlElement.insert(block_group, index, block_container)
 
           :error ->
@@ -420,24 +470,48 @@ defmodule Mindrian.Collaboration.DocServer do
 
   # Create a blockContainer with nested block type and content
   # Structure: <blockContainer id="..."><paragraph ...>TEXT</paragraph></blockContainer>
-  defp create_block_container(block_type, block_id, content) do
+  #
+  # Props support by block type:
+  # - heading: level (1-6)
+  # - checkListItem: checked (boolean)
+  # - codeBlock: language (string)
+  # - all blocks: textAlignment, backgroundColor, textColor
+  defp create_block_container(block_type, block_id, content, props) do
     # Normalize block_type - agent might send "blockGroup" but we need actual types
     actual_type =
       if block_type in ["blockGroup", "blockContainer"], do: "paragraph", else: block_type
 
+    # Default props for all blocks
+    default_props = %{
+      "backgroundColor" => "default",
+      "textAlignment" => "left",
+      "textColor" => "default"
+    }
+
+    # Type-specific default props
+    type_defaults =
+      case actual_type do
+        "heading" -> %{"level" => 1}
+        "checkListItem" -> %{"checked" => false}
+        "codeBlock" -> %{"language" => "text"}
+        _ -> %{}
+      end
+
+    # Merge: defaults < type_defaults < user props
+    merged_props =
+      default_props
+      |> Map.merge(type_defaults)
+      |> Map.merge(props)
+
     # Parse markdown bold and convert to delta format
     text_prelim = parse_markdown_to_prelim(content)
 
-    # Create the inner block (paragraph, heading, etc) with default props
+    # Create the inner block (paragraph, heading, etc) with merged props
     inner_block =
       Yex.XmlElementPrelim.new(
         actual_type,
         [text_prelim],
-        %{
-          "backgroundColor" => "default",
-          "textAlignment" => "left",
-          "textColor" => "default"
-        }
+        merged_props
       )
 
     # Wrap in blockContainer
@@ -507,8 +581,8 @@ defmodule Mindrian.Collaboration.DocServer do
 
   # Create a full block structure for empty documents
   # Structure: <blockGroup><blockContainer id="..."><paragraph ...>TEXT</paragraph></blockContainer></blockGroup>
-  defp create_full_block_structure(block_type, block_id, content) do
-    block_container = create_block_container(block_type, block_id, content)
+  defp create_full_block_structure(block_type, block_id, content, props) do
+    block_container = create_block_container(block_type, block_id, content, props)
 
     Yex.XmlElementPrelim.new(
       "blockGroup",
@@ -546,6 +620,30 @@ defmodule Mindrian.Collaboration.DocServer do
     |> Enum.find_value("paragraph", fn elem ->
       case elem do
         %Yex.XmlElement{} -> Yex.XmlElement.get_tag(elem)
+        _ -> nil
+      end
+    end)
+  end
+
+  # Get the inner block element from a blockContainer
+  defp get_inner_block_element(block_container) do
+    block_container
+    |> Yex.XmlElement.children()
+    |> Enum.find(fn elem ->
+      case elem do
+        %Yex.XmlElement{} -> true
+        _ -> false
+      end
+    end)
+  end
+
+  # Get the inner block props from a blockContainer
+  defp get_inner_block_props(block_container) do
+    block_container
+    |> Yex.XmlElement.children()
+    |> Enum.find_value(%{}, fn elem ->
+      case elem do
+        %Yex.XmlElement{} -> Yex.XmlElement.get_attributes(elem)
         _ -> nil
       end
     end)

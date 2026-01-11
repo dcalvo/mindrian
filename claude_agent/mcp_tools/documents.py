@@ -188,7 +188,28 @@ async def read_document(args: dict[str, Any]) -> dict[str, Any]:
 
 @tool(
     "edit_document",
-    "Edit a document with block operations. Confirmation is built-in, call directly.",
+    """Edit a document with block operations. Confirmation is built-in, call directly.
+
+Block types: paragraph, heading, bulletListItem, numberedListItem, checkListItem, codeBlock, quote
+
+Block props by type:
+- heading: level (1-6, default 1)
+- checkListItem: checked (true/false, default false)
+- codeBlock: language (string, default "text")
+- all blocks: textAlignment ("left", "center", "right")
+
+Operations:
+- append_block: Add block at end of document
+- insert_block: Add block after specific block_id (use after_id)
+- update_block: Modify existing block content/props (use block_id)
+- delete_block: Remove block (use block_id)
+- convert_block: Change block type preserving content (use block_id, to_type, props)
+
+Examples:
+- Heading: {"type": "append_block", "block": {"type": "heading", "props": {"level": 2}}}
+- Checkbox: {"type": "append_block", "block": {"type": "checkListItem", "props": {"checked": true}}}
+- Code: {"type": "append_block", "block": {"type": "codeBlock", "props": {"language": "python"}}}
+- Convert: {"type": "convert_block", "block_id": "abc", "to_type": "heading"}""",
     {
         "type": "object",
         "properties": {
@@ -206,20 +227,60 @@ async def read_document(args: dict[str, Any]) -> dict[str, Any]:
                                 "delete_block",
                                 "update_block",
                                 "append_block",
+                                "convert_block",
                             ],
                             "description": "Operation type",
                         },
                         "block_id": {
                             "type": "string",
-                            "description": "Block ID for delete_block and update_block",
+                            "description": "Block ID for delete_block, update_block, convert_block",
                         },
                         "after_id": {
                             "type": "string",
                             "description": "Block ID to insert after for insert_block",
                         },
+                        "to_type": {
+                            "type": "string",
+                            "description": "Target block type for convert_block",
+                        },
                         "block": {
                             "type": "object",
                             "description": "Block data for insert_block and append_block",
+                            "properties": {
+                                "type": {
+                                    "type": "string",
+                                    "enum": [
+                                        "paragraph",
+                                        "heading",
+                                        "bulletListItem",
+                                        "numberedListItem",
+                                        "checkListItem",
+                                        "codeBlock",
+                                        "quote",
+                                    ],
+                                },
+                                "props": {
+                                    "type": "object",
+                                    "properties": {
+                                        "level": {
+                                            "type": "integer",
+                                            "minimum": 1,
+                                            "maximum": 6,
+                                        },
+                                        "checked": {"type": "boolean"},
+                                        "language": {"type": "string"},
+                                        "textAlignment": {
+                                            "type": "string",
+                                            "enum": ["left", "center", "right"],
+                                        },
+                                    },
+                                },
+                                "content": {"type": "string"},
+                            },
+                        },
+                        "props": {
+                            "type": "object",
+                            "description": "Props for update_block or convert_block",
                         },
                         "content": {
                             "type": "string",
@@ -237,19 +298,6 @@ async def edit_document(args: dict[str, Any]) -> dict[str, Any]:
     """Edit a document by applying block-level operations.
 
     Confirmation is handled by the PreToolUse hook before this runs.
-
-    Operations are applied in order. Available operation types:
-    - insert_block: Insert a new block after a specified block (or at start if no after_id)
-    - delete_block: Remove a block by ID
-    - update_block: Update the content of an existing block
-    - append_block: Add a new block at the end of the document
-
-    Args:
-        document_id: The ID of the document to edit
-        operations: List of operations to apply
-
-    Returns:
-        Edit result with document_id and operations_applied count
     """
     try:
         result = await _phoenix_request(
