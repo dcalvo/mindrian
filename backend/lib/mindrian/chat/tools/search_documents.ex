@@ -1,6 +1,6 @@
 defmodule Mindrian.Chat.Tools.SearchDocuments do
   @moduledoc """
-  Tool for searching documents by title.
+  Tool for searching documents by title and content using full-text search.
   """
   use Mindrian.Chat.Tool
 
@@ -11,7 +11,7 @@ defmodule Mindrian.Chat.Tools.SearchDocuments do
 
   @impl true
   def description do
-    "Search documents by title. Returns matching documents with their IDs and titles."
+    "Search documents by title and content. Returns matching documents ranked by relevance."
   end
 
   @impl true
@@ -21,7 +21,7 @@ defmodule Mindrian.Chat.Tools.SearchDocuments do
       properties: %{
         query: %{
           type: "string",
-          description: "Search query to match against document titles"
+          description: "Search query to match against document titles and content"
         }
       },
       required: ["query"]
@@ -39,6 +39,7 @@ defmodule Mindrian.Chat.Tools.SearchDocuments do
         %{
           document_id: doc.id,
           title: doc.title,
+          snippet: doc.headline,
           created_at: doc.inserted_at,
           updated_at: doc.updated_at
         }

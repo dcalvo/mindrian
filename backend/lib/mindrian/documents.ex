@@ -88,18 +88,42 @@ defmodule Mindrian.Documents do
   end
 
   @doc """
-  Searches documents by title using case-insensitive ILIKE matching.
+  Searches documents by title and content using PostgreSQL full-text search.
   Optionally filters by workspace_id.
-  Returns matching documents with their IDs, titles, and timestamps.
+  Returns matching documents ranked by relevance, with a highlighted snippet.
   """
   def search_documents(%Scope{user: user}, query, workspace_id \\ nil) do
-    search_term = "%#{query}%"
+    search_query = query |> String.trim()
 
     base_query =
       from(d in Document,
         where: d.user_id == ^user.id,
-        where: ilike(d.title, ^search_term),
-        order_by: [desc: d.updated_at]
+        where:
+          fragment(
+            "content_tsvector @@ plainto_tsquery('english', ?)",
+            ^search_query
+          ),
+        order_by: [
+          desc:
+            fragment(
+              "ts_rank(content_tsvector, plainto_tsquery('english', ?))",
+              ^search_query
+            ),
+          desc: d.updated_at
+        ],
+        select: %{
+          id: d.id,
+          title: d.title,
+          content_text: d.content_text,
+          inserted_at: d.inserted_at,
+          updated_at: d.updated_at,
+          headline:
+            fragment(
+              "ts_headline('english', ?, plainto_tsquery('english', ?), 'MaxFragments=2, MaxWords=30, MinWords=10')",
+              d.content_text,
+              ^search_query
+            )
+        }
       )
 
     base_query =

@@ -55,21 +55,19 @@ defmodule Mindrian.Collaboration.DocServer do
        persistence_state: persistence_state,
        fragment: fragment,
        # Map of origin PID -> client_id for tracking connected clients
-       client_ids: %{}
+       client_ids: %{},
+       # Debounced persistence: accumulate updates and flush after 500ms of inactivity
+       pending_updates: [],
+       flush_timer: nil
      })}
   end
 
-  @impl true
-  def handle_update_v1(doc, update, origin, state) do
-    # Persist the update
-    YjsPersistence.update_v1(
-      state.assigns.persistence_state,
-      update,
-      state.assigns.doc_name,
-      doc
-    )
+  # Debounce interval for flushing updates to DB (milliseconds)
+  @flush_debounce_ms 500
 
-    # Broadcast to other clients
+  @impl true
+  def handle_update_v1(_doc, update, origin, state) do
+    # Broadcast to other clients immediately (real-time collaboration)
     with {:ok, sync_msg} <- Sync.get_update(update),
          {:ok, message} <- Sync.message_encode({:sync, sync_msg}) do
       broadcast_update(origin, state.assigns.topic, message)
@@ -78,7 +76,19 @@ defmodule Mindrian.Collaboration.DocServer do
         Logger.warning("Failed to broadcast update: #{inspect(error)}")
     end
 
-    {:noreply, state}
+    # Cancel existing flush timer if any
+    if state.assigns.flush_timer do
+      Process.cancel_timer(state.assigns.flush_timer)
+    end
+
+    # Accumulate update and schedule debounced flush
+    new_pending = [update | state.assigns.pending_updates]
+    new_timer = Process.send_after(self(), :flush_updates, @flush_debounce_ms)
+
+    {:noreply,
+     state
+     |> assign(:pending_updates, new_pending)
+     |> assign(:flush_timer, new_timer)}
   end
 
   @impl true
@@ -217,7 +227,16 @@ defmodule Mindrian.Collaboration.DocServer do
   end
 
   @impl true
+  def handle_info(:flush_updates, state) do
+    state = flush_pending_updates(state)
+    {:noreply, state}
+  end
+
+  @impl true
   def terminate(_reason, state) do
+    # Flush any pending updates before shutdown
+    state = flush_pending_updates(state)
+
     YjsPersistence.unbind(
       state.assigns.persistence_state,
       state.assigns.doc_name,
@@ -226,6 +245,30 @@ defmodule Mindrian.Collaboration.DocServer do
 
     Logger.info("DocServer for #{state.assigns.doc_name} terminated")
     :ok
+  end
+
+  defp flush_pending_updates(state) do
+    if state.assigns.pending_updates == [] do
+      state
+    else
+      # Cancel timer if still running
+      if state.assigns.flush_timer do
+        Process.cancel_timer(state.assigns.flush_timer)
+      end
+
+      # Reverse to get chronological order, then flush to DB
+      updates = Enum.reverse(state.assigns.pending_updates)
+
+      YjsPersistence.flush_updates(
+        state.assigns.doc_name,
+        updates,
+        state.doc
+      )
+
+      state
+      |> assign(:pending_updates, [])
+      |> assign(:flush_timer, nil)
+    end
   end
 
   defp broadcast_update(nil, topic, message) do

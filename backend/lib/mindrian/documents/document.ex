@@ -7,6 +7,7 @@ defmodule Mindrian.Documents.Document do
   schema "documents" do
     field :title, :string, default: "Untitled"
     field :position, :integer, default: 0
+    field :content_text, :string
 
     belongs_to :user, Mindrian.Accounts.User
     belongs_to :folder, Mindrian.Documents.Folder
@@ -22,5 +23,12 @@ defmodule Mindrian.Documents.Document do
     |> validate_length(:title, min: 1, max: 255)
     |> foreign_key_constraint(:folder_id)
     |> foreign_key_constraint(:workspace_id)
+  end
+
+  @doc """
+  Changeset for updating content_text (used by YjsPersistence on flush).
+  """
+  def content_changeset(document, attrs) do
+    cast(document, attrs, [:content_text])
   end
 end

@@ -5,8 +5,11 @@ defmodule Mindrian.Release do
   """
   @app :mindrian
 
+  import Ecto.Query
   alias Mindrian.Accounts
   alias Mindrian.Accounts.User
+  alias Mindrian.Collaboration.YjsPersistence
+  alias Mindrian.Documents.Document
   alias Mindrian.Repo
 
   @test_accounts [
@@ -63,6 +66,50 @@ defmodule Mindrian.Release do
     user
     |> User.password_changeset(%{password: password})
     |> Repo.update!()
+  end
+
+  @doc """
+  Backfill content_text for existing documents.
+
+  Run in production via:
+    bin/mindrian eval "Mindrian.Release.backfill_document_content()"
+  """
+  def backfill_document_content do
+    load_app()
+
+    {:ok, _, _} =
+      Ecto.Migrator.with_repo(Repo, fn _repo ->
+        backfill_document_content!()
+      end)
+
+    :ok
+  end
+
+  @doc """
+  Backfill content_text when repo is already started.
+  """
+  def backfill_document_content! do
+    documents =
+      from(d in Document, where: is_nil(d.content_text))
+      |> Repo.all()
+
+    total = length(documents)
+    IO.puts("Backfilling #{total} documents...")
+
+    documents
+    |> Enum.with_index(1)
+    |> Enum.each(fn {document, index} ->
+      ydoc = YjsPersistence.get_y_doc(document.id)
+      content_text = YjsPersistence.extract_full_text(ydoc)
+
+      document
+      |> Document.content_changeset(%{content_text: content_text})
+      |> Repo.update!()
+
+      IO.puts("  [#{index}/#{total}] #{document.id}")
+    end)
+
+    IO.puts("Done!")
   end
 
   def migrate do
