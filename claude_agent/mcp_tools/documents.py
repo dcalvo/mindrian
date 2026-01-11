@@ -179,6 +179,24 @@ async def search_documents(args: dict[str, Any]) -> dict[str, Any]:
         return _format_error(f"Error: {e}")
 
 
+@tool("get_workspace_summary", "Get a summary of the current workspace", {})
+async def get_workspace_summary(args: dict[str, Any]) -> dict[str, Any]:
+    """Get a summary of the current workspace.
+
+    Returns workspace metadata, document/folder counts, and recent activity.
+
+    Returns:
+        Workspace summary with name, counts, and recent documents
+    """
+    try:
+        result = await _phoenix_request("/api/agent/tools/get_workspace_summary", {})
+        return _format_success(result)
+    except httpx.HTTPStatusError as e:
+        return _format_error(f"Failed to get workspace summary: {e.response.text}")
+    except Exception as e:
+        return _format_error(f"Error: {e}")
+
+
 @tool(
     "create_document",
     "Create a new document in the user's workspace",

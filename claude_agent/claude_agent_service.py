@@ -42,6 +42,7 @@ from mcp_tools.documents import (  # noqa: E402
     create_document,
     delete_document,
     edit_document,
+    get_workspace_summary,
     list_documents,
     read_document,
     resolve_tool_confirmation,
@@ -61,7 +62,10 @@ SYSTEM_PROMPT = """You are a helpful AI assistant for Mindrian, a deep-research 
 platform for uncovering non-obvious connections.
 
 You can help users:
+- Get an overview of their workspace using get_workspace_summary
 - Search for documents by title using search_documents
+- Search the web for information using WebSearch
+- Fetch and read content from URLs using WebFetch
 - Create new documents to organize their research
 - Read and understand document content
 - Edit documents by adding, updating, or removing content blocks
@@ -85,6 +89,7 @@ mindrian_mcp = create_sdk_mcp_server(
     tools=[
         list_documents,
         search_documents,
+        get_workspace_summary,
         create_document,
         read_document,
         edit_document,
@@ -150,12 +155,17 @@ def get_client_options(sdk_session_id: str | None = None) -> ClaudeAgentOptions:
         system_prompt=SYSTEM_PROMPT,
         mcp_servers={"mindrian": mindrian_mcp},
         allowed_tools=[
+            # Document tools (MCP)
             "mcp__mindrian__list_documents",
             "mcp__mindrian__search_documents",
+            "mcp__mindrian__get_workspace_summary",
             "mcp__mindrian__create_document",
             "mcp__mindrian__read_document",
             "mcp__mindrian__edit_document",
             "mcp__mindrian__delete_document",
+            # Built-in web tools
+            "WebSearch",
+            "WebFetch",
         ],
         include_partial_messages=True,  # For streaming chunks
         resume=sdk_session_id,  # Resume previous conversation if provided

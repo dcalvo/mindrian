@@ -53,6 +53,7 @@ defmodule MindrianWeb.Router do
 
     post "/list_documents", AgentToolsController, :list_documents
     post "/search_documents", AgentToolsController, :search_documents
+    post "/get_workspace_summary", AgentToolsController, :get_workspace_summary
     post "/create_document", AgentToolsController, :create_document
     post "/read_document", AgentToolsController, :read_document
     post "/edit_document", AgentToolsController, :edit_document

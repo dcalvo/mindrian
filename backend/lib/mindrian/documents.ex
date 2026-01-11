@@ -112,6 +112,52 @@ defmodule Mindrian.Documents do
     Repo.all(base_query)
   end
 
+  @doc """
+  Gets a summary of a workspace including document/folder counts and recent activity.
+  """
+  def get_workspace_summary(%Scope{user: user} = scope, workspace_id) do
+    case get_workspace(scope, workspace_id) do
+      nil ->
+        nil
+
+      workspace ->
+        document_count =
+          from(d in Document,
+            where: d.user_id == ^user.id and d.workspace_id == ^workspace_id,
+            select: count(d.id)
+          )
+          |> Repo.one()
+
+        folder_count =
+          from(f in Folder,
+            where: f.user_id == ^user.id and f.workspace_id == ^workspace_id,
+            select: count(f.id)
+          )
+          |> Repo.one()
+
+        recent_documents =
+          from(d in Document,
+            where: d.user_id == ^user.id and d.workspace_id == ^workspace_id,
+            order_by: [desc: d.updated_at],
+            limit: 5,
+            select: %{id: d.id, title: d.title, updated_at: d.updated_at}
+          )
+          |> Repo.all()
+
+        %{
+          workspace: %{
+            id: workspace.id,
+            title: workspace.title,
+            created_at: workspace.inserted_at,
+            updated_at: workspace.updated_at
+          },
+          document_count: document_count,
+          folder_count: folder_count,
+          recent_documents: recent_documents
+        }
+    end
+  end
+
   # =============================================================================
   # GET OPERATIONS
   # =============================================================================

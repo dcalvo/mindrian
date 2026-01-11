@@ -12,11 +12,12 @@ defmodule MindrianWeb.API.AgentToolsController do
 
   alias Mindrian.Chat.Tools.{
     ListDocuments,
+    SearchDocuments,
+    GetWorkspaceSummary,
     CreateDocument,
     ReadDocument,
     EditDocument,
-    DeleteDocument,
-    SearchDocuments
+    DeleteDocument
   }
 
   plug :load_user_from_body
@@ -48,6 +49,20 @@ defmodule MindrianWeb.API.AgentToolsController do
     params = Map.put(params, "workspace_id", conn.assigns.workspace_id)
     {:ok, result} = SearchDocuments.execute(params, conn.assigns.current_scope)
     json(conn, %{success: true, result: result})
+  end
+
+  def get_workspace_summary(conn, params) do
+    params = Map.put(params, "workspace_id", conn.assigns.workspace_id)
+
+    case GetWorkspaceSummary.execute(params, conn.assigns.current_scope) do
+      {:ok, result} ->
+        json(conn, %{success: true, result: result})
+
+      {:error, reason} ->
+        conn
+        |> put_status(:unprocessable_entity)
+        |> json(%{success: false, error: reason})
+    end
   end
 
   def create_document(conn, params) do
