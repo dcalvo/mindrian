@@ -54,14 +54,10 @@ export function ChatPane({ onCollapse, workspaceId }: ChatPaneProps) {
       m.role === "tool_call" && m.status === "pending_approval"
   );
 
-  // Filter out streaming messages and pending tools from the main list
+  // Filter out streaming messages from the main list (pending tools are shown)
   const displayMessages = messages.filter(
     (m: any) =>
-      !(m.role === "agent" && (m as AgentMessage).status === "streaming") &&
-      !(
-        m.role === "tool_call" &&
-        (m as ToolCallMessage).status === "pending_approval"
-      )
+      !(m.role === "agent" && (m as AgentMessage).status === "streaming")
   );
 
   // Auto-scroll to bottom when new messages arrive or streaming updates

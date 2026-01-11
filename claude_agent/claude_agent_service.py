@@ -50,9 +50,7 @@ from mcp_tools.documents import (  # noqa: E402
     get_workspace_summary,
     list_documents,
     read_document,
-    resolve_tool_confirmation,
     search_documents,
-    set_emit_pause_callback,
     set_session_context,
 )
 
@@ -162,8 +160,21 @@ mindrian_mcp = create_sdk_mcp_server(
     ],
 )
 
-# SSE event queues for each session - used to emit pause events from MCP tools
+# SSE event queues for each session - used to emit pause events from hooks
 _session_event_queues: dict[str, asyncio.Queue] = {}
+
+# Pending confirmations: tool_use_id -> {event: asyncio.Event, approved: bool | None}
+_pending_confirmations: dict[str, dict[str, Any]] = {}
+
+
+def resolve_tool_confirmation(tool_use_id: str, approved: bool):
+    """Resolve a pending tool confirmation (called from /continue endpoint)."""
+    if tool_use_id in _pending_confirmations:
+        _pending_confirmations[tool_use_id]["approved"] = approved
+        _pending_confirmations[tool_use_id]["event"].set()
+        logger.info(f"Resolved tool confirmation: {tool_use_id}, approved={approved}")
+    else:
+        logger.warning(f"No pending confirmation for tool_use_id={tool_use_id}")
 
 
 def emit_pause_event(
@@ -171,17 +182,13 @@ def emit_pause_event(
     tool_use_id: str,
     tool_name: str,
     tool_args: dict[str, Any],
-) -> str | None:
-    """Emit a RunPaused event to the session's SSE stream.
-
-    Called by MCP tools when they need user confirmation.
-    Returns the tool_call_id used.
-    """
-    logger.info(f"Emitting pause event: session={session_id}, tool={tool_name}")
+) -> None:
+    """Emit a RunPaused event to the session's SSE stream."""
+    logger.info(f"Emitting pause event: session={session_id}, tool={tool_name}, id={tool_use_id}")
 
     if session_id not in _session_event_queues:
         logger.warning(f"No event queue for session {session_id}")
-        return None
+        return
 
     run_id = _sessions.get(session_id, {}).get("run_id", "unknown")
     pause_event = format_sse_event(
@@ -198,17 +205,11 @@ def emit_pause_event(
         },
     )
 
-    # Put the event in the queue (synchronously)
     try:
         _session_event_queues[session_id].put_nowait(pause_event)
     except Exception as e:
         logger.error(f"Failed to emit pause event: {e}")
 
-    return tool_use_id
-
-
-# Set the callback for MCP tools to emit pause events
-set_emit_pause_callback(emit_pause_event)
 
 # Define subagents
 EXPLORE_AGENT = AgentDefinition(
@@ -352,6 +353,19 @@ def get_client_options(sdk_session_id: str | None = None) -> ClaudeAgentOptions:
         hooks={
             "PreToolUse": [
                 HookMatcher(matcher="Task", hooks=[larry_history_hook]),
+                # Confirmable tools - hook handles confirmation flow with correct tool_use_id
+                HookMatcher(
+                    matcher="mcp__mindrian__create_document",
+                    hooks=[confirmable_tool_hook],
+                ),
+                HookMatcher(
+                    matcher="mcp__mindrian__edit_document",
+                    hooks=[confirmable_tool_hook],
+                ),
+                HookMatcher(
+                    matcher="mcp__mindrian__delete_document",
+                    hooks=[confirmable_tool_hook],
+                ),
             ],
         },
         include_partial_messages=True,  # For streaming chunks
@@ -402,6 +416,8 @@ async def create_client_for_request(
     options = get_client_options(sdk_session_id=sdk_session_id)
     if sdk_session_id:
         logger.info(f"Resuming SDK session: {sdk_session_id}")
+        # Set up reverse mapping so hooks can find our session_id
+        _sdk_to_session[sdk_session_id] = session_id
     logger.debug(f"Client options: {options}")
 
     client = ClaudeSDKClient(options=options)
@@ -502,6 +518,91 @@ async def larry_history_hook(
         "hookEventName": "PreToolUse",
         "updatedInput": {**tool_input, "prompt": enriched_prompt},
     }
+
+
+async def confirmable_tool_hook(
+    hook_input: HookInput,
+    tool_use_id: str | None,
+    context: HookContext,
+) -> HookJSONOutput:
+    """PreToolUse hook that handles confirmation for dangerous tools.
+
+    Emits RunPaused with the SDK's tool_use_id, waits for user confirmation,
+    and either allows or denies the tool based on user response.
+    """
+    logger.info(f"confirmable_tool_hook: tool={hook_input.get('tool_name')}, id={tool_use_id}")
+    logger.info(f"  hook_event_name={hook_input.get('hook_event_name')}")
+    logger.info(f"  sdk_session_id={hook_input.get('session_id')}")
+    logger.info(f"  _sdk_to_session keys: {list(_sdk_to_session.keys())}")
+
+    if hook_input["hook_event_name"] != "PreToolUse":
+        return {}
+
+    if not tool_use_id:
+        logger.warning("confirmable_tool_hook: no tool_use_id provided")
+        return {}
+
+    tool_name = hook_input["tool_name"]
+    tool_input = hook_input["tool_input"]
+
+    # Get our session_id from SDK's session_id
+    sdk_session_id = hook_input["session_id"]
+    session_id = _sdk_to_session.get(sdk_session_id)
+    if not session_id:
+        logger.warning(f"No session mapping for SDK session {sdk_session_id}")
+        logger.warning(f"Available mappings: {_sdk_to_session}")
+        return {}
+
+    logger.info(f"Confirmation required for {tool_name}, id={tool_use_id}")
+
+    # Emit RunPaused with the correct SDK tool_use_id
+    emit_pause_event(session_id, tool_use_id, tool_name, tool_input)
+
+    # Create confirmation event and wait for user response
+    confirmation_event = asyncio.Event()
+    _pending_confirmations[tool_use_id] = {
+        "event": confirmation_event,
+        "approved": None,
+    }
+
+    try:
+        # Wait for confirmation (5 minute timeout)
+        await asyncio.wait_for(confirmation_event.wait(), timeout=300)
+        result = _pending_confirmations.get(tool_use_id, {})
+        approved = result.get("approved", False)
+    except asyncio.TimeoutError:
+        logger.warning(f"Confirmation timed out for {tool_name}")
+        approved = False
+    finally:
+        _pending_confirmations.pop(tool_use_id, None)
+
+    if not approved:
+        logger.info(f"Tool {tool_name} denied by user")
+        return {
+            "hookSpecificOutput": {
+                "hookEventName": "PreToolUse",
+                "permissionDecision": "deny",
+                "permissionDecisionReason": "User rejected the operation",
+            }
+        }
+
+    logger.info(f"Tool {tool_name} approved by user, emitting ToolStarted")
+
+    # Emit ToolStarted now that user approved - this triggers :approved -> :executing
+    tool_started_event = format_sse_event(
+        "ToolStarted",
+        {
+            "tool_call_id": tool_use_id,
+            "tool_name": tool_name,
+            "tool_args": tool_input,
+        },
+    )
+    try:
+        _session_event_queues[session_id].put_nowait(tool_started_event)
+    except Exception as e:
+        logger.error(f"Failed to emit ToolStarted after approval: {e}")
+
+    return {}  # Allow tool to proceed
 
 
 async def cleanup_session(session_id: str):
@@ -614,6 +715,11 @@ async def process_message(message, run_id: str, session_id: str, text_started: b
     # SystemMessage with init subtype
     if isinstance(message, SystemMessage):
         if message.subtype == "init":
+            # Try to extract SDK session_id early so hooks can map to our session_id
+            sdk_session_id = message.data.get("session_id") if message.data else None
+            if sdk_session_id:
+                _sdk_to_session[sdk_session_id] = session_id
+                logger.debug(f"Early SDK session mapping: {sdk_session_id} -> {session_id}")
             yield format_sse_event("RunStarted", {"run_id": run_id})
 
     # StreamEvent contains real-time streaming data
@@ -652,15 +758,22 @@ async def process_message(message, run_id: str, session_id: str, text_started: b
                     }
                     logger.debug(f"Tracking Larry call: {block.id}")
 
-                # Emit tool started
-                yield format_sse_event(
-                    "ToolStarted",
-                    {
-                        "tool_call_id": block.id,
-                        "tool_name": block.name,
-                        "tool_args": block.input,
-                    },
-                )
+                # Confirmable tools: don't emit ToolStarted - RunPaused will add them
+                # Phoenix treats ToolStarted as "auto-approved", but we want user approval
+                confirmable_tools = {
+                    "mcp__mindrian__create_document",
+                    "mcp__mindrian__edit_document",
+                    "mcp__mindrian__delete_document",
+                }
+                if block.name not in confirmable_tools:
+                    yield format_sse_event(
+                        "ToolStarted",
+                        {
+                            "tool_call_id": block.id,
+                            "tool_name": block.name,
+                            "tool_args": block.input,
+                        },
+                    )
 
             elif isinstance(block, ToolResultBlock):
                 if block.is_error:
