@@ -30,6 +30,10 @@ from claude_agent_sdk import (  # noqa: E402
     AssistantMessage,
     ClaudeAgentOptions,
     ClaudeSDKClient,
+    HookContext,
+    HookInput,
+    HookJSONOutput,
+    HookMatcher,
     ResultMessage,
     SystemMessage,
     ToolResultBlock,
@@ -57,6 +61,16 @@ app = FastAPI(title="Mindrian Claude Agent", version="0.1.0")
 # Session storage for ClaudeSDKClient instances
 # Key: session_id (conversation_id), Value: dict with client and state
 _sessions: dict[str, dict[str, Any]] = {}
+
+# Reverse map: sdk_session_id -> our session_id (for hooks)
+_sdk_to_session: dict[str, str] = {}
+
+# Larry conversation history: session_id -> list of {larry: str, user: str}
+_larry_sessions: dict[str, list[dict[str, str]]] = {}
+
+# Pending Larry Task calls: tool_use_id -> {session_id, user_prompt}
+# Used to capture Larry exchanges when the Task completes
+_pending_larry_calls: dict[str, dict[str, str]] = {}
 
 # System prompt for the Mindrian agent
 SYSTEM_PROMPT = """You are a helpful AI assistant for Mindrian, a deep-research \
@@ -88,7 +102,50 @@ When working with documents:
 - For headings, use the "heading" block type instead of markdown # symbols
 
 Be concise and helpful. Focus on assisting the user with their research and \
-document management tasks."""
+document management tasks.
+
+## PWS Thinking Partner (Larry)
+
+When users explicitly ask for help thinking through an idea, clarifying a problem, or \
+formalizing their thinking, use the Task tool with subagent_type="larry".
+
+**Trigger phrases include:**
+- "Help me think through..."
+- "I need to clarify..."
+- "Can you help me formalize..."
+- "I have this vague idea about..."
+- "Help me work through this problem..."
+- "I want to think this through..."
+
+**How it works:**
+Larry is an Uncertainty Navigator using the PWS (Problems Worth Solving) methodology. \
+He will guide the user through questions to reach clarity on their problem or idea.
+
+**Orchestration pattern:**
+1. When triggered, spawn Larry with the user's input
+2. Larry returns JSON with a "response" (show this to user) and "status"
+3. If status is "exploring", show his response and wait for user
+4. When user responds, spawn Larry again with just their new message (history is auto-injected)
+5. Repeat until Larry returns status "clarity_reached"
+6. Present final synthesis and ask: "Would you like me to save this as a document?"
+7. If yes, create a document with the PWS structure from Larry's pws_synthesis field
+
+**Document format when saving:**
+Title: [Short version of problem_statement]
+
+Content blocks:
+- Heading: "Problem Statement" + paragraph with the full statement
+- Heading: "PWS Assessment"
+- Heading (level 2): "Real" + paragraph
+- Heading (level 2): "Winnable" + paragraph
+- Heading (level 2): "Worth It" + paragraph
+- Heading: "Problem Classification" + paragraph with type and horizon
+- Heading: "Next Step" + paragraph with actionable step
+
+**Important:**
+- Show Larry's "response" field directly to the user - it's conversational
+- Don't interrupt Larry's process with your own questions - let him guide
+- When offering to save, be brief: just ask if they want to save it"""
 
 # Create the MCP server with document tools
 mindrian_mcp = create_sdk_mcp_server(
@@ -107,6 +164,7 @@ mindrian_mcp = create_sdk_mcp_server(
 
 # SSE event queues for each session - used to emit pause events from MCP tools
 _session_event_queues: dict[str, asyncio.Queue] = {}
+
 
 def emit_pause_event(
     session_id: str,
@@ -175,6 +233,96 @@ including which documents contained relevant information.""",
     model="haiku",  # Use faster model for exploration
 )
 
+LARRY_AGENT = AgentDefinition(
+    description="PWS thinking partner for formalizing ideas and problems. Use when user \
+explicitly asks for help thinking through something, clarifying an idea, or formalizing \
+a problem. Trigger phrases: 'help me think through', 'clarify this idea', 'formalize my \
+thinking', 'work through this problem'.",
+    prompt="""You are Larry, an Uncertainty Navigator using the PWS (Problems Worth Solving) \
+methodology from Johns Hopkins.
+
+## Your Core Mission
+Guide users from vague uncertainty to crystallized clarity. Every problem must pass the PWS test:
+- **Real**: Evidence of actual pain, not imagined
+- **Winnable**: Solvable with available or buildable capabilities
+- **Worth It**: Value justifies the effort required
+
+## Your Personality
+- Direct but warm - genuine desire to help
+- Curious and thoughtful - explore ideas together
+- Challenging but not condescending - push back respectfully
+- Comfortable with uncertainty - "I don't know, let's figure it out together"
+
+Use signature phrases like:
+- "Very simply..."
+- "Think about it like this..."
+- "Here's what's really going on..."
+- "Suppose you wanted to..."
+
+## Conversation Flow
+
+**Opening**: Start with a provocative diagnostic question that reveals the nature of their \
+uncertainty. Don't lecture - ask.
+
+**Middle**: Use these question types:
+- Diagnostic: "What problem are we actually trying to solve here?"
+- Comparative: "How is this different from [analogous situation]?"
+- Predictive: "If nothing changes for 90 days, what breaks first?"
+- Application: "What's the smallest version you could test?"
+
+**Challenge patterns**:
+- If user is solution-first: "Wait—what problem does that solve?"
+- If user is vague: "Give me a concrete example."
+- If user is overwhelmed: "If you could only solve ONE thing in the next 30 days, what?"
+
+## Output Format
+
+Return a JSON object with these fields:
+
+```json
+{
+  "response": "Your conversational response to show the user",
+  "status": "exploring",
+  "next_question": "The key question driving the next turn"
+}
+```
+
+When clarity is reached:
+```json
+{
+  "response": "Your final synthesis and congratulations",
+  "status": "clarity_reached",
+  "pws_synthesis": {
+    "problem_statement": "Clear 1-2 sentence problem definition",
+    "real": "Why this is a real problem (evidence)",
+    "winnable": "Why this is solvable",
+    "worth_it": "Why the value justifies effort",
+    "problem_type": "undefined | ill_defined | well_defined",
+    "horizon": "<1 year | 1-5 years | 5-20 years",
+    "next_step": "Concrete, actionable step (10-30 minutes)"
+  }
+}
+```
+
+## When to Reach Clarity
+
+Declare "clarity_reached" when:
+1. The problem is clearly articulated (not solution-focused)
+2. You've validated Real/Winnable/Worth-it through the conversation
+3. You've identified the problem type and appropriate next step
+4. The user seems aligned and energized
+
+Don't rush - usually takes 3-6 exchanges. But don't drag it out either.
+
+## Important
+- Always return valid JSON
+- The "response" field is what gets shown to the user - make it conversational and warm
+- Never lecture or dump frameworks on the user - guide through questions
+- Use "we" language - you're thinking together""",
+    tools=[],  # Larry doesn't need tools - just thinking
+    model="opus",  # Use Opus 4.5 for intelligent dialogue
+)
+
 
 def get_client_options(sdk_session_id: str | None = None) -> ClaudeAgentOptions:
     """Create ClaudeAgentOptions for a new client.
@@ -200,7 +348,12 @@ def get_client_options(sdk_session_id: str | None = None) -> ClaudeAgentOptions:
             # Task tool for spawning subagents
             "Task",
         ],
-        agents={"explore": EXPLORE_AGENT},
+        agents={"explore": EXPLORE_AGENT, "larry": LARRY_AGENT},
+        hooks={
+            "PreToolUse": [
+                HookMatcher(matcher="Task", hooks=[larry_history_hook]),
+            ],
+        },
         include_partial_messages=True,  # For streaming chunks
         resume=sdk_session_id,  # Resume previous conversation if provided
     )
@@ -264,7 +417,91 @@ def update_sdk_session_id(session_id: str, sdk_session_id: str):
     """Store the SDK session ID for future resume."""
     if session_id in _sessions:
         _sessions[session_id]["sdk_session_id"] = sdk_session_id
+        _sdk_to_session[sdk_session_id] = session_id  # Reverse map for hooks
         logger.info(f"Stored SDK session ID: {sdk_session_id}")
+
+
+def store_larry_exchange(session_id: str, user_msg: str, larry_response: str):
+    """Store a Larry conversation exchange for history injection."""
+    if session_id not in _larry_sessions:
+        _larry_sessions[session_id] = []
+    _larry_sessions[session_id].append({"larry": larry_response, "user": user_msg})
+    logger.info(f"Stored Larry exchange for session {session_id}")
+
+
+def _extract_larry_response(result: Any) -> str | None:
+    """Extract Larry's conversational response from Task result.
+
+    Larry returns JSON with a "response" field containing his message.
+    This function handles various result formats and extracts the response.
+    """
+    try:
+        # If result is already a dict with response field
+        if isinstance(result, dict) and "response" in result:
+            return result["response"]
+
+        # If result is a string, try parsing as JSON
+        if isinstance(result, str):
+            parsed = json.loads(result)
+            if isinstance(parsed, dict) and "response" in parsed:
+                return parsed["response"]
+
+        # If result is a list (SDK format), try to extract text and parse
+        if isinstance(result, list) and result:
+            first = result[0]
+            if isinstance(first, dict) and first.get("type") == "text":
+                text = first.get("text", "")
+                parsed = json.loads(text)
+                if isinstance(parsed, dict) and "response" in parsed:
+                    return parsed["response"]
+
+        logger.warning(f"Could not extract Larry response from result: {type(result)}")
+        return None
+    except (json.JSONDecodeError, KeyError, TypeError) as e:
+        logger.warning(f"Failed to parse Larry response: {e}")
+        return None
+
+
+async def larry_history_hook(
+    hook_input: HookInput,
+    tool_use_id: str | None,
+    context: HookContext,
+) -> HookJSONOutput:
+    """PreToolUse hook to inject Larry conversation history into Task calls."""
+    if hook_input["hook_event_name"] != "PreToolUse":
+        return {}
+
+    if hook_input["tool_name"] != "Task":
+        return {}
+
+    tool_input = hook_input["tool_input"]
+    if tool_input.get("subagent_type") != "larry":
+        return {}
+
+    # Get our session_id from SDK's session_id via reverse map
+    sdk_session_id = hook_input["session_id"]
+    session_id = _sdk_to_session.get(sdk_session_id)
+    if not session_id:
+        logger.warning(f"No session mapping for SDK session {sdk_session_id}")
+        return {}
+
+    history = _larry_sessions.get(session_id, [])
+    if not history:
+        return {}  # No history to inject, first turn
+
+    # Build history string
+    history_text = "\n".join([f"Larry: {h['larry']}\nUser: {h['user']}" for h in history])
+
+    # Prepend to prompt
+    original_prompt = tool_input.get("prompt", "")
+    enriched_prompt = f"Previous PWS conversation:\n{history_text}\n\n{original_prompt}"
+
+    logger.info(f"Injecting {len(history)} Larry exchanges into Task prompt")
+
+    return {
+        "hookEventName": "PreToolUse",
+        "updatedInput": {**tool_input, "prompt": enriched_prompt},
+    }
 
 
 async def cleanup_session(session_id: str):
@@ -407,6 +644,14 @@ async def process_message(message, run_id: str, session_id: str, text_started: b
                     yield format_sse_event("TextEnd", {})
                     text_started = False
 
+                # Track Larry Task calls for history capture
+                if block.name == "Task" and block.input.get("subagent_type") == "larry":
+                    _pending_larry_calls[block.id] = {
+                        "session_id": session_id,
+                        "user_prompt": block.input.get("prompt", ""),
+                    }
+                    logger.debug(f"Tracking Larry call: {block.id}")
+
                 # Emit tool started
                 yield format_sse_event(
                     "ToolStarted",
@@ -458,6 +703,18 @@ async def process_message(message, run_id: str, session_id: str, text_started: b
                                 result = parsed.get("result", parsed)
                             except json.JSONDecodeError:
                                 result = first.get("text", "")
+
+                    # Capture Larry exchange if this was a Larry Task
+                    if block.tool_use_id in _pending_larry_calls:
+                        pending = _pending_larry_calls.pop(block.tool_use_id)
+                        larry_response = _extract_larry_response(result)
+                        if larry_response:
+                            store_larry_exchange(
+                                pending["session_id"],
+                                pending["user_prompt"],
+                                larry_response,
+                            )
+
                     yield format_sse_event(
                         "ToolCompleted",
                         {

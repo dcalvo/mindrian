@@ -68,8 +68,11 @@ Requires `ANTHROPIC_API_KEY` environment variable (loaded from `.env`).
 | Agent | Description | Tools | Model |
 |-------|-------------|-------|-------|
 | `explore` | Deep workspace exploration | read-only document tools | haiku |
+| `larry` | PWS thinking partner for formalizing ideas/problems | none (pure thinking) | opus |
 
 The explore agent is invoked via the Task tool when users ask exploratory questions like "what do I have about X?" It thoroughly searches documents and returns a comprehensive summary.
+
+The larry agent is invoked when users explicitly ask for help thinking through something (e.g., "help me think through this idea"). Larry uses the PWS (Problems Worth Solving) methodology to guide users from vague uncertainty to crystallized clarity through Socratic questioning. When clarity is reached, the main agent offers to save the formalized problem as a structured document.
 
 ## API Endpoints
 
