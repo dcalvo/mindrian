@@ -35,6 +35,7 @@ export function ChatPane({ onCollapse, workspaceId }: ChatPaneProps) {
   const [input, setInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const openedDocsRef = useRef<Set<string>>(new Set());
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Derive computed values from conversation
   const messages = useMemo(
@@ -98,12 +99,27 @@ export function ChatPane({ onCollapse, workspaceId }: ChatPaneProps) {
     }
   }, [messages, documents, openDocument]);
 
+  // Auto-resize textarea based on content
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    textarea.style.height = "auto";
+    textarea.style.height = `${textarea.scrollHeight}px`;
+  }, [input]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || status !== "idle") return;
 
     sendMessage(input.trim());
     setInput("");
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit(e);
+    }
   };
 
   const getStatusText = () => {
@@ -184,15 +200,17 @@ export function ChatPane({ onCollapse, workspaceId }: ChatPaneProps) {
               </div>
             )}
             <form className="chat-input-form" onSubmit={handleSubmit}>
-              <input
-                type="text"
+              <textarea
+                ref={textareaRef}
                 className="chat-input"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
                 placeholder={
                   status === "idle" ? "Type a message..." : "Waiting..."
                 }
                 disabled={status !== "idle"}
+                rows={1}
               />
               <button
                 type="submit"
