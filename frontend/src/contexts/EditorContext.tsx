@@ -6,6 +6,7 @@ import React, {
   useEffect,
   type ReactNode,
 } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import type { Document } from "../lib/api";
 import { useWorkspacesContext } from "./WorkspacesContext";
 import { useDocumentsContext } from "./DocumentsContext";
@@ -27,6 +28,7 @@ export const EditorProvider: React.FC<{ children: ReactNode }> = ({
   const [activeDocumentId, setActiveDocumentId] = useState<string | null>(null);
   const { currentWorkspaceId } = useWorkspacesContext();
   const { documents } = useDocumentsContext();
+  const navigate = useNavigate();
 
   // Reset editor state when workspace changes
   useEffect(() => {
@@ -55,16 +57,23 @@ export const EditorProvider: React.FC<{ children: ReactNode }> = ({
     });
   }, [documents]);
 
-  const openDocument = useCallback((doc: Document) => {
-    setOpenDocuments((prev) => {
-      // Add if not already open
-      if (!prev.find((d) => d.id === doc.id)) {
-        return [...prev, doc];
-      }
-      return prev;
-    });
-    setActiveDocumentId(doc.id);
-  }, []);
+  const openDocument = useCallback(
+    (doc: Document) => {
+      setOpenDocuments((prev) => {
+        // Add if not already open
+        if (!prev.find((d) => d.id === doc.id)) {
+          return [...prev, doc];
+        }
+        return prev;
+      });
+      setActiveDocumentId(doc.id);
+      navigate({
+        to: "/document/$documentId",
+        params: { documentId: doc.id },
+      });
+    },
+    [navigate]
+  );
 
   const closeDocument = useCallback((docId: string) => {
     setOpenDocuments((prev) => {
