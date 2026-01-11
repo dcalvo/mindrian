@@ -487,6 +487,26 @@
   gap: 8px;
 }
 
+.tool-call-header.clickable {
+  cursor: pointer;
+  border-radius: 6px;
+  margin: -4px -6px;
+  padding: 4px 6px;
+  transition: background-color 0.15s ease;
+}
+
+.tool-call-header.clickable:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.tool-call-expand-icon {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  margin-left: 4px;
+  display: inline-block;
+  transform: scale(2);
+}
+
 .tool-call-status-icon {
   font-size: 0.9rem;
   width: 1.25rem;
@@ -610,6 +630,8 @@
 .tool-call-toggle-icon {
   font-size: 0.625rem;
   width: 0.75rem;
+  display: inline-block;
+  transform: scale(2);
 }
 
 .tool-call-json {

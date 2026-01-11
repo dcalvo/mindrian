@@ -42,7 +42,17 @@ const STATUS_CONFIG: Record<
   cancelled: { icon: "○", label: "Cancelled", className: "cancelled" },
 };
 
+// Statuses where the tool call is "done" and can be collapsed
+const TERMINAL_STATUSES = new Set<ToolCallMessage["status"]>([
+  "completed",
+  "failed",
+  "rejected",
+  "cancelled",
+]);
+
 export function ToolCallDisplay({ tool }: ToolCallDisplayProps) {
+  const isTerminal = TERMINAL_STATUSES.has(tool.status);
+  const [collapsed, setCollapsed] = useState(true);
   const [argsExpanded, setArgsExpanded] = useState(false);
   const [resultExpanded, setResultExpanded] = useState(false);
 
@@ -52,10 +62,18 @@ export function ToolCallDisplay({ tool }: ToolCallDisplayProps) {
   const hasError = tool.status === "failed" && tool.error;
   const hasRejectionReason =
     tool.status === "rejected" && tool.rejection_reason;
+  const hasContent = hasArgs || hasResult || hasError || hasRejectionReason;
 
   return (
-    <div className={`tool-call ${config.className}`}>
-      <div className="tool-call-header">
+    <div
+      className={`tool-call ${config.className}${collapsed ? " collapsed" : ""}`}
+    >
+      <div
+        className={`tool-call-header${isTerminal && hasContent ? " clickable" : ""}`}
+        onClick={
+          isTerminal && hasContent ? () => setCollapsed(!collapsed) : undefined
+        }
+      >
         <span className={`tool-call-status-icon ${config.className}`}>
           {config.icon}
         </span>
@@ -63,57 +81,64 @@ export function ToolCallDisplay({ tool }: ToolCallDisplayProps) {
           {formatToolName(tool.name, tool.arguments)}
         </span>
         <span className="tool-call-status-label">{config.label}</span>
+        {isTerminal && hasContent && (
+          <span className="tool-call-expand-icon">{collapsed ? "▸" : "▾"}</span>
+        )}
       </div>
 
-      {hasArgs && (
-        <div className="tool-call-section">
-          <button
-            className="tool-call-toggle"
-            onClick={() => setArgsExpanded(!argsExpanded)}
-          >
-            <span className="tool-call-toggle-icon">
-              {argsExpanded ? "▾" : "▸"}
-            </span>
-            Arguments
-          </button>
-          {argsExpanded && (
-            <pre className="tool-call-json">
-              {JSON.stringify(tool.arguments, null, 2)}
-            </pre>
+      {!collapsed && (
+        <>
+          {hasArgs && (
+            <div className="tool-call-section">
+              <button
+                className="tool-call-toggle"
+                onClick={() => setArgsExpanded(!argsExpanded)}
+              >
+                <span className="tool-call-toggle-icon">
+                  {argsExpanded ? "▾" : "▸"}
+                </span>
+                Arguments
+              </button>
+              {argsExpanded && (
+                <pre className="tool-call-json">
+                  {JSON.stringify(tool.arguments, null, 2)}
+                </pre>
+              )}
+            </div>
           )}
-        </div>
-      )}
 
-      {hasResult && (
-        <div className="tool-call-section">
-          <button
-            className="tool-call-toggle"
-            onClick={() => setResultExpanded(!resultExpanded)}
-          >
-            <span className="tool-call-toggle-icon">
-              {resultExpanded ? "▾" : "▸"}
-            </span>
-            Result
-          </button>
-          {resultExpanded && (
-            <pre className="tool-call-json">
-              {JSON.stringify(tool.result, null, 2)}
-            </pre>
+          {hasResult && (
+            <div className="tool-call-section">
+              <button
+                className="tool-call-toggle"
+                onClick={() => setResultExpanded(!resultExpanded)}
+              >
+                <span className="tool-call-toggle-icon">
+                  {resultExpanded ? "▾" : "▸"}
+                </span>
+                Result
+              </button>
+              {resultExpanded && (
+                <pre className="tool-call-json">
+                  {JSON.stringify(tool.result, null, 2)}
+                </pre>
+              )}
+            </div>
           )}
-        </div>
-      )}
 
-      {hasError && (
-        <div className="tool-call-error">
-          <span className="tool-call-error-label">Error:</span> {tool.error}
-        </div>
-      )}
+          {hasError && (
+            <div className="tool-call-error">
+              <span className="tool-call-error-label">Error:</span> {tool.error}
+            </div>
+          )}
 
-      {hasRejectionReason && (
-        <div className="tool-call-rejection">
-          <span className="tool-call-rejection-label">Reason:</span>{" "}
-          {tool.rejection_reason}
-        </div>
+          {hasRejectionReason && (
+            <div className="tool-call-rejection">
+              <span className="tool-call-rejection-label">Reason:</span>{" "}
+              {tool.rejection_reason}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
