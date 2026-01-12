@@ -92,7 +92,7 @@ tools = document_tools + mckinsey_tools + [delegate_task] + (testing_tools if TE
 mindrian_agent = Agent(
     id="mindrian-agent",
     name="Mindrian Supervisor",
-    model=Claude(id="claude-opus-4-5", api_key=api_key),
+    model=Claude(id="claude-sonnet-4-5", api_key=api_key),
     db=db,
     instructions=LEADER_INSTRUCTIONS,
     tools=tools,

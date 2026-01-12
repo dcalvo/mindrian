@@ -8,7 +8,7 @@ from agno.models.anthropic import Claude
 from db.db import DB
 
 larry_team = Team(
-    model=Claude(id="claude-opus-4-5"),
+    model=Claude(id="claude-sonnet-4-5"),
     members=[wickedness_classifier_agent, complexity_assessor_agent, definition_classifier_agent, risk_uncertainty_evaluator_agent],
     instructions=LARRY_SYSTEM_PROMPT,
     name="Larry Navigator",
