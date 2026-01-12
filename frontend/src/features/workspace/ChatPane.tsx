@@ -18,6 +18,51 @@ interface ChatPaneProps {
   workspaceId?: string;
 }
 
+// Conversation starter suggestions
+const SUGGESTIONS = [
+  {
+    label: "Help me think about where AI coding assistants trend is going",
+    prompt: "Help me think about where AI coding assistants trend is going",
+  },
+  {
+    label: "What's happening with the advertising industry structure?",
+    prompt: "What's happening with the advertising industry structure?",
+  },
+  {
+    label: "I want to find opportunities in how people manage finances",
+    prompt: "I want to find opportunities in how people manage finances",
+  },
+  {
+    label: "What opportunities emerge from aging populations?",
+    prompt: "What opportunities emerge from aging populations?",
+  },
+];
+
+/**
+ * Detect which agent sent a specific message by looking at preceding Task calls.
+ * Returns 'larry', 'explore', or null.
+ */
+function detectMessageAgent(
+  messages: Message[],
+  messageIndex: number
+): "larry" | "explore" | null {
+  // Look backwards from this message to find the most recent Task call
+  for (let i = messageIndex - 1; i >= 0; i--) {
+    const msg = messages[i];
+    if (msg.role === "tool_call" && msg.name === "Task") {
+      const args = msg.arguments as { subagent_type?: string };
+      const subagentType = args.subagent_type;
+
+      if (subagentType === "larry") return "larry";
+      if (subagentType === "explore") return "explore";
+    }
+    // Stop searching if we hit a user message (new conversation turn)
+    if (msg.role === "user") break;
+  }
+
+  return null;
+}
+
 export function ChatPane({ onCollapse, workspaceId }: ChatPaneProps) {
   const [conversationId] = useState(() => crypto.randomUUID());
   const {
@@ -160,14 +205,44 @@ export function ChatPane({ onCollapse, workspaceId }: ChatPaneProps) {
       <div className="chat-messages">
         {displayMessages.length === 0 && !streamingMessage && !pendingTool && (
           <div className="chat-empty">
-            Start a conversation with the AI assistant. It can help you create,
-            read, and edit your documents.
+            <div className="chat-empty-text">
+              Start a conversation with the AI assistant. It can help you
+              create, read, and edit your documents.
+            </div>
+            <div className="chat-suggestions">
+              {SUGGESTIONS.map((suggestion, index) => (
+                <button
+                  key={index}
+                  className="chat-suggestion-chip"
+                  onClick={() => {
+                    if (status === "idle") {
+                      sendMessage(suggestion.prompt);
+                    }
+                  }}
+                  disabled={status !== "idle"}
+                >
+                  {suggestion.label}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
-        {displayMessages.map((message: Message) => (
-          <ChatMessage key={message.id} message={message} />
-        ))}
+        {displayMessages.map((message: Message, index: number) => {
+          // Detect which agent sent this message (if it's an agent message)
+          const agentType =
+            message.role === "agent"
+              ? detectMessageAgent(messages, index)
+              : null;
+
+          return (
+            <ChatMessage
+              key={message.id}
+              message={message}
+              agentType={agentType}
+            />
+          );
+        })}
 
         {streamingMessage && (
           <div className="chat-message assistant streaming">

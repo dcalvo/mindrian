@@ -9,9 +9,10 @@ import { ToolCallDisplay } from "./ToolCallDisplay";
 
 interface ChatMessageProps {
   message: Message;
+  agentType?: "larry" | "explore" | null;
 }
 
-export function ChatMessage({ message }: ChatMessageProps) {
+export function ChatMessage({ message, agentType }: ChatMessageProps) {
   // Render tool calls with dedicated component
   if (message.role === "tool_call") {
     return <ToolCallDisplay tool={message as ToolCallMessage} />;
@@ -30,11 +31,24 @@ export function ChatMessage({ message }: ChatMessageProps) {
       })
     : null;
 
+  // Build class names with agent-specific styling
+  const messageClass = [
+    "chat-message",
+    isUser ? "user" : "assistant",
+    agentType && !isUser ? `chat-message--agent-${agentType}` : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
-    <div className={`chat-message ${isUser ? "user" : "assistant"}`}>
+    <div className={messageClass}>
       <div className="chat-message-header">
         <span className="chat-message-role">
-          {isUser ? "You" : "Assistant"}
+          {isUser
+            ? "You"
+            : agentType
+              ? agentType.charAt(0).toUpperCase() + agentType.slice(1)
+              : "Assistant"}
         </span>
         {timestamp && <span className="chat-message-time">{timestamp}</span>}
       </div>
