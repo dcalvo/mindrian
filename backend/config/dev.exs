@@ -84,7 +84,7 @@ config :phoenix_live_view,
 # Disable swoosh api client as it is only required for production adapters.
 config :swoosh, :api_client, false
 
-# Agent service URLs
+# Agent service URLs (Agno on 8000, Claude on 8001)
 config :mindrian, :agno_url, "http://localhost:8000"
 config :mindrian, :claude_agent_url, "http://localhost:8001"
 

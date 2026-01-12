@@ -1,14 +1,14 @@
-defmodule Mindrian.Chat.AgnoServer do
+defmodule Mindrian.Chat.ClaudeAgentServer do
   @moduledoc """
-  Supervises the Agno Python agent process.
+  Supervises the Claude Agent SDK Python process.
 
-  Starts the Agno agent server using uv and uvicorn on port 8000.
+  Starts the Claude agent server using uv and uvicorn on port 8001.
   """
   use GenServer
   require Logger
 
-  @port "8000"
-  @module "mindrian_agent:app"
+  @port "8001"
+  @module "claude_agent_service:app"
 
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
@@ -19,7 +19,7 @@ defmodule Mindrian.Chat.AgnoServer do
     if Application.get_env(:mindrian, :start_agent_server, false) do
       {:ok, %{port: nil}, {:continue, :start_agent}}
     else
-      Logger.info("AgnoServer disabled, not starting Agno agent")
+      Logger.info("ClaudeAgentServer disabled, not starting Claude agent")
       :ignore
     end
   end
@@ -28,7 +28,7 @@ defmodule Mindrian.Chat.AgnoServer do
   def handle_continue(:start_agent, state) do
     agent_dir = agent_directory()
 
-    Logger.info("Starting Agno agent on port #{@port}")
+    Logger.info("Starting Claude agent on port #{@port}")
 
     uv_path = System.find_executable("uv") || "/usr/local/bin/uv"
 
@@ -49,32 +49,29 @@ defmodule Mindrian.Chat.AgnoServer do
 
   @impl true
   def handle_info({port, {:data, data}}, %{port: port} = state) do
-    # Log agent output
     data
     |> String.split("\n", trim: true)
-    |> Enum.each(&Logger.info("[agno] #{&1}"))
+    |> Enum.each(&Logger.info("[claude] #{&1}"))
 
     {:noreply, state}
   end
 
   @impl true
   def handle_info({port, {:exit_status, status}}, %{port: port} = state) do
-    Logger.error("Agno agent exited with status #{status}")
-    # Let the supervisor restart us
-    {:stop, {:agno_exited, status}, state}
+    Logger.error("Claude agent exited with status #{status}")
+    {:stop, {:claude_exited, status}, state}
   end
 
   @impl true
   def handle_info(msg, state) do
-    Logger.debug("AgnoServer received unexpected message: #{inspect(msg)}")
+    Logger.debug("ClaudeAgentServer received unexpected message: #{inspect(msg)}")
     {:noreply, state}
   end
 
   @impl true
   def terminate(_reason, %{port: port}) when is_port(port) do
-    Logger.info("Stopping Agno agent")
+    Logger.info("Stopping Claude agent")
 
-    # Port may already be closed if we're terminating due to exit_status
     try do
       Port.close(port)
     rescue
@@ -86,10 +83,10 @@ defmodule Mindrian.Chat.AgnoServer do
 
   def terminate(_reason, _state), do: :ok
 
-  # In development, agent dir is at ../agent relative to backend
-  # In production (release), it's at /app/agno_agent
+  # In development, agent dir is at ../claude_agent relative to backend
+  # In production (release), it's at /app/claude_agent
   defp agent_directory do
-    Application.get_env(:mindrian, :agno_agent_directory) ||
-      Path.expand("../agent", File.cwd!())
+    Application.get_env(:mindrian, :claude_agent_directory) ||
+      Path.expand("../claude_agent", File.cwd!())
   end
 end

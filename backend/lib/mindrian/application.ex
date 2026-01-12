@@ -19,8 +19,9 @@ defmodule Mindrian.Application do
       {Registry, keys: :unique, name: Mindrian.ConversationServerRegistry},
       # Task supervisor for ConversationServer driver tasks
       {Task.Supervisor, name: Mindrian.DriverTaskSupervisor},
-      # Agno agent server (controlled by :start_agent_server config)
+      # Python agent servers (controlled by :start_agent_server config)
       Mindrian.Chat.AgnoServer,
+      Mindrian.Chat.ClaudeAgentServer,
       # Start to serve requests, typically the last entry
       MindrianWeb.Endpoint
     ]

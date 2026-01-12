@@ -72,26 +72,37 @@ COPY backend/config/runtime.exs config/
 COPY backend/rel rel
 RUN mix release
 
-# Python agent build stage - use debian to match runner
+# Agno agent build stage
 ARG RUNNER_IMAGE
-FROM ${RUNNER_IMAGE} AS agent-builder
+FROM ${RUNNER_IMAGE} AS agno-builder
 
-# Install Python and uv
 RUN apt-get update \
   && apt-get install -y --no-install-recommends python3 python3-venv \
   && rm -rf /var/lib/apt/lists/*
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
-WORKDIR /app/agent
+WORKDIR /app/agno_agent
 COPY agent/pyproject.toml agent/uv.lock ./
 COPY agent/tools ./tools
-
-# Sync dependencies (creates .venv with correct Python path)
 RUN uv sync --frozen
-
-# Copy the rest of the agent code
 COPY agent/*.py ./
+
+# Claude Agent SDK build stage
+ARG RUNNER_IMAGE
+FROM ${RUNNER_IMAGE} AS claude-builder
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends python3 python3-venv \
+  && rm -rf /var/lib/apt/lists/*
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+WORKDIR /app/claude_agent
+COPY claude_agent/pyproject.toml claude_agent/uv.lock ./
+COPY claude_agent/mcp_tools ./mcp_tools
+RUN uv sync --frozen
+COPY claude_agent/*.py ./
 
 # start a new build stage so that the final image will only contain
 # the compiled release and other runtime necessities
@@ -123,20 +134,21 @@ ENV MIX_ENV="prod"
 # Copy the Elixir release
 COPY --from=builder --chown=nobody:root /app/_build/${MIX_ENV}/rel/mindrian ./
 
-# Copy the Python agent with its virtual environment
-COPY --from=agent-builder --chown=nobody:root /app/agent /app/agent
+# Copy both Python agents with their virtual environments
+COPY --from=agno-builder --chown=nobody:root /app/agno_agent /app/agno_agent
+COPY --from=claude-builder --chown=nobody:root /app/claude_agent /app/claude_agent
 
-# Configure agent server
-ENV AGENT_DIRECTORY="/app/agent"
-ENV AGENT_PORT="8000"
+# Configure agent servers (both run, Claude is default driver)
 ENV START_AGENT_SERVER="true"
+ENV AGNO_AGENT_DIRECTORY="/app/agno_agent"
+ENV CLAUDE_AGENT_DIRECTORY="/app/claude_agent"
 ENV AGNO_URL="http://localhost:8000"
+ENV CLAUDE_AGENT_URL="http://localhost:8001"
 ENV PHOENIX_URL="http://localhost:8080"
-ENV UV_CACHE_DIR="/app/agent/.uv-cache"
 ENV HOME="/app"
 
-# Create tmp and cache directories for agent
-RUN mkdir -p /app/agent/tmp /app/agent/.uv-cache && chown -R nobody:nogroup /app
+# Create tmp and cache directories for both agents
+RUN mkdir -p /app/agno_agent/tmp /app/claude_agent/tmp && chown -R nobody:nogroup /app
 
 USER nobody
 
