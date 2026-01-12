@@ -6,6 +6,10 @@ import type { ToolCallMessage } from "../../hooks/chat/useChat";
 const SUBAGENT_LABELS: Record<string, string> = {
   explore: "Exploring workspace...",
   larry: "Thinking with Larry...",
+  trending_to_absurd: "Trending to the Absurd...",
+  dominant_design: "Analyzing Dominant Design...",
+  user_process: "Mapping User Process...",
+  macro_changes: "Exploring Macro Changes...",
 };
 
 function formatToolName(name: string, args?: Record<string, unknown>): string {
