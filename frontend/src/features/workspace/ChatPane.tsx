@@ -88,6 +88,9 @@ export function ChatPane({
   const { documents } = useDocumentsContext();
 
   const [input, setInput] = useState("");
+  const [selectedAgent, setSelectedAgent] = useState<
+    "larry" | "explore" | null
+  >(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const openedDocsRef = useRef<Set<string>>(new Set());
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -166,7 +169,12 @@ export function ChatPane({
     e.preventDefault();
     if (!input.trim() || status !== "idle") return;
 
-    sendMessage(input.trim());
+    // Prepend agent mention if one is selected
+    const messageToSend = selectedAgent
+      ? `@${selectedAgent} ${input.trim()}`
+      : input.trim();
+
+    sendMessage(messageToSend);
     setInput("");
   };
 
@@ -295,6 +303,38 @@ export function ChatPane({
                 {getStatusText()}
               </div>
             )}
+            <div className="agent-mentions">
+              <button
+                type="button"
+                className={`agent-mention-btn agent-mention-larry ${selectedAgent === "larry" ? "selected" : ""}`}
+                onClick={() => {
+                  if (status === "idle") {
+                    setSelectedAgent(
+                      selectedAgent === "larry" ? null : "larry"
+                    );
+                  }
+                }}
+                disabled={status !== "idle"}
+                title="Mention Larry (coding assistant)"
+              >
+                @larry
+              </button>
+              <button
+                type="button"
+                className={`agent-mention-btn agent-mention-explore ${selectedAgent === "explore" ? "selected" : ""}`}
+                onClick={() => {
+                  if (status === "idle") {
+                    setSelectedAgent(
+                      selectedAgent === "explore" ? null : "explore"
+                    );
+                  }
+                }}
+                disabled={status !== "idle"}
+                title="Mention Explore (research assistant)"
+              >
+                @explore
+              </button>
+            </div>
             <form className="chat-input-form" onSubmit={handleSubmit}>
               <textarea
                 ref={textareaRef}
