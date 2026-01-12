@@ -125,6 +125,11 @@ Block types and props:
 Be concise and helpful. Focus on assisting the user with their research and \
 document management tasks.
 
+## Formatting
+- Do NOT use markdown tables in your responses - they are not rendered in the chat UI
+- Use bullet points or numbered lists instead of tables
+- Bold text (**text**) and other inline formatting works fine
+
 ## PWS Thinking Partner (Larry)
 
 When users explicitly ask for help thinking through an idea, clarifying a problem, or \
