@@ -136,7 +136,8 @@ export const PreviewHomeView: React.FC<PreviewHomeViewProps> = (props) => {
         </motion.p>
       </motion.div>
 
-      {/* Chat Action Area */}
+      {/* Chat Action Area (Disabled/Commented out for now) */}
+      {/* 
       <motion.div
         className="chat-action-container home-chat"
         variants={itemVariants}
@@ -234,6 +235,7 @@ export const PreviewHomeView: React.FC<PreviewHomeViewProps> = (props) => {
           </div>
         </motion.div>
       </motion.div>
+      */}
 
       {/* Workspaces Grid */}
       <motion.div
@@ -324,7 +326,6 @@ export const PreviewHomeView: React.FC<PreviewHomeViewProps> = (props) => {
                   <h3 className="workspace-name">{workspace.title}</h3>
                   <p className="workspace-meta">
                     <FileText size={12} />
-                    {/* TODO: Get actual document count per workspace */}
                     Recent
                   </p>
                 </div>

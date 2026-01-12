@@ -278,7 +278,10 @@ export const WorkspaceSidebar: React.FC = () => {
 
         {/* Resize Handle */}
         {isOpen && (
-          <div className="resize-handle-vertical" onMouseDown={startResizing} />
+          <div
+            className={`resize-handle-vertical ${isResizing ? "resizing" : ""}`}
+            onMouseDown={startResizing}
+          />
         )}
       </motion.aside>
     </>
