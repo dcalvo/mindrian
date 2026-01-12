@@ -1,9 +1,9 @@
 import React from "react";
-import { motion, AnimatePresence, type Variants } from "framer-motion";
-import { Plus, ChevronDown, ChevronRight, FileText } from "lucide-react";
+import { motion, type Variants } from "framer-motion";
+import { Plus, ChevronRight, FileText } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useWorkspacesContext } from "../../contexts/WorkspacesContext";
-import { usePreviewChat, type Agent } from "../../hooks/chat/usePreviewChat";
+import { type Agent } from "../../hooks/chat/usePreviewChat";
 import {
   Briefcase,
   TrendingUp,
@@ -52,22 +52,7 @@ export const PreviewHomeView: React.FC<PreviewHomeViewProps> = (props) => {
   const { workspaces } = useWorkspacesContext();
   const navigate = useNavigate();
 
-  // Use chat hook if props not provided
-  const chatHook = usePreviewChat();
-
   const itemVariants = props.itemVariants ?? DEFAULT_ITEM_VARIANTS;
-  const isChatMode = props.isChatMode ?? chatHook.isChatMode;
-  const isDropdownOpen = props.isDropdownOpen ?? chatHook.isDropdownOpen;
-  const setIsDropdownOpen =
-    props.setIsDropdownOpen ?? chatHook.setIsDropdownOpen;
-  const selectedAgent = props.selectedAgent ?? chatHook.selectedAgent;
-  const setSelectedAgent = props.setSelectedAgent ?? chatHook.setSelectedAgent;
-  const chatInput = props.chatInput ?? chatHook.chatInput;
-  const setChatInput = props.setChatInput ?? chatHook.setChatInput;
-  const enterChatMode = props.enterChatMode ?? chatHook.enterChatMode;
-  const handleBlur = props.handleBlur ?? chatHook.handleBlur;
-  const sendMessage = props.sendMessage ?? chatHook.sendMessage;
-  const agents = props.agents ?? chatHook.agents;
 
   const getIcon = (iconId: string) => {
     switch (iconId) {
