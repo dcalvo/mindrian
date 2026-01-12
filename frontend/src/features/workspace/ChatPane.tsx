@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
-import { ArrowUp, PanelRightClose } from "lucide-react";
+import { ArrowUp, PanelRightClose, Maximize2, Minimize2 } from "lucide-react";
 import {
   useChat,
   type AgentMessage,
@@ -15,6 +15,8 @@ import "./ChatPane.css";
 
 interface ChatPaneProps {
   onCollapse?: () => void;
+  onToggleExpand?: () => void;
+  isExpanded?: boolean;
   workspaceId?: string;
 }
 
@@ -44,8 +46,11 @@ const SUGGESTIONS = [
  */
 function detectMessageAgent(
   messages: Message[],
-  messageIndex: number
+  targetMessage: Message
 ): "larry" | "explore" | null {
+  const messageIndex = messages.findIndex((m) => m.id === targetMessage.id);
+  if (messageIndex === -1) return null;
+
   // Look backwards from this message to find the most recent Task call
   for (let i = messageIndex - 1; i >= 0; i--) {
     const msg = messages[i];
@@ -63,7 +68,12 @@ function detectMessageAgent(
   return null;
 }
 
-export function ChatPane({ onCollapse, workspaceId }: ChatPaneProps) {
+export function ChatPane({
+  onCollapse,
+  onToggleExpand,
+  isExpanded,
+  workspaceId,
+}: ChatPaneProps) {
   const [conversationId] = useState(() => crypto.randomUUID());
   const {
     conversation,
@@ -182,7 +192,7 @@ export function ChatPane({ onCollapse, workspaceId }: ChatPaneProps) {
     <aside className="chat-pane">
       <div className="chat-header">
         <div className="chat-header-left">
-          {onCollapse && (
+          {onCollapse && !isExpanded && (
             <button
               className="chat-collapse-btn"
               onClick={onCollapse}
@@ -193,11 +203,22 @@ export function ChatPane({ onCollapse, workspaceId }: ChatPaneProps) {
           )}
           <h3>Chat</h3>
         </div>
-        {status !== "idle" && (
-          <button className="chat-cancel-btn" onClick={cancel} title="Cancel">
-            Cancel
-          </button>
-        )}
+        <div className="chat-header-right">
+          {onToggleExpand && (
+            <button
+              className="chat-expand-btn"
+              onClick={onToggleExpand}
+              title={isExpanded ? "Restore Panel" : "Maximize Panel"}
+            >
+              {isExpanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+            </button>
+          )}
+          {status !== "idle" && (
+            <button className="chat-cancel-btn" onClick={cancel} title="Cancel">
+              Cancel
+            </button>
+          )}
+        </div>
       </div>
 
       {error && <div className="chat-error">{error}</div>}
@@ -228,11 +249,11 @@ export function ChatPane({ onCollapse, workspaceId }: ChatPaneProps) {
           </div>
         )}
 
-        {displayMessages.map((message: Message, index: number) => {
+        {displayMessages.map((message: Message) => {
           // Detect which agent sent this message (if it's an agent message)
           const agentType =
             message.role === "agent"
-              ? detectMessageAgent(messages, index)
+              ? detectMessageAgent(messages, message)
               : null;
 
           return (

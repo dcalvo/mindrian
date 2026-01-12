@@ -87,11 +87,22 @@
   min-width: 280px;
   max-width: 600px;
   flex-shrink: 0;
-  background: linear-gradient(180deg, #fafbfc 0%, #f5f7f9 100%);
+  background: white;
   border-left: 1px solid rgba(0, 0, 0, 0.06);
   position: relative;
   display: flex;
   flex-direction: column;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.workspace-chat-sidebar.full-view {
+  width: 100% !important;
+  max-width: none !important;
+  border-left: none;
+}
+
+.workspace-unified-container.chat-expanded {
+  background: white;
 }
 
 /* Resize handle for chat panel */

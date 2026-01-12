@@ -35,8 +35,15 @@ export const WorkspaceDetailView: React.FC = () => {
   // Chat panel resize state
   const [chatWidth, setChatWidth] = useState(DEFAULT_CHAT_WIDTH);
   const [isChatOpen, setIsChatOpen] = useState(true);
+  const [isChatExpanded, setIsChatExpanded] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Toggle chat expansion
+  const toggleChatExpand = useCallback(() => {
+    setIsChatExpanded((prev) => !prev);
+    if (!isChatOpen) setIsChatOpen(true);
+  }, [isChatOpen]);
 
   // Handle resize drag
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -45,7 +52,7 @@ export const WorkspaceDetailView: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (!isDragging) return;
+    if (!isDragging || isChatExpanded) return;
 
     const handleMouseMove = (e: MouseEvent) => {
       if (!containerRef.current) return;
@@ -71,7 +78,7 @@ export const WorkspaceDetailView: React.FC = () => {
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
     };
-  }, [isDragging]);
+  }, [isDragging, isChatExpanded]);
 
   // Set the current workspace when this view loads
   useEffect(() => {
@@ -96,47 +103,62 @@ export const WorkspaceDetailView: React.FC = () => {
       animate="visible"
       exit="exit"
     >
-      <div className="workspace-unified-container" ref={containerRef}>
+      <div
+        className={`workspace-unified-container ${
+          isChatExpanded ? "chat-expanded" : ""
+        }`}
+        ref={containerRef}
+      >
         {/* Left Panel: Workspace Identity + File System */}
-        <WorkspaceSidebar />
+        {!isChatExpanded && <WorkspaceSidebar />}
 
         {/* Middle Panel: Collaborative Editor */}
-        <main className="workspace-panel workspace-editor">
-          <EditorTabs />
-          {activeDocument ? (
-            <div className="editor-container">
-              <CollaborativeEditor
-                key={activeDocument.id}
-                docId={activeDocument.id}
-              />
-            </div>
-          ) : (
-            <div className="editor-empty-state">
-              <div className="empty-icon">
-                <FileText size={48} strokeWidth={1} />
+        {!isChatExpanded && (
+          <main className="workspace-panel workspace-editor">
+            <EditorTabs />
+            {activeDocument ? (
+              <div className="editor-container">
+                <CollaborativeEditor
+                  key={activeDocument.id}
+                  docId={activeDocument.id}
+                />
               </div>
-              <h3>Select a document</h3>
-              <p>Pick a document from the sidebar to start working</p>
-            </div>
-          )}
-        </main>
+            ) : (
+              <div className="editor-empty-state">
+                <div className="empty-icon">
+                  <FileText size={48} strokeWidth={1} />
+                </div>
+                <h3>Select a document</h3>
+                <p>Pick a document from the sidebar to start working</p>
+              </div>
+            )}
+          </main>
+        )}
 
         {/* Right Panel: Contextual Chat */}
         <div
           className={`workspace-panel workspace-chat-sidebar ${
             !isChatOpen ? "workspace-chat-collapsed" : ""
-          }`}
-          style={isChatOpen ? { width: chatWidth } : undefined}
+          } ${isChatExpanded ? "full-view" : ""}`}
+          style={
+            isChatOpen && !isChatExpanded ? { width: chatWidth } : undefined
+          }
           onClick={!isChatOpen ? () => setIsChatOpen(true) : undefined}
         >
           {isChatOpen ? (
             <>
-              <div
-                className={`chat-resize-handle ${isDragging ? "dragging" : ""}`}
-                onMouseDown={handleMouseDown}
-              />
+              {isChatOpen && !isChatExpanded && (
+                <div
+                  className={`chat-resize-handle ${
+                    isDragging ? "dragging" : ""
+                  }`}
+                  onMouseDown={handleMouseDown}
+                />
+              )}
               <ChatPane
                 onCollapse={() => setIsChatOpen(false)}
+                onToggleExpand={toggleChatExpand}
+                isExpanded={isChatExpanded}
                 workspaceId={workspaceId}
               />
             </>
