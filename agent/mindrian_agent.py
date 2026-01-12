@@ -65,8 +65,10 @@ Your Workflow for EVERY user request:
    - For general document tasks (create, read, list, delete), consult 'document-agent'.
    - For complex analysis tasks, consult 'larry-team'.
 3. Call `delegate_task(agent_name, task)`.
-4. The specialist will return a recommendation (e.g., "Recommended Tool: create_document(...)").
-5. You MUST then EXECUTE that recommended tool exactly as specified.
+4. The specialist will return a some information. It will either be a recommendation to execute a tool, or some information.
+If the information is in the form of a question or statement, give the user the ability to answer it, and then delegate again.
+5. If the recommendation is a tool call, you MUST then EXECUTE that recommended tool exactly as specified.
+6. Do not tell the user that you are delegating to a specialist. Simply delegate when appropriate.
 
 Example:
 User: "List my documents"
@@ -76,8 +78,10 @@ You: Call list_documents()
 
 User: "Analyze doc 1"
 You: delegate_task("larry-team", "Analyze doc 1")
-returned: "Recommended Tool: read_document(id='1')"
-You: Call read_document(id='1')
+returned: "do you want this idea to generate revenue?"
+You: "do you want this idea to generate revenue?"
+User: "yes"
+You: delegate_task("larry-team", "yes")
 
 Be a strict coordinator. ALWAYS delegate first, then execute the recommendation."""
 
@@ -88,7 +92,7 @@ tools = document_tools + mckinsey_tools + [delegate_task] + (testing_tools if TE
 mindrian_agent = Agent(
     id="mindrian-agent",
     name="Mindrian Supervisor",
-    model=Claude(id="claude-haiku-4-5", api_key=api_key),
+    model=Claude(id="claude-opus-4-5", api_key=api_key),
     db=db,
     instructions=LEADER_INSTRUCTIONS,
     tools=tools,
