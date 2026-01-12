@@ -31,8 +31,9 @@ defmodule MindrianWeb.ChatChannel do
   alias Mindrian.Chat.ConversationServer
 
   @impl true
-  def join("chat:" <> conversation_id, _payload, socket) do
+  def join("chat:" <> conversation_id, payload, socket) do
     user_id = socket.assigns.user_id
+    workspace_id = payload["workspace_id"]
 
     # Load user from database
     case Mindrian.Accounts.get_user(user_id) do
@@ -46,7 +47,8 @@ defmodule MindrianWeb.ChatChannel do
         case ConversationServer.start_link(
                scope: scope,
                driver: driver,
-               conversation_id: conversation_id
+               conversation_id: conversation_id,
+               workspace_id: workspace_id
              ) do
           {:ok, pid} ->
             # Subscribe to conversation events

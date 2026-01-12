@@ -1,9 +1,33 @@
+/* eslint-disable react-refresh/only-export-components */
 import { useState, useEffect, useRef, type ReactNode } from "react";
 import type { Channel } from "phoenix";
 import { Presence } from "phoenix";
 import { getSocket } from "../lib/socket";
-import { useAuth } from "../hooks/useAuth";
-import { PresenceContext, type PresenceUser } from "./presence";
+import { useAuth } from "../hooks/auth/useAuth";
+import { createContext, useContext } from "react";
+
+export interface PresenceUser {
+  id: string;
+  email: string;
+}
+
+export interface PresenceContextValue {
+  users: PresenceUser[];
+  loading: boolean;
+  error: string | null;
+}
+
+export const PresenceContext = createContext<PresenceContextValue | null>(null);
+
+export function usePresenceContext() {
+  const context = useContext(PresenceContext);
+  if (!context) {
+    throw new Error(
+      "usePresenceContext must be used within a PresenceProvider"
+    );
+  }
+  return context;
+}
 
 export function PresenceProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();

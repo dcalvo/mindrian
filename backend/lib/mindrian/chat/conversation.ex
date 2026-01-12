@@ -64,19 +64,20 @@ defmodule Mindrian.Chat.Conversation do
   @type t :: %__MODULE__{
           id: String.t(),
           scope: Scope.t() | nil,
+          workspace_id: String.t() | nil,
           status: status(),
           messages: [Message.t()],
           pending_error: String.t() | nil
         }
 
-  defstruct [:id, :scope, status: :idle, messages: [], pending_error: nil]
+  defstruct [:id, :scope, :workspace_id, status: :idle, messages: [], pending_error: nil]
 
   @doc """
-  Create a new conversation with the given ID and scope.
+  Create a new conversation with the given ID, scope, and optional workspace ID.
   """
-  @spec new(String.t(), Scope.t()) :: t()
-  def new(id, scope) do
-    %__MODULE__{id: id, scope: scope}
+  @spec new(String.t(), Scope.t(), String.t() | nil) :: t()
+  def new(id, scope, workspace_id \\ nil) do
+    %__MODULE__{id: id, scope: scope, workspace_id: workspace_id}
   end
 
   # ---------------------------------------------------------------------------
@@ -393,7 +394,7 @@ defmodule Mindrian.Chat.Conversation do
          end) do
       {:ok, messages} ->
         new_conv = %{conv | messages: messages}
-        events = [{:tool_call_completed, tool_id}]
+        events = [{:tool_call_completed, tool_id, result}]
         {:ok, new_conv, events}
 
       {:error, reason} ->

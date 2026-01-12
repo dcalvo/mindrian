@@ -12,10 +12,13 @@ defmodule MindrianWeb.API.AgentToolsController do
 
   alias Mindrian.Chat.Tools.{
     ListDocuments,
+    SearchDocuments,
+    GetWorkspaceSummary,
     CreateDocument,
     ReadDocument,
     EditDocument,
-    DeleteDocument
+    DeleteDocument,
+    OpenDocument
   }
 
   plug :load_user_from_body
@@ -23,7 +26,11 @@ defmodule MindrianWeb.API.AgentToolsController do
   defp load_user_from_body(conn, _opts) do
     with %{"user_id" => user_id} when is_binary(user_id) <- conn.body_params,
          user when not is_nil(user) <- Accounts.get_user(user_id) do
-      assign(conn, :current_scope, %Scope{user: user})
+      workspace_id = conn.body_params["workspace_id"]
+
+      conn
+      |> assign(:current_scope, %Scope{user: user})
+      |> assign(:workspace_id, workspace_id)
     else
       _ ->
         conn
@@ -34,11 +41,34 @@ defmodule MindrianWeb.API.AgentToolsController do
   end
 
   def list_documents(conn, params) do
+    params = Map.put(params, "workspace_id", conn.assigns.workspace_id)
     {:ok, result} = ListDocuments.execute(params, conn.assigns.current_scope)
     json(conn, %{success: true, result: result})
   end
 
+  def search_documents(conn, params) do
+    params = Map.put(params, "workspace_id", conn.assigns.workspace_id)
+    {:ok, result} = SearchDocuments.execute(params, conn.assigns.current_scope)
+    json(conn, %{success: true, result: result})
+  end
+
+  def get_workspace_summary(conn, params) do
+    params = Map.put(params, "workspace_id", conn.assigns.workspace_id)
+
+    case GetWorkspaceSummary.execute(params, conn.assigns.current_scope) do
+      {:ok, result} ->
+        json(conn, %{success: true, result: result})
+
+      {:error, reason} ->
+        conn
+        |> put_status(:unprocessable_entity)
+        |> json(%{success: false, error: reason})
+    end
+  end
+
   def create_document(conn, params) do
+    params = Map.put(params, "workspace_id", conn.assigns.workspace_id)
+
     case CreateDocument.execute(params, conn.assigns.current_scope) do
       {:ok, result} ->
         json(conn, %{success: true, result: result})
@@ -51,6 +81,8 @@ defmodule MindrianWeb.API.AgentToolsController do
   end
 
   def read_document(conn, params) do
+    params = Map.put(params, "workspace_id", conn.assigns.workspace_id)
+
     case ReadDocument.execute(params, conn.assigns.current_scope) do
       {:ok, result} ->
         json(conn, %{success: true, result: result})
@@ -63,6 +95,8 @@ defmodule MindrianWeb.API.AgentToolsController do
   end
 
   def edit_document(conn, params) do
+    params = Map.put(params, "workspace_id", conn.assigns.workspace_id)
+
     case EditDocument.execute(params, conn.assigns.current_scope) do
       {:ok, result} ->
         json(conn, %{success: true, result: result})
@@ -75,7 +109,23 @@ defmodule MindrianWeb.API.AgentToolsController do
   end
 
   def delete_document(conn, params) do
+    params = Map.put(params, "workspace_id", conn.assigns.workspace_id)
+
     case DeleteDocument.execute(params, conn.assigns.current_scope) do
+      {:ok, result} ->
+        json(conn, %{success: true, result: result})
+
+      {:error, reason} ->
+        conn
+        |> put_status(:unprocessable_entity)
+        |> json(%{success: false, error: reason})
+    end
+  end
+
+  def open_document(conn, params) do
+    params = Map.put(params, "workspace_id", conn.assigns.workspace_id)
+
+    case OpenDocument.execute(params, conn.assigns.current_scope) do
       {:ok, result} ->
         json(conn, %{success: true, result: result})
 

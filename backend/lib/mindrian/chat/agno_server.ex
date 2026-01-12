@@ -2,13 +2,13 @@ defmodule Mindrian.Chat.AgnoServer do
   @moduledoc """
   Supervises the Agno Python agent process.
 
-  Starts the Agno-based agent server using uv and uvicorn.
-  The agent runs on port 8000 by default.
+  Starts the Agno agent server using uv and uvicorn on port 8000.
   """
   use GenServer
   require Logger
 
-  @default_port "8000"
+  @port "8000"
+  @module "mindrian_agent:app"
 
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
@@ -16,9 +16,8 @@ defmodule Mindrian.Chat.AgnoServer do
 
   @impl true
   def init(_opts) do
-    # Only start if enabled in config
     if Application.get_env(:mindrian, :start_agent_server, false) do
-      {:ok, %{port: nil}, {:continue, :start_agno}}
+      {:ok, %{port: nil}, {:continue, :start_agent}}
     else
       Logger.info("AgnoServer disabled, not starting Agno agent")
       :ignore
@@ -26,16 +25,13 @@ defmodule Mindrian.Chat.AgnoServer do
   end
 
   @impl true
-  def handle_continue(:start_agno, state) do
+  def handle_continue(:start_agent, state) do
     agent_dir = agent_directory()
-    port_number = System.get_env("AGENT_PORT", @default_port)
 
-    Logger.info("Starting Agno agent on port #{port_number}")
+    Logger.info("Starting Agno agent on port #{@port}")
 
     uv_path = System.find_executable("uv") || "/usr/local/bin/uv"
 
-    # Don't specify env - let the subprocess inherit all environment variables
-    # including ANTHROPIC_API_KEY from Fly secrets
     port =
       Port.open(
         {:spawn_executable, uv_path},
@@ -43,15 +39,7 @@ defmodule Mindrian.Chat.AgnoServer do
           :binary,
           :exit_status,
           :stderr_to_stdout,
-          args: [
-            "run",
-            "uvicorn",
-            "mindrian_agent:app",
-            "--host",
-            "0.0.0.0",
-            "--port",
-            port_number
-          ],
+          args: ["run", "uvicorn", @module, "--host", "0.0.0.0", "--port", @port],
           cd: agent_dir
         ]
       )
@@ -99,9 +87,9 @@ defmodule Mindrian.Chat.AgnoServer do
   def terminate(_reason, _state), do: :ok
 
   # In development, agent dir is at ../agent relative to backend
-  # In production (release), it should be configured or at a known path
+  # In production (release), it's at /app/agno_agent
   defp agent_directory do
-    Application.get_env(:mindrian, :agent_directory) ||
+    Application.get_env(:mindrian, :agno_agent_directory) ||
       Path.expand("../agent", File.cwd!())
   end
 end

@@ -44,6 +44,7 @@ defmodule MindrianWeb.Router do
 
     resources "/documents", DocumentController, except: [:new, :edit]
     put "/documents/:id/move", DocumentController, :move
+    resources "/workspaces", WorkspaceController, except: [:new, :edit]
   end
 
   # Agent tool API routes - localhost only, called by Agno microservice
@@ -51,10 +52,13 @@ defmodule MindrianWeb.Router do
     pipe_through [:api, :localhost_only]
 
     post "/list_documents", AgentToolsController, :list_documents
+    post "/search_documents", AgentToolsController, :search_documents
+    post "/get_workspace_summary", AgentToolsController, :get_workspace_summary
     post "/create_document", AgentToolsController, :create_document
     post "/read_document", AgentToolsController, :read_document
     post "/edit_document", AgentToolsController, :edit_document
     post "/delete_document", AgentToolsController, :delete_document
+    post "/open_document", AgentToolsController, :open_document
   end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development
@@ -71,6 +75,13 @@ defmodule MindrianWeb.Router do
 
       live_dashboard "/dashboard", metrics: MindrianWeb.Telemetry
       forward "/mailbox", Plug.Swoosh.MailboxPreview
+    end
+
+    # Dev-only API login for CLI tools (no CSRF required)
+    scope "/dev/api", MindrianWeb.API do
+      pipe_through :api
+
+      post "/login", DevLoginController, :create
     end
   end
 

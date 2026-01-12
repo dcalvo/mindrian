@@ -1,0 +1,2 @@
+#!/bin/bash
+cd claude_agent && uv run uvicorn claude_agent_service:app --port 8001 --reload

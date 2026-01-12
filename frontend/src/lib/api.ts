@@ -30,6 +30,17 @@ export interface Document {
   updated_at: string;
 }
 
+export interface Workspace {
+  id: string;
+  title: string;
+  icon: string;
+  bg_color: string;
+  icon_color: string;
+  owner_id: string;
+  inserted_at: string;
+  updated_at: string;
+}
+
 export type FileSystemItem = Folder | Document;
 
 export interface ApiError {
@@ -74,6 +85,68 @@ export async function checkHealth(): Promise<{ status: string }> {
 }
 
 // =============================================================================
+// WORKSPACE API
+// =============================================================================
+
+interface ListWorkspacesResponse {
+  data: Workspace[];
+}
+
+interface WorkspaceResponse {
+  data: Workspace;
+}
+
+export async function listWorkspaces(): Promise<Workspace[]> {
+  const response = await fetchApi<ListWorkspacesResponse>("/workspaces");
+  return response.data;
+}
+
+export async function getWorkspace(id: string): Promise<Workspace> {
+  const response = await fetchApi<WorkspaceResponse>(`/workspaces/${id}`);
+  return response.data;
+}
+
+export async function createWorkspace(
+  title: string,
+  icon: string,
+  bg_color: string,
+  icon_color: string
+): Promise<Workspace> {
+  const response = await fetchApi<WorkspaceResponse>("/workspaces", {
+    method: "POST",
+    body: JSON.stringify({
+      workspace: { title, icon, bg_color, icon_color },
+    }),
+  });
+  return response.data;
+}
+
+export async function updateWorkspace(
+  id: string,
+  updates: Partial<
+    Pick<Workspace, "title" | "icon" | "bg_color" | "icon_color">
+  >
+): Promise<Workspace> {
+  const response = await fetchApi<WorkspaceResponse>(`/workspaces/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ workspace: updates }),
+  });
+  return response.data;
+}
+
+export async function deleteWorkspace(id: string): Promise<void> {
+  const response = await fetch(`${API_BASE}/workspaces/${id}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || "Failed to delete workspace");
+  }
+}
+
+// =============================================================================
 // FILE SYSTEM API
 // =============================================================================
 
@@ -92,9 +165,13 @@ interface DocumentResponse {
 
 /**
  * Lists all folders and documents for the current user.
+ * Optionally filters by workspace_id.
  */
-export async function listAll(): Promise<ListResponse> {
-  return fetchApi<ListResponse>("/documents");
+export async function listAll(workspaceId?: string): Promise<ListResponse> {
+  const url = workspaceId
+    ? `/documents?workspace_id=${encodeURIComponent(workspaceId)}`
+    : "/documents";
+  return fetchApi<ListResponse>(url);
 }
 
 /**
@@ -110,12 +187,17 @@ export async function getDocument(id: string): Promise<Document> {
  */
 export async function createDocument(
   title?: string,
-  folderId?: string | null
+  folderId?: string | null,
+  workspaceId?: string
 ): Promise<Document> {
   const response = await fetchApi<DocumentResponse>("/documents", {
     method: "POST",
     body: JSON.stringify({
-      document: { title: title || "Untitled", folder_id: folderId || null },
+      document: {
+        title: title || "Untitled",
+        folder_id: folderId || null,
+        workspace_id: workspaceId || null,
+      },
     }),
   });
   return response.document;
@@ -126,7 +208,8 @@ export async function createDocument(
  */
 export async function createFolder(
   title?: string,
-  parentFolderId?: string | null
+  parentFolderId?: string | null,
+  workspaceId?: string
 ): Promise<Folder> {
   const response = await fetchApi<FolderResponse>("/documents", {
     method: "POST",
@@ -134,6 +217,7 @@ export async function createFolder(
       document: {
         title: title || "New Folder",
         parent_folder_id: parentFolderId || null,
+        workspace_id: workspaceId || null,
         is_folder: true,
       },
     }),

@@ -6,7 +6,7 @@ defmodule Mindrian.Documents do
 
   alias Mindrian.Repo
   alias Mindrian.Accounts.Scope
-  alias Mindrian.Documents.{Document, Folder}
+  alias Mindrian.Documents.{Document, Folder, Workspace}
   alias Mindrian.Collaboration.YjsDocument
   alias MindrianWeb.DocumentsChannel
 
@@ -15,41 +15,186 @@ defmodule Mindrian.Documents do
   # =============================================================================
 
   @doc """
-  Lists all folders for the given scope's user, ordered by parent then position.
+  Lists all workspaces for the given scope's user.
   """
-  def list_folders(%Scope{user: user}) do
-    from(f in Folder,
-      where: f.user_id == ^user.id,
-      order_by: [asc: f.position, desc: f.updated_at]
+  def list_workspaces(%Scope{user: user}) do
+    from(w in Workspace,
+      where: w.owner_id == ^user.id,
+      order_by: [desc: w.updated_at]
     )
     |> Repo.all()
+  end
+
+  @doc """
+  Lists all folders for the given scope's user, ordered by parent then position.
+  Optionally filters by workspace_id.
+  When workspace_id is provided, only returns folders with that workspace_id.
+  When workspace_id is nil, excludes folders with NULL workspace_id (legacy items).
+  """
+  def list_folders(%Scope{user: user}, workspace_id \\ nil) do
+    query =
+      from(f in Folder,
+        where: f.user_id == ^user.id,
+        order_by: [asc: f.position, desc: f.updated_at]
+      )
+
+    query =
+      if workspace_id do
+        # Only return folders with the specific workspace_id
+        from(f in query, where: f.workspace_id == ^workspace_id)
+      else
+        # Exclude folders with NULL workspace_id (these are legacy items)
+        from(f in query, where: not is_nil(f.workspace_id))
+      end
+
+    Repo.all(query)
   end
 
   @doc """
   Lists all documents for the given scope's user, ordered by folder then position.
+  Optionally filters by workspace_id.
+  When workspace_id is provided, only returns documents with that workspace_id.
+  When workspace_id is nil, excludes documents with NULL workspace_id (legacy items).
   """
-  def list_documents(%Scope{user: user}) do
-    from(d in Document,
-      where: d.user_id == ^user.id,
-      order_by: [asc: d.position, desc: d.updated_at]
-    )
-    |> Repo.all()
+  def list_documents(%Scope{user: user}, workspace_id \\ nil) do
+    query =
+      from(d in Document,
+        where: d.user_id == ^user.id,
+        order_by: [asc: d.position, desc: d.updated_at]
+      )
+
+    query =
+      if workspace_id do
+        # Only return documents with the specific workspace_id
+        from(d in query, where: d.workspace_id == ^workspace_id)
+      else
+        # Exclude documents with NULL workspace_id (these are legacy items)
+        from(d in query, where: not is_nil(d.workspace_id))
+      end
+
+    Repo.all(query)
   end
 
   @doc """
   Lists all folders and documents for the given scope's user.
+  Optionally filters by workspace_id.
   Returns a map with :folders and :documents keys.
   """
-  def list_all(%Scope{} = scope) do
+  def list_all(%Scope{} = scope, workspace_id \\ nil) do
     %{
-      folders: list_folders(scope),
-      documents: list_documents(scope)
+      folders: list_folders(scope, workspace_id),
+      documents: list_documents(scope, workspace_id)
     }
+  end
+
+  @doc """
+  Searches documents by title and content using PostgreSQL full-text search.
+  Optionally filters by workspace_id.
+  Returns matching documents ranked by relevance, with a highlighted snippet.
+  """
+  def search_documents(%Scope{user: user}, query, workspace_id \\ nil) do
+    search_query = query |> String.trim()
+
+    base_query =
+      from(d in Document,
+        where: d.user_id == ^user.id,
+        where:
+          fragment(
+            "content_tsvector @@ plainto_tsquery('english', ?)",
+            ^search_query
+          ),
+        order_by: [
+          desc:
+            fragment(
+              "ts_rank(content_tsvector, plainto_tsquery('english', ?))",
+              ^search_query
+            ),
+          desc: d.updated_at
+        ],
+        select: %{
+          id: d.id,
+          title: d.title,
+          content_text: d.content_text,
+          inserted_at: d.inserted_at,
+          updated_at: d.updated_at,
+          headline:
+            fragment(
+              "ts_headline('english', ?, plainto_tsquery('english', ?), 'MaxFragments=2, MaxWords=30, MinWords=10')",
+              d.content_text,
+              ^search_query
+            )
+        }
+      )
+
+    base_query =
+      if workspace_id do
+        from(d in base_query, where: d.workspace_id == ^workspace_id)
+      else
+        from(d in base_query, where: not is_nil(d.workspace_id))
+      end
+
+    Repo.all(base_query)
+  end
+
+  @doc """
+  Gets a summary of a workspace including document/folder counts and recent activity.
+  """
+  def get_workspace_summary(%Scope{user: user} = scope, workspace_id) do
+    case get_workspace(scope, workspace_id) do
+      nil ->
+        nil
+
+      workspace ->
+        document_count =
+          from(d in Document,
+            where: d.user_id == ^user.id and d.workspace_id == ^workspace_id,
+            select: count(d.id)
+          )
+          |> Repo.one()
+
+        folder_count =
+          from(f in Folder,
+            where: f.user_id == ^user.id and f.workspace_id == ^workspace_id,
+            select: count(f.id)
+          )
+          |> Repo.one()
+
+        recent_documents =
+          from(d in Document,
+            where: d.user_id == ^user.id and d.workspace_id == ^workspace_id,
+            order_by: [desc: d.updated_at],
+            limit: 5,
+            select: %{id: d.id, title: d.title, updated_at: d.updated_at}
+          )
+          |> Repo.all()
+
+        %{
+          workspace: %{
+            id: workspace.id,
+            title: workspace.title,
+            created_at: workspace.inserted_at,
+            updated_at: workspace.updated_at
+          },
+          document_count: document_count,
+          folder_count: folder_count,
+          recent_documents: recent_documents
+        }
+    end
   end
 
   # =============================================================================
   # GET OPERATIONS
   # =============================================================================
+
+  @doc """
+  Gets a single workspace by ID, scoped to the user.
+  """
+  def get_workspace(%Scope{user: user}, id) do
+    from(w in Workspace,
+      where: w.id == ^id and w.owner_id == ^user.id
+    )
+    |> Repo.one()
+  end
 
   @doc """
   Gets a single folder by ID, scoped to the user.
@@ -86,11 +231,21 @@ defmodule Mindrian.Documents do
   # =============================================================================
 
   @doc """
+  Creates a workspace for the given scope's user.
+  """
+  def create_workspace(%Scope{user: user}, attrs \\ %{}) do
+    %Workspace{owner_id: user.id}
+    |> Workspace.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  @doc """
   Creates a folder for the given scope's user.
   """
   def create_folder(%Scope{user: user}, attrs \\ %{}) do
     parent_folder_id = attrs["parent_folder_id"] || attrs[:parent_folder_id]
-    position = next_folder_position(user.id, parent_folder_id)
+    workspace_id = attrs["workspace_id"] || attrs[:workspace_id]
+    position = next_folder_position(user.id, parent_folder_id, workspace_id)
 
     result =
       %Folder{user_id: user.id, position: position}
@@ -112,7 +267,8 @@ defmodule Mindrian.Documents do
   """
   def create_document(%Scope{user: user}, attrs \\ %{}) do
     folder_id = attrs["folder_id"] || attrs[:folder_id]
-    position = next_document_position(user.id, folder_id)
+    workspace_id = attrs["workspace_id"] || attrs[:workspace_id]
+    position = next_document_position(user.id, folder_id, workspace_id)
 
     result =
       %Document{user_id: user.id, position: position}
@@ -132,6 +288,15 @@ defmodule Mindrian.Documents do
   # =============================================================================
   # UPDATE OPERATIONS
   # =============================================================================
+
+  @doc """
+  Updates a workspace.
+  """
+  def update_workspace(%Workspace{} = workspace, attrs) do
+    workspace
+    |> Workspace.changeset(attrs)
+    |> Repo.update()
+  end
 
   @doc """
   Updates a folder (title, etc).
@@ -209,6 +374,13 @@ defmodule Mindrian.Documents do
   # =============================================================================
 
   @doc """
+  Deletes a workspace.
+  """
+  def delete_workspace(%Workspace{} = workspace) do
+    Repo.delete(workspace)
+  end
+
+  @doc """
   Deletes a folder and all its contents recursively.
   """
   def delete_folder(%Folder{} = folder) do
@@ -259,6 +431,13 @@ defmodule Mindrian.Documents do
   # =============================================================================
 
   @doc """
+  Returns a changeset for tracking workspace changes.
+  """
+  def change_workspace(%Workspace{} = workspace, attrs \\ %{}) do
+    Workspace.changeset(workspace, attrs)
+  end
+
+  @doc """
   Returns a changeset for tracking document changes.
   """
   def change_document(%Document{} = document, attrs \\ %{}) do
@@ -276,18 +455,28 @@ defmodule Mindrian.Documents do
   # PRIVATE FUNCTIONS
   # =============================================================================
 
-  defp next_folder_position(user_id, parent_folder_id) do
+  defp next_folder_position(user_id, parent_folder_id, workspace_id) do
     query =
       if is_nil(parent_folder_id) do
-        from(f in Folder,
-          where: f.user_id == ^user_id and is_nil(f.parent_folder_id),
-          select: max(f.position)
-        )
+        base_query =
+          from(f in Folder, where: f.user_id == ^user_id and is_nil(f.parent_folder_id))
+
+        if workspace_id do
+          from(f in base_query, where: f.workspace_id == ^workspace_id, select: max(f.position))
+        else
+          from(f in base_query, select: max(f.position))
+        end
       else
-        from(f in Folder,
-          where: f.user_id == ^user_id and f.parent_folder_id == ^parent_folder_id,
-          select: max(f.position)
-        )
+        base_query =
+          from(f in Folder,
+            where: f.user_id == ^user_id and f.parent_folder_id == ^parent_folder_id
+          )
+
+        if workspace_id do
+          from(f in base_query, where: f.workspace_id == ^workspace_id, select: max(f.position))
+        else
+          from(f in base_query, select: max(f.position))
+        end
       end
 
     query
@@ -298,18 +487,25 @@ defmodule Mindrian.Documents do
     end
   end
 
-  defp next_document_position(user_id, folder_id) do
+  defp next_document_position(user_id, folder_id, workspace_id) do
     query =
       if is_nil(folder_id) do
-        from(d in Document,
-          where: d.user_id == ^user_id and is_nil(d.folder_id),
-          select: max(d.position)
-        )
+        base_query = from(d in Document, where: d.user_id == ^user_id and is_nil(d.folder_id))
+
+        if workspace_id do
+          from(d in base_query, where: d.workspace_id == ^workspace_id, select: max(d.position))
+        else
+          from(d in base_query, select: max(d.position))
+        end
       else
-        from(d in Document,
-          where: d.user_id == ^user_id and d.folder_id == ^folder_id,
-          select: max(d.position)
-        )
+        base_query =
+          from(d in Document, where: d.user_id == ^user_id and d.folder_id == ^folder_id)
+
+        if workspace_id do
+          from(d in base_query, where: d.workspace_id == ^workspace_id, select: max(d.position))
+        else
+          from(d in base_query, select: max(d.position))
+        end
       end
 
     query
@@ -320,11 +516,13 @@ defmodule Mindrian.Documents do
     end
   end
 
-  defp validate_folder_not_circular(%Folder{id: id}, parent_folder_id) when id == parent_folder_id do
+  defp validate_folder_not_circular(%Folder{id: id}, parent_folder_id)
+       when id == parent_folder_id do
     {:error, :circular_reference}
   end
 
-  defp validate_folder_not_circular(%Folder{id: id}, parent_folder_id) when not is_nil(parent_folder_id) do
+  defp validate_folder_not_circular(%Folder{id: id}, parent_folder_id)
+       when not is_nil(parent_folder_id) do
     if is_folder_descendant?(parent_folder_id, id) do
       {:error, :circular_reference}
     else

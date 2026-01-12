@@ -1,0 +1,266 @@
+/* FileTree - Modern light theme */
+
+.file-tree {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background: transparent;
+}
+
+.file-tree-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 12px 8px;
+}
+
+.file-tree-header h3 {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--preview-text-tertiary);
+}
+
+.file-tree-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.file-tree-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--preview-text-tertiary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.file-tree-action-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--preview-text-primary);
+}
+
+.file-tree-content {
+  flex: 1;
+  overflow: auto;
+  padding: 0 8px 8px;
+}
+
+/* React Arborist node styling */
+.file-node {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 10px;
+  border-radius: 8px;
+  user-select: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  color: var(--preview-text-secondary);
+  margin: 2px 0;
+}
+
+.file-node:hover {
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--preview-text-primary);
+}
+
+.file-node.selected {
+  background: var(--preview-text-primary);
+  color: white;
+}
+
+.file-node.selected:hover {
+  background: var(--preview-text-primary);
+}
+
+.file-node.drop-target {
+  background: rgba(99, 102, 241, 0.1);
+  outline: 2px dashed rgba(99, 102, 241, 0.5);
+  outline-offset: -2px;
+}
+
+.file-node-chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-right: 4px;
+  color: inherit;
+  opacity: 0.5;
+  transition: transform 0.15s ease;
+}
+
+.file-node-chevron.open {
+  transform: rotate(90deg);
+}
+
+.file-node-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
+  color: inherit;
+  opacity: 0.7;
+}
+
+.file-node-icon.folder {
+  color: #f59e0b;
+  opacity: 1;
+}
+
+.file-node.selected .file-node-icon {
+  color: white;
+  opacity: 0.9;
+}
+
+.file-node.selected .file-node-icon.folder {
+  color: white;
+}
+
+.file-node-title {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-node.selected .file-node-title {
+  color: white;
+  font-weight: 600;
+}
+
+.file-node-title-input {
+  flex: 1;
+  font-size: 13px;
+  padding: 4px 8px;
+  border: 2px solid var(--preview-text-primary);
+  border-radius: 6px;
+  background: white;
+  color: var(--preview-text-primary);
+  outline: none;
+}
+
+.file-node-actions {
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.file-node:hover .file-node-actions {
+  opacity: 1;
+}
+
+.file-node.selected .file-node-actions {
+  opacity: 1;
+}
+
+.file-node-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  opacity: 0.6;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.file-node-action:hover {
+  background: rgba(0, 0, 0, 0.08);
+  opacity: 1;
+}
+
+.file-node.selected .file-node-action {
+  color: white;
+}
+
+.file-node.selected .file-node-action:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.file-node-action.danger:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.file-node.selected .file-node-action.danger:hover {
+  background: rgba(255, 255, 255, 0.25);
+  color: white;
+}
+
+/* Loading / error states */
+.file-tree-loading,
+.file-tree-error,
+.file-tree-empty {
+  padding: 24px 16px;
+  font-size: 13px;
+  color: var(--preview-text-tertiary);
+  text-align: center;
+}
+
+.file-tree-error {
+  color: #ef4444;
+}
+
+/* Context Menu */
+.file-node-menu {
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  padding: 6px;
+  min-width: 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.file-node-menu button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--preview-text-primary);
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+
+.file-node-menu button:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.file-node-menu button.danger {
+  color: #ef4444;
+}
+
+.file-node-menu button.danger:hover {
+  background: rgba(239, 68, 68, 0.1);
+}

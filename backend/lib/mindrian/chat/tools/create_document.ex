@@ -5,6 +5,7 @@ defmodule Mindrian.Chat.Tools.CreateDocument do
   use Mindrian.Chat.Tool
 
   alias Mindrian.Documents
+  alias Mindrian.Collaboration.DocServer
 
   @impl true
   def name, do: "create_document"
@@ -29,9 +30,15 @@ defmodule Mindrian.Chat.Tools.CreateDocument do
   @impl true
   def execute(input, scope) do
     title = input["title"] || "Untitled"
+    workspace_id = input["workspace_id"]
 
-    case Documents.create_document(scope, %{title: title}) do
+    case Documents.create_document(scope, %{title: title, workspace_id: workspace_id}) do
       {:ok, document} ->
+        # Insert initial heading with document title
+        DocServer.apply_block_operations(document.id, [
+          %{"type" => "append_block", "block" => %{"type" => "heading", "content" => title}}
+        ])
+
         {:ok, %{document_id: document.id, title: document.title}}
 
       {:error, changeset} ->

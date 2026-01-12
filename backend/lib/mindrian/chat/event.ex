@@ -33,7 +33,7 @@ defmodule Mindrian.Chat.Event do
           | {:tool_call_requested, Message.tool_call()}
           | {:tool_call_approved, id :: String.t()}
           | {:tool_call_executing, id :: String.t()}
-          | {:tool_call_completed, id :: String.t()}
+          | {:tool_call_completed, id :: String.t(), result :: term()}
           | {:tool_call_failed, id :: String.t(), error :: String.t()}
           | {:tool_call_rejected, id :: String.t()}
           | {:tool_call_cancelled, id :: String.t()}
@@ -83,8 +83,8 @@ defmodule Mindrian.Chat.Event do
     %{type: "tool_call_executing", id: id}
   end
 
-  def to_map({:tool_call_completed, id}) do
-    %{type: "tool_call_completed", id: id}
+  def to_map({:tool_call_completed, id, result}) do
+    %{type: "tool_call_completed", id: id, result: result}
   end
 
   def to_map({:tool_call_failed, id, error}) do

@@ -57,6 +57,7 @@ defmodule Mindrian.Chat.ConversationServer do
   - `:scope` (required) - Scope with user
   - `:driver` (required) - driver module implementing `Mindrian.Chat.Driver`
   - `:conversation_id` (required) - unique identifier for this conversation
+  - `:workspace_id` (optional) - workspace to scope document operations to
   """
   def start_link(opts) do
     GenServer.start_link(__MODULE__, opts)
@@ -106,9 +107,10 @@ defmodule Mindrian.Chat.ConversationServer do
     scope = Keyword.fetch!(opts, :scope)
     driver = Keyword.fetch!(opts, :driver)
     conversation_id = Keyword.fetch!(opts, :conversation_id)
+    workspace_id = Keyword.get(opts, :workspace_id)
 
     state = %__MODULE__{
-      conversation: Conversation.new(conversation_id, scope),
+      conversation: Conversation.new(conversation_id, scope, workspace_id),
       driver: driver,
       topic: "conversation:#{conversation_id}"
     }

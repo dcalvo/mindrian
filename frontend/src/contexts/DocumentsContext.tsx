@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import {
   useState,
   useEffect,
@@ -21,8 +22,54 @@ import {
   type FileSystemItem,
 } from "../lib/api";
 import { getSocket } from "../lib/socket";
-import { DocumentsContext } from "./documents";
 import { toast } from "sonner";
+import { createContext, useContext } from "react";
+import { WorkspacesContext } from "./WorkspacesContext";
+
+export interface DocumentsContextValue {
+  folders: Folder[];
+  documents: Document[];
+  loading: boolean;
+  error: string | null;
+  refetch: () => Promise<void>;
+  addDocument: (title?: string, folderId?: string | null) => Promise<Document>;
+  addFolder: (
+    title?: string,
+    parentFolderId?: string | null
+  ) => Promise<Folder>;
+  renameItem: (
+    id: string,
+    title: string,
+    isFolder: boolean
+  ) => Promise<FileSystemItem>;
+  moveItem: (
+    id: string,
+    parentId: string | null,
+    position: number,
+    isFolder: boolean
+  ) => Promise<FileSystemItem>;
+  removeItem: (id: string) => Promise<void>;
+}
+
+export const DocumentsContext = createContext<DocumentsContextValue | null>(
+  null
+);
+
+export function useDocumentsContext() {
+  const context = useContext(DocumentsContext);
+  if (!context) {
+    throw new Error(
+      "useDocumentsContext must be used within a DocumentsProvider"
+    );
+  }
+  return context;
+}
+
+// Helper hook to safely get workspace ID (handles case where WorkspacesProvider might not be available)
+function useWorkspaceIdSafe(): string | null {
+  const workspacesContext = useContext(WorkspacesContext);
+  return workspacesContext?.currentWorkspaceId ?? null;
+}
 
 export function DocumentsProvider({ children }: { children: ReactNode }) {
   const [folders, setFolders] = useState<Folder[]>([]);
@@ -30,9 +77,15 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const channelRef = useRef<Channel | null>(null);
+  const currentWorkspaceId = useWorkspaceIdSafe();
 
   useEffect(() => {
     let cancelled = false;
+
+    // Clear state immediately when workspace changes
+    setFolders([]);
+    setDocuments([]);
+    setLoading(true);
 
     const setup = async () => {
       try {
@@ -108,7 +161,7 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        const data = await listAll();
+        const data = await listAll(currentWorkspaceId || undefined);
         if (cancelled) return;
 
         setFolders(data.folders);
@@ -134,13 +187,13 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
         channelRef.current = null;
       }
     };
-  }, []);
+  }, [currentWorkspaceId]);
 
   const refetch = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await listAll();
+      const data = await listAll(currentWorkspaceId || undefined);
       setFolders(data.folders);
       setDocuments(data.documents);
     } catch (err) {
@@ -148,7 +201,7 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentWorkspaceId]);
 
   const getUniqueFolderName = useCallback(
     (baseName: string, parentFolderId: string | null) => {
@@ -197,17 +250,25 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
   const addDocument = useCallback(
     async (title: string = "Untitled", folderId?: string | null) => {
       const uniqueTitle = getUniqueDocumentName(title, folderId || null);
-      return await createDocument(uniqueTitle, folderId);
+      return await createDocument(
+        uniqueTitle,
+        folderId,
+        currentWorkspaceId || undefined
+      );
     },
-    [getUniqueDocumentName]
+    [getUniqueDocumentName, currentWorkspaceId]
   );
 
   const addFolder = useCallback(
     async (title: string = "New Folder", parentFolderId?: string | null) => {
       const uniqueTitle = getUniqueFolderName(title, parentFolderId || null);
-      return await createFolder(uniqueTitle, parentFolderId);
+      return await createFolder(
+        uniqueTitle,
+        parentFolderId,
+        currentWorkspaceId || undefined
+      );
     },
-    [getUniqueFolderName]
+    [getUniqueFolderName, currentWorkspaceId]
   );
 
   const renameItem = useCallback(

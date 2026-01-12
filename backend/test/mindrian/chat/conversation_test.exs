@@ -721,7 +721,7 @@ defmodule Mindrian.Chat.ConversationTest do
                Conversation.complete_tool_call(conv, "tool-1", %{doc_id: "doc-123"})
 
       assert [%{status: :completed, result: %{doc_id: "doc-123"}}] = new_conv.messages
-      assert events == [{:tool_call_completed, "tool-1"}]
+      assert events == [{:tool_call_completed, "tool-1", %{doc_id: "doc-123"}}]
     end
 
     test "rejects when tool not in executing status" do
