@@ -160,10 +160,12 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
         setMessages((prev) => [
           ...prev,
           {
-            role: "assistant",
+            id: crypto.randomUUID(),
+            role: "agent",
             content:
               "Error: Could not identify current workspace. Please try refreshing.",
-          },
+            status: "complete",
+          } as AgentMessage,
         ]);
         return;
       }

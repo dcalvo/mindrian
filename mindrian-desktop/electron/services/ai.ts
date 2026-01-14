@@ -108,6 +108,35 @@ export class AIService {
     return resolved.startsWith(root);
   }
 
+  private async retryWithBackoff<T>(
+    fn: () => Promise<T>,
+    maxRetries = 3
+  ): Promise<T> {
+    let lastError: any;
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await fn();
+      } catch (error: any) {
+        lastError = error;
+        // Check if it's a rate limit error (429)
+        if (error.status === 429 || error.message?.includes("429")) {
+          if (attempt < maxRetries) {
+            // Exponential backoff: 2^attempt seconds
+            const waitTime = Math.pow(2, attempt) * 1000;
+            console.log(
+              `[AI] Rate limited. Retrying in ${waitTime / 1000}s... (attempt ${attempt + 1}/${maxRetries})`
+            );
+            await new Promise((resolve) => setTimeout(resolve, waitTime));
+            continue;
+          }
+        }
+        // If not a rate limit error, or we've exhausted retries, throw
+        throw error;
+      }
+    }
+    throw lastError;
+  }
+
   public async chat(
     message: string,
     workspacePath: string,
@@ -145,7 +174,9 @@ export class AIService {
     });
 
     try {
-      let result = await chatSession.sendMessageStream(message);
+      let result = await this.retryWithBackoff(() =>
+        chatSession.sendMessageStream(message)
+      );
       let fullResponse = "";
 
       // Loop for handling multi-turn tool use (simplified manual recursion for now)
@@ -201,7 +232,9 @@ export class AIService {
         );
 
         // Send tool outputs back to model and get final response
-        result = await chatSession.sendMessageStream(functionResponses);
+        result = await this.retryWithBackoff(() =>
+          chatSession.sendMessageStream(functionResponses)
+        );
 
         for await (const chunk of result.stream) {
           const text = chunk.text();
@@ -233,14 +266,37 @@ export class AIService {
         if (!this.isSafePath(args.path, workspacePath))
           return "Access Denied: Path outside workspace.";
 
-        // Handle PDF files
+        // Handle PDF files - Use native multimodal support
         if (args.path.toLowerCase().endsWith(".pdf")) {
           try {
             const dataBuffer = await fs.readFile(args.path);
-            const data = await pdf(dataBuffer);
-            return `[PDF Content for ${path.basename(args.path)}]\n${data.text}`;
+            const base64Data = dataBuffer.toString("base64");
+            // Return a special marker that indicates this should be sent as inline data
+            // In a future iteration, we'll modify the chat flow to handle this
+            return `[PDF_FILE: ${args.path}]\n[BASE64_DATA: ${base64Data.substring(0, 100)}...]\n\nNote: This PDF should be sent to the model as inline data for native vision analysis. For now, falling back to text extraction.\n\n${(await pdf(dataBuffer)).text}`;
           } catch (error: any) {
             return `Error reading PDF: ${error.message}`;
+          }
+        }
+
+        // Handle Image files - Use native multimodal support
+        const imageExtensions = [".png", ".jpg", ".jpeg", ".gif", ".webp"];
+        if (
+          imageExtensions.some((ext) => args.path.toLowerCase().endsWith(ext))
+        ) {
+          try {
+            const dataBuffer = await fs.readFile(args.path);
+            const base64Data = dataBuffer.toString("base64");
+            const mimeType = args.path.toLowerCase().endsWith(".png")
+              ? "image/png"
+              : args.path.toLowerCase().endsWith(".gif")
+                ? "image/gif"
+                : args.path.toLowerCase().endsWith(".webp")
+                  ? "image/webp"
+                  : "image/jpeg";
+            return `[IMAGE_FILE: ${args.path}]\n[MIME_TYPE: ${mimeType}]\n[BASE64_DATA: ${base64Data.substring(0, 100)}...]\n\nNote: This image should be sent to the model as inline data for native vision analysis.`;
+          } catch (error: any) {
+            return `Error reading image: ${error.message}`;
           }
         }
 
