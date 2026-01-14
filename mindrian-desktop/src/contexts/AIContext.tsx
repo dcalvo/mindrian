@@ -6,8 +6,6 @@ import {
 } from "../hooks/chat/useChat";
 
 export interface AIContextValue {
-  provider: "claude" | "gemini";
-  setProvider: (p: "claude" | "gemini") => void;
   apiKey: string | null;
   setApiKey: (key: string) => void;
   sendMessage: (msg: string) => Promise<void>;
@@ -35,7 +33,6 @@ export const useAIContext = () => {
 export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [provider, setProvider] = useState<"claude" | "gemini">("gemini"); // Default to Local AI
   const [apiKey, setApiKeyState] = useState<string | null>(
     localStorage.getItem("gemini_api_key")
   );
@@ -145,13 +142,6 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const sendMessage = useCallback(
     async (msg: string) => {
-      if (provider === "claude") {
-        // TODO: Hook into existing Claude logic?
-        // For now, let's focus on the new Gemini path.
-        console.warn("Claude provider selected but not unified yet.");
-        return;
-      }
-
       if (!currentWorkspace) {
         console.error("No current workspace found", {
           currentWorkspaceId,
@@ -221,14 +211,12 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
         });
       }
     },
-    [provider, currentWorkspace]
+    [currentWorkspace]
   );
 
   return (
     <AIContext.Provider
       value={{
-        provider,
-        setProvider,
         apiKey,
         setApiKey,
         sendMessage,

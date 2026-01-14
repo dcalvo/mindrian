@@ -13,6 +13,22 @@ export default defineConfig({
       main: {
         // Shortcut of `build.lib.entry`.
         entry: "electron/main.ts",
+        vite: {
+          build: {
+            rollupOptions: {
+              external: [
+                // Native Node modules used only in main process
+                "node-llama-cpp",
+                "@node-llama-cpp/mac-x64",
+                "@node-llama-cpp/linux-x64",
+                "@node-llama-cpp/win-x64",
+                "@xenova/transformers",
+                "better-sqlite3",
+                "chokidar",
+              ],
+            },
+          },
+        },
       },
       preload: {
         // Shortcut of `build.rollupOptions.input`.

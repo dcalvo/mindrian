@@ -6,10 +6,6 @@ import {
 } from "@google/generative-ai";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { createRequire } from "node:module";
-
-const require = createRequire(import.meta.url);
-const pdf = require("pdf-parse");
 
 // Define the event types for the stream
 export type StreamEvent =
@@ -19,11 +15,9 @@ export type StreamEvent =
 
 export class AIService {
   private genAI: GoogleGenerativeAI | null = null;
-  private model: GenerativeModel | null = null;
+  private flashModel: GenerativeModel | null = null;
+  private proModel: GenerativeModel | null = null;
   private apiKey: string | null = null;
-
-  // Track context
-  private conversationHistory: any[] = [];
 
   constructor() {}
 
@@ -41,8 +35,8 @@ export class AIService {
     if (!key) return;
 
     this.genAI = new GoogleGenerativeAI(key);
-    this.model = this.genAI.getGenerativeModel({
-      model: "gemini-2.5-flash",
+
+    const baseConfig = {
       systemInstruction: {
         role: "system",
         parts: [
@@ -98,6 +92,16 @@ export class AIService {
           ],
         },
       ],
+    };
+
+    this.flashModel = this.genAI.getGenerativeModel({
+      model: "gemini-2.5-flash",
+      ...baseConfig,
+    });
+
+    this.proModel = this.genAI.getGenerativeModel({
+      model: "gemini-2.5-pro",
+      ...baseConfig,
     });
   }
 
@@ -140,37 +144,53 @@ export class AIService {
   public async chat(
     message: string,
     workspacePath: string,
-    onStream?: (event: StreamEvent) => void
+    modelType: "gemini-2.5-flash" | "gemini-2.5-pro" = "gemini-2.5-flash",
+    conversationHistory: any[] = [],
+    ragContext?: string,
+    onStream?: (event: StreamEvent) => void,
+    systemPrompt?: string
   ) {
-    if (!this.model) {
+    if (!this.flashModel || !this.proModel) {
       this.initModel(); // Try once more with env
-      if (!this.model) {
+      if (!this.flashModel || !this.proModel) {
         throw new Error(
           "API Key not set. Please configure your Gemini API key."
         );
       }
     }
 
-    const chatSession = this.model.startChat({
-      history: [
-        {
-          role: "user",
-          parts: [
-            {
-              text: `WORKSPACE_INFO: You are currently working in the workspace located at: ${workspacePath}. When listing or reading files, use absolute paths starting with this workspace path.`,
-            },
-          ],
+    // If a custom system prompt is provided (e.g. for Larry or Innovation agents),
+    // we need to instantiate a new model instance for this session.
+    // Otherwise, use the cached model.
+    let activeModel =
+      modelType === "gemini-2.5-pro" ? this.proModel : this.flashModel;
+
+    if (systemPrompt && this.genAI) {
+      activeModel = this.genAI.getGenerativeModel({
+        model: modelType,
+        systemInstruction: {
+          role: "system",
+          parts: [{ text: systemPrompt }],
         },
-        {
-          role: "model",
-          parts: [
-            {
-              text: `Understood. I will work within the workspace at ${workspacePath} and use absolute paths when accessing files and directories.`,
-            },
-          ],
-        },
-        ...this.conversationHistory,
-      ],
+        tools: this.flashModel?.tools, // Re-use tool definitions
+      });
+    }
+
+    // Build context with workspace info and optional RAG context
+    const contextParts: string[] = [
+      `WORKSPACE_INFO: You are currently working in the workspace located at: ${workspacePath}. When listing or reading files, use absolute paths starting with this workspace path.`,
+    ];
+
+    if (ragContext) {
+      contextParts.push(ragContext);
+    }
+
+    // For the agent loop, conversationHistory contains the full history including recent user/model turns.
+    // We prepend context to the current message (message argument) rather than injecting fake history turns
+    // because injecting fake history can confuse the model or be rejected by the API if roles aren't alternating perfectly.
+
+    const chatSession = activeModel!.startChat({
+      history: conversationHistory,
     });
 
     try {
@@ -178,10 +198,6 @@ export class AIService {
         chatSession.sendMessageStream(message)
       );
       let fullResponse = "";
-
-      // Loop for handling multi-turn tool use (simplified manual recursion for now)
-      // Note: A true robust loop would handle multiple back-and-forths.
-      // Here we handle at least one round of tool use.
 
       const toolCalls: FunctionCall[] = [];
 
@@ -202,23 +218,27 @@ export class AIService {
       if (toolCalls.length > 0) {
         const functionResponses = await Promise.all(
           toolCalls.map(async (call) => {
-            // Notify frontend of the tool call
             if (onStream) {
               onStream({ type: "tool_call", toolCall: call });
             }
 
             const response = await this.executeTool(call, workspacePath);
 
-            // Notify frontend of the result
-            // Note: FunctionCall doesn't have an ID in Gemini's simple API usually,
-            // but for UI matching we might need one. For now we use the name as proxy if single.
-            // But `call` object might not have a unique ID property exposed easily in this SDK version.
-            // We'll rely on order or just send the result correlated by name/context.
             if (onStream) {
+              // Sanitize large binary data for the UI stream to prevent performance issues
+              let uiResult = response;
+              if (response && typeof response === "object") {
+                if (response.type === "pdf_base64") {
+                  uiResult = `[PDF Loaded: ${response.path}] (${response.data.length} bytes)`;
+                } else if (response.type === "image_base64") {
+                  uiResult = `[Image Loaded: ${response.path}]`;
+                }
+              }
+
               onStream({
                 type: "tool_result",
                 toolCallId: call.name,
-                result: response,
+                result: uiResult,
               });
             }
 
@@ -245,9 +265,6 @@ export class AIService {
         }
       }
 
-      // Sync history manually if needed, but getHistory() is better source of truth
-      // this.conversationHistory = await chatSession.getHistory();
-
       return fullResponse;
     } catch (error) {
       console.error("AI Error:", error);
@@ -263,17 +280,30 @@ export class AIService {
 
     try {
       if (name === "read_file") {
-        if (!this.isSafePath(args.path, workspacePath))
+        let targetPath = args.path;
+
+        // Ensure we have an absolute path if a relative one was provided
+        if (!path.isAbsolute(targetPath)) {
+          targetPath = path.join(workspacePath, targetPath);
+        }
+
+        if (!this.isSafePath(targetPath, workspacePath))
           return "Access Denied: Path outside workspace.";
 
+        const safeArgs = { ...args, path: targetPath };
+
         // Handle PDF files - Use native multimodal support
-        if (args.path.toLowerCase().endsWith(".pdf")) {
+        if (safeArgs.path.toLowerCase().endsWith(".pdf")) {
           try {
-            const dataBuffer = await fs.readFile(args.path);
+            const dataBuffer = await fs.readFile(safeArgs.path);
             const base64Data = dataBuffer.toString("base64");
-            // Return a special marker that indicates this should be sent as inline data
-            // In a future iteration, we'll modify the chat flow to handle this
-            return `[PDF_FILE: ${args.path}]\n[BASE64_DATA: ${base64Data.substring(0, 100)}...]\n\nNote: This PDF should be sent to the model as inline data for native vision analysis. For now, falling back to text extraction.\n\n${(await pdf(dataBuffer)).text}`;
+            // Return special marker for internal processing
+            return {
+              type: "pdf_base64",
+              mimeType: "application/pdf",
+              data: base64Data,
+              path: safeArgs.path,
+            };
           } catch (error: any) {
             return `Error reading PDF: ${error.message}`;
           }
@@ -282,33 +312,41 @@ export class AIService {
         // Handle Image files - Use native multimodal support
         const imageExtensions = [".png", ".jpg", ".jpeg", ".gif", ".webp"];
         if (
-          imageExtensions.some((ext) => args.path.toLowerCase().endsWith(ext))
+          imageExtensions.some((ext) =>
+            safeArgs.path.toLowerCase().endsWith(ext)
+          )
         ) {
           try {
-            const dataBuffer = await fs.readFile(args.path);
+            const dataBuffer = await fs.readFile(safeArgs.path);
             const base64Data = dataBuffer.toString("base64");
-            const mimeType = args.path.toLowerCase().endsWith(".png")
+            const mimeType = safeArgs.path.toLowerCase().endsWith(".png")
               ? "image/png"
-              : args.path.toLowerCase().endsWith(".gif")
+              : safeArgs.path.toLowerCase().endsWith(".gif")
                 ? "image/gif"
-                : args.path.toLowerCase().endsWith(".webp")
+                : safeArgs.path.toLowerCase().endsWith(".webp")
                   ? "image/webp"
                   : "image/jpeg";
-            return `[IMAGE_FILE: ${args.path}]\n[MIME_TYPE: ${mimeType}]\n[BASE64_DATA: ${base64Data.substring(0, 100)}...]\n\nNote: This image should be sent to the model as inline data for native vision analysis.`;
+
+            return {
+              type: "image_base64",
+              mimeType: mimeType,
+              data: base64Data,
+              path: safeArgs.path,
+            };
           } catch (error: any) {
             return `Error reading image: ${error.message}`;
           }
         }
 
-        const content = await fs.readFile(args.path, "utf-8");
+        const content = await fs.readFile(safeArgs.path, "utf-8");
 
         // Handle BlockNote JSON files (heuristic: ends with .json)
-        if (args.path.toLowerCase().endsWith(".json")) {
+        if (safeArgs.path.toLowerCase().endsWith(".json")) {
           try {
             const parsed = JSON.parse(content);
             // Simple heuristic to check if it's a BlockNote doc (array of blocks)
             if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].type) {
-              let markdown = `[BlockNote Document: ${path.basename(args.path)}]\n\n`;
+              let markdown = `[BlockNote Document: ${path.basename(safeArgs.path)}]\n\n`;
               for (const block of parsed) {
                 if (block.content) {
                   if (Array.isArray(block.content)) {
@@ -340,10 +378,31 @@ export class AIService {
         return content;
       }
       if (name === "list_dir") {
-        if (!this.isSafePath(args.path, workspacePath))
-          return "Access Denied: Path outside workspace.";
+        let targetPath = args.path;
 
-        const entries = await fs.readdir(args.path, { withFileTypes: true });
+        // Handle root/workspace aliases
+        if (
+          !targetPath ||
+          targetPath === "." ||
+          targetPath === "/" ||
+          targetPath.toLowerCase() === "root"
+        ) {
+          targetPath = workspacePath;
+        }
+
+        // Ensure we have an absolute path if a relative one was provided
+        if (!path.isAbsolute(targetPath)) {
+          targetPath = path.join(workspacePath, targetPath);
+        }
+
+        if (!this.isSafePath(targetPath, workspacePath)) {
+          console.warn(
+            `[AI] Access Denied for path: ${targetPath} (Workspace: ${workspacePath})`
+          );
+          return `Access Denied: The path '${targetPath}' is outside the current workspace. You can only access files within: ${workspacePath}`;
+        }
+
+        const entries = await fs.readdir(targetPath, { withFileTypes: true });
 
         const filteredEntries = entries.filter(
           (entry) => !IGNORED_FILES.includes(entry.name)
@@ -353,6 +412,8 @@ export class AIService {
           const type = entry.isDirectory() ? "[DIR]" : "[FILE]";
           return `${type} ${entry.name}`;
         });
+
+        if (formattedEntries.length === 0) return "(Empty Directory)";
 
         return formattedEntries.join("\n");
       }

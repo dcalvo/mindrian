@@ -167,6 +167,7 @@ ipcMain.handle("fs:open-path", async (_, targetPath: string) => {
 // AI Agent Handlers & Persisted Settings
 // ============================================================================
 import { aiService } from "./services/ai";
+import { aiOrchestrator } from "./services/ai/orchestrator";
 
 async function saveApiKey(key: string) {
   try {
@@ -226,10 +227,14 @@ ipcMain.handle("ai:check-key", () => {
 ipcMain.handle("ai:chat", async (event, { message, workspacePath }) => {
   ensureSafePath(workspacePath);
   try {
-    // We send chunks back via webContents.send
-    const reply = await aiService.chat(message, workspacePath, (chunk) => {
-      event.sender.send("ai:stream-chunk", chunk);
-    });
+    // Use the orchestrator for smart routing
+    const reply = await aiOrchestrator.chat(
+      message,
+      workspacePath,
+      (chunk: any) => {
+        event.sender.send("ai:stream-chunk", chunk);
+      }
+    );
     return reply;
   } catch (err: any) {
     throw new Error(err.message);
