@@ -1,6 +1,8 @@
 import React, { useRef, useEffect } from "react";
 import { X, FileText } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
 import { useEditorContext } from "../../contexts/EditorContext";
+import { useWorkspacesContext } from "../../contexts/WorkspacesContext";
 import "./workspace.css";
 
 const DocumentIcon = ({ active }: { active: boolean }) => {
@@ -11,6 +13,8 @@ const DocumentIcon = ({ active }: { active: boolean }) => {
 export const EditorTabs: React.FC = () => {
   const { openDocuments, activeDocumentId, closeDocument, openDocument } =
     useEditorContext();
+  const { currentWorkspaceId } = useWorkspacesContext();
+  const navigate = useNavigate();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Scroll active tab into view
@@ -36,12 +40,29 @@ export const EditorTabs: React.FC = () => {
       <div className="editor-tabs-scroll" ref={scrollContainerRef}>
         {openDocuments.map((doc) => {
           const isActive = doc.id === activeDocumentId;
+          const isFile = doc.id.toLowerCase().endsWith(".pdf"); // Simple check for now
+
           return (
             <div
               key={doc.id}
               data-id={doc.id}
               className={`editor-tab ${isActive ? "active" : ""}`}
-              onClick={() => openDocument(doc)}
+              onClick={() => {
+                if (currentWorkspaceId) {
+                  if (isFile) {
+                    navigate({
+                      to: "/workspace/$workspaceId/file/$fileId",
+                      params: {
+                        workspaceId: currentWorkspaceId,
+                        fileId: encodeURIComponent(doc.id),
+                      },
+                    });
+                  } else {
+                    // Default to doc route
+                    openDocument(doc);
+                  }
+                }
+              }}
             >
               <span className="editor-tab-icon">
                 <DocumentIcon active={isActive} />
@@ -52,6 +73,7 @@ export const EditorTabs: React.FC = () => {
                 onClick={(e) => {
                   e.stopPropagation();
                   closeDocument(doc.id);
+                  // If closing active file, maybe navigate away (EditorContext handles state, but not route in this case if we are on the file route)
                 }}
               >
                 <X size={12} />

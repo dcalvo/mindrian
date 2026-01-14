@@ -1,5 +1,16 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+
+// Polyfill URL.parse for pdfjs-dist / older Electron versions
+if (!URL.parse) {
+  URL.parse = (url: string, base?: string) => {
+    try {
+      return new URL(url, base);
+    } catch {
+      return null;
+    }
+  };
+}
 import {
   RouterProvider,
   createRouter,
