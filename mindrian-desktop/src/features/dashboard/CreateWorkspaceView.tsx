@@ -74,9 +74,9 @@ export const CreateWorkspaceView: React.FC = () => {
         to: "/workspace/$workspaceId",
         params: { workspaceId: newWorkspace.id },
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to create workspace", error);
-      setError(error.message || "An error occurred");
+      setError(error instanceof Error ? error.message : "An error occurred");
     } finally {
       setIsSubmitting(false);
     }

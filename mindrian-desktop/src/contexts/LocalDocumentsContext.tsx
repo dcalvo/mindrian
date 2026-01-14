@@ -30,10 +30,12 @@ export interface LocalDocumentsContextValue {
   ) => Promise<void>;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const LocalDocumentsContext = createContext<
   LocalDocumentsContextValue | undefined
 >(undefined);
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useDocumentsContext = () => {
   const context = useContext(LocalDocumentsContext);
   if (context === undefined) {
@@ -73,7 +75,7 @@ export const LocalDocumentsProvider: React.FC<{ children: ReactNode }> = ({
             name: entry.name,
             type: "folder",
             children,
-            data: { id: fullPath, type: "folder", title: entry.name } as any, // Cast to match expected structure if needed, or update TreeNode types
+            data: { id: fullPath, type: "folder", title: entry.name },
           });
         } else {
           // Identify documents vs generic files
@@ -89,13 +91,13 @@ export const LocalDocumentsProvider: React.FC<{ children: ReactNode }> = ({
           nodes.push({
             id: fullPath,
             name: displayName,
-            type: isJson ? "document" : ("file" as any), // "file" not in original type, we update TreeNode later
+            type: isJson ? "document" : "file",
             data: {
               id: fullPath,
               type: isJson ? "document" : "file",
               title: displayName,
               isAsset: !isJson,
-            } as any,
+            },
           });
         }
       }
@@ -143,7 +145,7 @@ export const LocalDocumentsProvider: React.FC<{ children: ReactNode }> = ({
       const fullPath = `${basePath}/${fileName}`;
 
       // Initial BlockNote content
-      const initialContent: any[] = [];
+      const initialContent: unknown[] = [];
 
       await fs.writeFile(fullPath, JSON.stringify(initialContent));
       await refresh();
@@ -191,7 +193,7 @@ export const LocalDocumentsProvider: React.FC<{ children: ReactNode }> = ({
   );
 
   const moveItem = useCallback(
-    async (dragIds: string[], parentId: string | null, _index: number) => {
+    async (dragIds: string[], parentId: string | null) => {
       const targetDir = parentId || workspacePath;
       if (!targetDir) return;
 

@@ -3,5 +3,10 @@ export interface TreeNode {
   name: string;
   type: "folder" | "document" | "file";
   children?: TreeNode[];
-  data: any;
+  data: {
+    id: string;
+    type: "folder" | "document" | "file";
+    title: string;
+    isAsset?: boolean;
+  };
 }

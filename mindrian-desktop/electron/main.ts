@@ -23,6 +23,7 @@ function createWindow() {
     icon: path.join(process.env.VITE_PUBLIC, "vite.svg"),
     webPreferences: {
       preload: path.join(__dirname, "preload.mjs"),
+      webSecurity: false, // Allow loading local files (file://) in dev/prod for the PDF viewer
     },
     width: 1200,
     height: 800,

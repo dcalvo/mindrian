@@ -57,8 +57,18 @@ export function FileTree({ width }: FileTreeProps) {
           });
         }
       } else if (node.data.type === "file") {
-        // Handle generic files (maybe open with system default?)
-        fs.openPath(node.data.id);
+        // If it's a PDF, open in internal viewer
+        if (node.data.name.toLowerCase().endsWith(".pdf")) {
+          if (workspaceId) {
+            navigate({
+              to: "/workspace/$workspaceId/file/$fileId",
+              params: { workspaceId, fileId: encodeURIComponent(node.data.id) },
+            });
+          }
+        } else {
+          // Handle generic files (system default)
+          fs.openPath(node.data.id);
+        }
       }
     },
     [navigate, workspaceId]
@@ -203,7 +213,7 @@ export function FileTree({ width }: FileTreeProps) {
           const paths: string[] = [];
           for (let i = 0; i < e.dataTransfer.files.length; i++) {
             // Electron adds 'path' to the File object
-            const file = e.dataTransfer.files[i] as any;
+            const file = e.dataTransfer.files[i] as File & { path?: string };
             if (file.path) {
               paths.push(file.path);
             }

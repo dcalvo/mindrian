@@ -30,6 +30,7 @@
   },
   "devDependencies": {
     "@tanstack/react-router-devtools": "^1.149.3",
+    "@tanstack/router-plugin": "^1.149.3",
     "@types/phoenix": "^1.6.7",
     "@types/react": "^19.0.1",
     "@types/react-dom": "^19.0.1",
