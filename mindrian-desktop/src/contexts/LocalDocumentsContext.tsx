@@ -82,14 +82,18 @@ export const LocalDocumentsProvider: React.FC<{ children: ReactNode }> = ({
           if (entry.name === "config.json" && dirPath.endsWith(".mindrian"))
             continue;
 
+          const displayName = isJson
+            ? entry.name.replace(/\.json$/, "")
+            : entry.name;
+
           nodes.push({
             id: fullPath,
-            name: entry.name,
+            name: displayName,
             type: isJson ? "document" : ("file" as any), // "file" not in original type, we update TreeNode later
             data: {
               id: fullPath,
               type: isJson ? "document" : "file",
-              title: entry.name,
+              title: displayName,
               isAsset: !isJson,
             } as any,
           });
@@ -164,7 +168,14 @@ export const LocalDocumentsProvider: React.FC<{ children: ReactNode }> = ({
   const renameItem = useCallback(
     async (path: string, newName: string) => {
       const parentDir = path.substring(0, path.lastIndexOf("/"));
-      const newPath = `${parentDir}/${newName}`;
+
+      let finalName = newName;
+      // If it was a json document, preserve the extension
+      if (path.endsWith(".json") && !newName.endsWith(".json")) {
+        finalName = `${newName}.json`;
+      }
+
+      const newPath = `${parentDir}/${finalName}`;
       await fs.rename(path, newPath);
       await refresh();
     },
