@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
-import { ArrowUp, PanelRightClose, Maximize2, Minimize2 } from "lucide-react";
+import { ArrowUp, Maximize2, Minimize2 } from "lucide-react";
 import {
   useChat,
   type AgentMessage,
@@ -69,15 +69,14 @@ function detectMessageAgent(
 }
 
 export function ChatPane({
-  onCollapse,
   onToggleExpand,
   isExpanded,
   workspaceId,
-}: ChatPaneProps) {
+}: ChatPaneProps & { onCollapse?: () => void }) {
   // New AI Context (Gemini)
   const {
     provider,
-    setProvider,
+
     sendMessage: sendAiMessage,
     messages: aiMessages,
     isStreaming,
@@ -255,23 +254,10 @@ export function ChatPane({
     <aside className="chat-pane">
       <div className="chat-header">
         <div className="chat-header-left">
-          <div className="provider-select">
-            <select
-              value={provider}
-              onChange={(e) => setProvider(e.target.value as any)}
-              className="provider-dropdown"
-              style={{
-                background: "transparent",
-                border: "none",
-                fontWeight: 600,
-                cursor: "pointer",
-                fontSize: "14px",
-                color: "var(--text-primary)",
-              }}
-            >
-              <option value="claude">Claude (Elixir)</option>
-              <option value="gemini">Gemini (Local)</option>
-            </select>
+          <div className="chat-title">
+            <span style={{ fontWeight: 700, fontSize: "15px" }}>
+              Mindrian AI
+            </span>
           </div>
         </div>
         <div className="chat-header-right">
@@ -282,11 +268,6 @@ export function ChatPane({
               title={isExpanded ? "Restore Panel" : "Maximize Panel"}
             >
               {isExpanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
-            </button>
-          )}
-          {status !== "idle" && (
-            <button className="chat-cancel-btn" onClick={cancel} title="Cancel">
-              Cancel
             </button>
           )}
         </div>
@@ -330,8 +311,8 @@ export function ChatPane({
           !pendingTool && (
             <div className="chat-empty">
               <div className="chat-empty-text">
-                Start a conversation with the AI assistant. It can help you
-                create, read, and edit your documents.
+                I'm Mindrian, your smart coding companion. I can help you edit
+                files, explore your workspace, and build complex features.
               </div>
               <div className="chat-suggestions">
                 {SUGGESTIONS.map((suggestion, index) => (

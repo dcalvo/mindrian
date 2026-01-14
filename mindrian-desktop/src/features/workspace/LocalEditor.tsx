@@ -3,7 +3,7 @@ import "@blocknote/core/fonts/inter.css";
 import { useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
 import "@blocknote/mantine/style.css";
-import { fs } from "../../lib/fs";
+const fs = window.fs;
 import { Block } from "@blocknote/core";
 
 interface LocalEditorProps {

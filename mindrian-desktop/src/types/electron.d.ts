@@ -21,8 +21,9 @@ declare interface Window {
     reveal: (path: string) => Promise<void>;
     openPath: (path: string) => Promise<void>;
   };
-  ai?: {
+  ai: {
     setKey: (key: string) => Promise<void>;
+    checkKey: () => Promise<boolean>;
     chat: (message: string, workspacePath: string) => Promise<string>;
     onStream: (cb: (chunk: string) => void) => void;
   };

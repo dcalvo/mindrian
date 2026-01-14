@@ -301,11 +301,11 @@ export const PreviewHomeView: React.FC<PreviewHomeViewProps> = (props) => {
                 <div
                   className="workspace-icon"
                   style={{
-                    backgroundColor: workspace.bg_color,
-                    boxShadow: `0 8px 20px ${workspace.bg_color}33`,
+                    backgroundColor: workspace.bgColor,
+                    boxShadow: `0 8px 20px ${workspace.bgColor}33`,
                   }}
                 >
-                  <IconComponent size={28} color={workspace.icon_color} />
+                  <IconComponent size={28} color={workspace.iconColor} />
                 </div>
                 <div className="workspace-info">
                   <h3 className="workspace-name">{workspace.title}</h3>

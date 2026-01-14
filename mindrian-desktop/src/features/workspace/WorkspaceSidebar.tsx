@@ -59,8 +59,8 @@ export const WorkspaceSidebar: React.FC = () => {
     ? {
         name: activeWorkspace.title,
         icon: getIcon(activeWorkspace.icon),
-        bgColor: activeWorkspace.bg_color,
-        iconColor: activeWorkspace.icon_color,
+        bgColor: activeWorkspace.bgColor,
+        iconColor: activeWorkspace.iconColor,
       }
     : {
         name: "Workspace",

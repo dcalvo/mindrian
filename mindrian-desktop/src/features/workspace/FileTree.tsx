@@ -9,7 +9,7 @@ import type {
 } from "react-arborist";
 import { FilePlus, FolderPlus } from "lucide-react";
 import { useDocumentsContext } from "../../contexts/LocalDocumentsContext";
-import { fs } from "../../lib/fs";
+const fs = window.fs;
 import { FileNode } from "./FileNode";
 import { type TreeNode } from "../../lib/tree";
 import "./FileTree.css";

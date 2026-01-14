@@ -6,7 +6,7 @@ import React, {
   type ReactNode,
   useCallback,
 } from "react";
-import { fs } from "../lib/fs";
+const fs = window.fs;
 
 export interface WorkspaceConfig {
   title: string;

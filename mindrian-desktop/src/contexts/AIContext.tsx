@@ -28,7 +28,7 @@ export const useAIContext = () => {
 export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [provider, setProvider] = useState<"claude" | "gemini">("claude"); // Default to existing
+  const [provider, setProvider] = useState<"claude" | "gemini">("gemini"); // Default to Local AI
   const [apiKey, setApiKeyState] = useState<string | null>(
     localStorage.getItem("gemini_api_key")
   );
