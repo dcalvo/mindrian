@@ -243,8 +243,8 @@ export function FileTree({ width }: FileTreeProps) {
             data={treeData}
             width="100%"
             height={600}
-            indent={16}
-            rowHeight={32}
+            indent={20}
+            rowHeight={40}
             openByDefault={true}
             selection={currentDocumentId}
             onCreate={handleCreate}

@@ -109,9 +109,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
-  margin-right: 8px;
+  width: 20px;
+  height: 20px;
+  margin-right: 10px;
   color: inherit;
   opacity: 0.7;
 }
@@ -130,9 +130,47 @@
   color: white;
 }
 
+.pdf-icon-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+}
+
+.pdf-base-icon {
+  color: #ef4444;
+}
+
+.pdf-overlay-label {
+  position: absolute;
+  bottom: -2px;
+  right: -5px;
+  background-color: #ef4444;
+  color: white;
+  font-size: 7px;
+  font-weight: 950;
+  padding: 0.5px 2px;
+  border-radius: 1.5px;
+  line-height: 1;
+  text-transform: uppercase;
+  border: 1.5px solid white;
+}
+
+.file-node.selected .pdf-base-icon {
+  color: white;
+}
+
+.file-node.selected .pdf-overlay-label {
+  background-color: white;
+  color: #ef4444;
+  border-color: var(--preview-text-primary);
+}
+
 .file-node-title {
   flex: 1;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
@@ -146,7 +184,7 @@
 
 .file-node-title-input {
   flex: 1;
-  font-size: 13px;
+  font-size: 15px;
   padding: 4px 8px;
   border: 2px solid var(--preview-text-primary);
   border-radius: 6px;

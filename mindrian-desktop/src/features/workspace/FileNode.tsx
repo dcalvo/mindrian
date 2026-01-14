@@ -108,11 +108,11 @@ export function FileNode({
             node.toggle();
           }}
         >
-          <ChevronRight size={14} />
+          <ChevronRight size={18} />
         </span>
       ) : (
         <span className="file-node-chevron" style={{ visibility: "hidden" }}>
-          <ChevronRight size={14} />
+          <ChevronRight size={18} />
         </span>
       )}
 
@@ -123,9 +123,14 @@ export function FileNode({
         }`}
       >
         {node.data.type === "folder" ? (
-          <Folder size={16} />
+          <Folder size={20} />
+        ) : node.data.name.toLowerCase().endsWith(".pdf") ? (
+          <div className="pdf-icon-container">
+            <FileText size={20} className="pdf-base-icon" />
+            <div className="pdf-overlay-label">PDF</div>
+          </div>
         ) : (
-          <FileText size={16} />
+          <FileText size={20} />
         )}
       </span>
 
