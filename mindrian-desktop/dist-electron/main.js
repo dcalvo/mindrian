@@ -25,10 +25,22 @@ function createWindow() {
     win.loadFile(path.join(RENDERER_DIST, "index.html"));
   }
 }
+const MINDRIAN_ROOT = path.join(os.homedir(), "Documents", "Mindrian");
+function ensureSafePath(targetPath) {
+  const resolvedPath = path.resolve(targetPath);
+  const resolvedRoot = path.resolve(MINDRIAN_ROOT);
+  if (resolvedPath !== resolvedRoot && !resolvedPath.startsWith(resolvedRoot + path.sep)) {
+    console.error(`Blocked access to unsafe path: ${targetPath}`);
+    throw new Error(
+      `Security Error: Cannot access files outside the Mindrian directory.`
+    );
+  }
+}
 ipcMain.handle("fs:get-mindrian-dir", () => {
-  return path.join(os.homedir(), "Documents", "Mindrian");
+  return MINDRIAN_ROOT;
 });
 ipcMain.handle("fs:read-dir", async (_, dirPath) => {
+  ensureSafePath(dirPath);
   try {
     const entries = await fs.readdir(dirPath, { withFileTypes: true });
     return entries.map((entry) => ({
@@ -42,25 +54,37 @@ ipcMain.handle("fs:read-dir", async (_, dirPath) => {
   }
 });
 ipcMain.handle("fs:read-file", async (_, filePath) => {
+  ensureSafePath(filePath);
   return fs.readFile(filePath, "utf-8");
 });
 ipcMain.handle(
   "fs:write-file",
   async (_, filePath, content) => {
+    ensureSafePath(filePath);
     await fs.mkdir(path.dirname(filePath), { recursive: true });
     return fs.writeFile(filePath, content, "utf-8");
   }
 );
 ipcMain.handle("fs:create-dir", async (_, dirPath) => {
+  ensureSafePath(dirPath);
   return fs.mkdir(dirPath, { recursive: true });
 });
 ipcMain.handle("fs:delete", async (_, targetPath) => {
+  ensureSafePath(targetPath);
+  if (path.resolve(targetPath) === path.resolve(MINDRIAN_ROOT)) {
+    throw new Error(
+      "Security Error: Cannot delete the Mindrian root directory."
+    );
+  }
   return fs.rm(targetPath, { recursive: true, force: true });
 });
 ipcMain.handle("fs:rename", async (_, oldPath, newPath) => {
+  ensureSafePath(oldPath);
+  ensureSafePath(newPath);
   return fs.rename(oldPath, newPath);
 });
 ipcMain.handle("fs:copy-file", async (_, srcPath, destPath) => {
+  ensureSafePath(destPath);
   await fs.mkdir(path.dirname(destPath), { recursive: true });
   return fs.copyFile(srcPath, destPath);
 });

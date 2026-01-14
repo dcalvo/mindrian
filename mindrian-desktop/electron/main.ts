@@ -40,11 +40,30 @@ function createWindow() {
 // File System IPC Handlers
 // ============================================================================
 
+const MINDRIAN_ROOT = path.join(os.homedir(), "Documents", "Mindrian");
+
+function ensureSafePath(targetPath: string) {
+  const resolvedPath = path.resolve(targetPath);
+  const resolvedRoot = path.resolve(MINDRIAN_ROOT);
+
+  // Check if path is within root (or is the root itself)
+  if (
+    resolvedPath !== resolvedRoot &&
+    !resolvedPath.startsWith(resolvedRoot + path.sep)
+  ) {
+    console.error(`Blocked access to unsafe path: ${targetPath}`);
+    throw new Error(
+      `Security Error: Cannot access files outside the Mindrian directory.`
+    );
+  }
+}
+
 ipcMain.handle("fs:get-mindrian-dir", () => {
-  return path.join(os.homedir(), "Documents", "Mindrian");
+  return MINDRIAN_ROOT;
 });
 
 ipcMain.handle("fs:read-dir", async (_, dirPath: string) => {
+  ensureSafePath(dirPath);
   try {
     const entries = await fs.readdir(dirPath, { withFileTypes: true });
     return entries.map((entry) => ({
@@ -59,12 +78,14 @@ ipcMain.handle("fs:read-dir", async (_, dirPath: string) => {
 });
 
 ipcMain.handle("fs:read-file", async (_, filePath: string) => {
+  ensureSafePath(filePath);
   return fs.readFile(filePath, "utf-8");
 });
 
 ipcMain.handle(
   "fs:write-file",
   async (_, filePath: string, content: string) => {
+    ensureSafePath(filePath);
     // Ensure directory exists
     await fs.mkdir(path.dirname(filePath), { recursive: true });
     return fs.writeFile(filePath, content, "utf-8");
@@ -72,18 +93,30 @@ ipcMain.handle(
 );
 
 ipcMain.handle("fs:create-dir", async (_, dirPath: string) => {
+  ensureSafePath(dirPath);
   return fs.mkdir(dirPath, { recursive: true });
 });
 
 ipcMain.handle("fs:delete", async (_, targetPath: string) => {
+  ensureSafePath(targetPath);
+  // Extra safety: prevent deleting the root
+  if (path.resolve(targetPath) === path.resolve(MINDRIAN_ROOT)) {
+    throw new Error(
+      "Security Error: Cannot delete the Mindrian root directory."
+    );
+  }
   return fs.rm(targetPath, { recursive: true, force: true });
 });
 
 ipcMain.handle("fs:rename", async (_, oldPath: string, newPath: string) => {
+  ensureSafePath(oldPath);
+  ensureSafePath(newPath);
   return fs.rename(oldPath, newPath);
 });
 
 ipcMain.handle("fs:copy-file", async (_, srcPath: string, destPath: string) => {
+  // Source can be anywhere (importing), but Dest must be safe
+  ensureSafePath(destPath);
   // Ensure destination folder exists
   await fs.mkdir(path.dirname(destPath), { recursive: true });
   return fs.copyFile(srcPath, destPath);
