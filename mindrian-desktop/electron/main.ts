@@ -3,6 +3,9 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import fs from "node:fs/promises";
 import os from "node:os";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -154,6 +157,32 @@ ipcMain.handle("fs:reveal", async (_, targetPath: string) => {
 // Open file (system default)
 ipcMain.handle("fs:open-path", async (_, targetPath: string) => {
   return shell.openPath(targetPath);
+});
+
+// ============================================================================
+// AI Agent Handlers
+// ============================================================================
+import { aiService } from "./services/ai";
+
+ipcMain.handle("ai:set-key", (_, key: string) => {
+  aiService.setApiKey(key);
+});
+
+ipcMain.handle("ai:check-key", () => {
+  return aiService.hasKey();
+});
+
+ipcMain.handle("ai:chat", async (event, { message, workspacePath }) => {
+  ensureSafePath(workspacePath);
+  try {
+    // We send chunks back via webContents.send
+    const reply = await aiService.chat(message, workspacePath, (chunk) => {
+      event.sender.send("ai:stream-chunk", chunk);
+    });
+    return reply;
+  } catch (err: any) {
+    throw new Error(err.message);
+  }
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common

@@ -10,6 +10,7 @@ import {
 import { ChatMessage } from "./ChatMessage";
 import { ToolApproval } from "./ToolApproval";
 import { useEditorContext } from "../../contexts/EditorContext";
+import { useAIContext } from "../../contexts/AIContext";
 import "./ChatPane.css";
 
 interface ChatPaneProps {
@@ -73,11 +74,23 @@ export function ChatPane({
   isExpanded,
   workspaceId,
 }: ChatPaneProps) {
+  // New AI Context (Gemini)
+  const {
+    provider,
+    setProvider,
+    sendMessage: sendAiMessage,
+    messages: aiMessages,
+    isStreaming,
+    apiKey,
+    setApiKey,
+  } = useAIContext();
+
+  // Legacy Chat Hook (Claude / Elixir)
   const [conversationId] = useState(() => crypto.randomUUID());
   const {
     conversation,
     error,
-    sendMessage,
+    sendMessage: sendLegacyMessage,
     approveToolCall,
     rejectToolCall,
     cancel,
@@ -86,24 +99,48 @@ export function ChatPane({
   const { openDocument } = useEditorContext();
 
   const [input, setInput] = useState("");
+  const [showKeyInput, setShowKeyInput] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<
     "larry" | "explore" | null
   >(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const openedDocsRef = useRef<Set<string>>(new Set());
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Derive computed values from conversation
-  const messages = useMemo(
-    () => conversation?.messages ?? [],
-    [conversation?.messages]
-  );
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const openedDocsRef = useRef<Set<string>>(new Set());
+
+  // Derive computed values from conversation or AI context
+  const messages = useMemo(() => {
+    if (provider === "gemini") {
+      return aiMessages.map(
+        (m, i) =>
+          ({
+            id: i.toString(),
+            role: m.role === "user" ? "user" : "agent", // Map assistant -> agent
+            content: m.content,
+            created_at: new Date().toISOString(),
+            status: "success",
+          }) as Message
+      );
+    } else {
+      return conversation?.messages ?? [];
+    }
+  }, [provider, aiMessages, conversation?.messages]);
+
   const status = conversation?.status ?? "idle";
 
   // Find streaming message (agent message with status "streaming")
-  const streamingMessage = messages.find(
-    (m): m is AgentMessage => m.role === "agent" && m.status === "streaming"
-  );
+  // For Gemini, we handle streaming differently (isStreaming flag), but let's try to map it
+  const streamingMessage = useMemo(() => {
+    if (provider === "gemini" && isStreaming) {
+      // Return the last message if it's from assistant and we are streaming
+      // Actually, AIContext updates the message in real-time.
+      // So we don't need a separate "streaming" object, just the last message.
+      return null;
+    }
+    return messages.find(
+      (m): m is AgentMessage => m.role === "agent" && m.status === "streaming"
+    );
+  }, [messages, provider, isStreaming]);
 
   // Find pending tool (tool_call with status "pending_approval")
   const pendingTool = messages.find(
@@ -132,8 +169,10 @@ export function ChatPane({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [pendingTool, status, cancel]);
 
-  // Auto-open documents created or opened by the agent
+  // Auto-open documents created or opened by the agent (Legacy only for now)
   useEffect(() => {
+    if (provider !== "claude") return;
+
     for (const msg of messages) {
       if (msg.role !== "tool_call") continue;
       const tool = msg as ToolCallMessage;
@@ -158,7 +197,7 @@ export function ChatPane({
       openedDocsRef.current.add(tool.id);
       openDocument({ id: path, title, path });
     }
-  }, [messages, openDocument]);
+  }, [messages, openDocument, provider]);
 
   // Auto-resize textarea based on content
   useEffect(() => {
@@ -170,14 +209,24 @@ export function ChatPane({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || status !== "idle") return;
+    if (!input.trim()) return;
 
-    // Prepend agent mention if one is selected
-    const messageToSend = selectedAgent
-      ? `@${selectedAgent} ${input.trim()}`
-      : input.trim();
+    if (provider === "gemini") {
+      if (!apiKey) {
+        setShowKeyInput(true);
+        return;
+      }
+      sendAiMessage(input.trim());
+    } else {
+      if (status !== "idle") return;
+      // Prepend agent mention if one is selected
+      const messageToSend = selectedAgent
+        ? `@${selectedAgent} ${input.trim()}`
+        : input.trim();
 
-    sendMessage(messageToSend);
+      sendLegacyMessage(messageToSend);
+    }
+
     setInput("");
   };
 
@@ -189,6 +238,9 @@ export function ChatPane({
   };
 
   const getStatusText = () => {
+    if (provider === "gemini") {
+      return isStreaming ? "Gemini is thinking..." : null;
+    }
     switch (status) {
       case "running":
         return streamingMessage ? null : "Thinking...";
@@ -203,16 +255,24 @@ export function ChatPane({
     <aside className="chat-pane">
       <div className="chat-header">
         <div className="chat-header-left">
-          {onCollapse && !isExpanded && (
-            <button
-              className="chat-collapse-btn"
-              onClick={onCollapse}
-              title="Collapse Panel"
+          <div className="provider-select">
+            <select
+              value={provider}
+              onChange={(e) => setProvider(e.target.value as any)}
+              className="provider-dropdown"
+              style={{
+                background: "transparent",
+                border: "none",
+                fontWeight: 600,
+                cursor: "pointer",
+                fontSize: "14px",
+                color: "var(--text-primary)",
+              }}
             >
-              <PanelRightClose size={16} />
-            </button>
-          )}
-          <h3>Chat</h3>
+              <option value="claude">Claude (Elixir)</option>
+              <option value="gemini">Gemini (Local)</option>
+            </select>
+          </div>
         </div>
         <div className="chat-header-right">
           {onToggleExpand && (
@@ -235,35 +295,70 @@ export function ChatPane({
       {error && <div className="chat-error">{error}</div>}
 
       <div className="chat-messages">
-        {displayMessages.length === 0 && !streamingMessage && !pendingTool && (
-          <div className="chat-empty">
-            <div className="chat-empty-text">
-              Start a conversation with the AI assistant. It can help you
-              create, read, and edit your documents.
-            </div>
-            <div className="chat-suggestions">
-              {SUGGESTIONS.map((suggestion, index) => (
-                <button
-                  key={index}
-                  className="chat-suggestion-chip"
-                  onClick={() => {
-                    if (status === "idle") {
-                      sendMessage(suggestion.prompt);
-                    }
-                  }}
-                  disabled={status !== "idle"}
-                >
-                  {suggestion.label}
-                </button>
-              ))}
-            </div>
+        {showKeyInput && provider === "gemini" && !apiKey && (
+          <div
+            className="api-key-modal"
+            style={{
+              padding: 20,
+              background: "var(--bg-secondary)",
+              borderRadius: 8,
+              margin: 20,
+            }}
+          >
+            <h4 style={{ marginTop: 0 }}>Enter Gemini API Key</h4>
+            <p style={{ fontSize: 12, opacity: 0.7, marginBottom: 10 }}>
+              required for local agent mode.
+            </p>
+            <input
+              type="password"
+              placeholder="AIza..."
+              className="chat-input"
+              style={{ width: "100%" }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  setApiKey(e.currentTarget.value);
+                  setShowKeyInput(false);
+                }
+              }}
+            />
           </div>
         )}
+
+        {displayMessages.length === 0 &&
+          !streamingMessage &&
+          !isStreaming &&
+          !pendingTool && (
+            <div className="chat-empty">
+              <div className="chat-empty-text">
+                Start a conversation with the AI assistant. It can help you
+                create, read, and edit your documents.
+              </div>
+              <div className="chat-suggestions">
+                {SUGGESTIONS.map((suggestion, index) => (
+                  <button
+                    key={index}
+                    className="chat-suggestion-chip"
+                    onClick={() => {
+                      // Only allow suggestions for Claude for now unless we wire them up
+                      if (status === "idle") {
+                        if (provider === "gemini")
+                          sendAiMessage(suggestion.prompt);
+                        else sendLegacyMessage(suggestion.prompt);
+                      }
+                    }}
+                    disabled={status !== "idle" && !isStreaming}
+                  >
+                    {suggestion.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
         {displayMessages.map((message: Message) => {
           // Detect which agent sent this message (if it's an agent message)
           const agentType =
-            message.role === "agent"
+            message.role === "agent" && provider === "claude"
               ? detectMessageAgent(messages, message)
               : null;
 
@@ -288,6 +383,13 @@ export function ChatPane({
           </div>
         )}
 
+        {/* Simple streaming indicator for Gemini if not using Message object stream */}
+        {provider === "gemini" && isStreaming && (
+          <div className="chat-message assistant streaming">
+            <span className="streaming-cursor">Thinking...</span>
+          </div>
+        )}
+
         <div ref={messagesEndRef} />
       </div>
 
@@ -306,42 +408,44 @@ export function ChatPane({
                 {getStatusText()}
               </div>
             )}
-            <div className="agent-mentions">
-              <button
-                type="button"
-                className={`agent-mention-btn agent-mention-larry ${
-                  selectedAgent === "larry" ? "selected" : ""
-                }`}
-                onClick={() => {
-                  if (status === "idle") {
-                    setSelectedAgent(
-                      selectedAgent === "larry" ? null : "larry"
-                    );
-                  }
-                }}
-                disabled={status !== "idle"}
-                title="Mention Larry (coding assistant)"
-              >
-                @larry
-              </button>
-              <button
-                type="button"
-                className={`agent-mention-btn agent-mention-explore ${
-                  selectedAgent === "explore" ? "selected" : ""
-                }`}
-                onClick={() => {
-                  if (status === "idle") {
-                    setSelectedAgent(
-                      selectedAgent === "explore" ? null : "explore"
-                    );
-                  }
-                }}
-                disabled={status !== "idle"}
-                title="Mention Explore (research assistant)"
-              >
-                @explore
-              </button>
-            </div>
+            {provider === "claude" && (
+              <div className="agent-mentions">
+                <button
+                  type="button"
+                  className={`agent-mention-btn agent-mention-larry ${
+                    selectedAgent === "larry" ? "selected" : ""
+                  }`}
+                  onClick={() => {
+                    if (status === "idle") {
+                      setSelectedAgent(
+                        selectedAgent === "larry" ? null : "larry"
+                      );
+                    }
+                  }}
+                  disabled={status !== "idle"}
+                  title="Mention Larry (coding assistant)"
+                >
+                  @larry
+                </button>
+                <button
+                  type="button"
+                  className={`agent-mention-btn agent-mention-explore ${
+                    selectedAgent === "explore" ? "selected" : ""
+                  }`}
+                  onClick={() => {
+                    if (status === "idle") {
+                      setSelectedAgent(
+                        selectedAgent === "explore" ? null : "explore"
+                      );
+                    }
+                  }}
+                  disabled={status !== "idle"}
+                  title="Mention Explore (research assistant)"
+                >
+                  @explore
+                </button>
+              </div>
+            )}
             <form className="chat-input-form" onSubmit={handleSubmit}>
               <textarea
                 ref={textareaRef}
@@ -350,15 +454,23 @@ export function ChatPane({
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder={
-                  status === "idle" ? "Type a message..." : "Waiting..."
+                  status === "idle" && !isStreaming
+                    ? "Type a message..."
+                    : "Waiting..."
                 }
-                disabled={status !== "idle"}
+                disabled={
+                  (status !== "idle" && provider === "claude") || isStreaming
+                }
                 rows={1}
               />
               <button
                 type="submit"
                 className="chat-send-btn icon-only"
-                disabled={!input.trim() || status !== "idle"}
+                disabled={
+                  !input.trim() ||
+                  (status !== "idle" && provider === "claude") ||
+                  isStreaming
+                }
                 title="Send Message"
               >
                 <ArrowUp size={18} />

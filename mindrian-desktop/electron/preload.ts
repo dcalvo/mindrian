@@ -40,3 +40,16 @@ contextBridge.exposeInMainWorld("fs", {
   reveal: (path: string) => ipcRenderer.invoke("fs:reveal", path),
   openPath: (path: string) => ipcRenderer.invoke("fs:open-path", path),
 });
+
+// AI API Wrapper
+contextBridge.exposeInMainWorld("ai", {
+  setKey: (key: string) => ipcRenderer.invoke("ai:set-key", key),
+  checkKey: () => ipcRenderer.invoke("ai:check-key"),
+  chat: (message: string, workspacePath: string) =>
+    ipcRenderer.invoke("ai:chat", { message, workspacePath }),
+  onStream: (callback: (chunk: string) => void) => {
+    // Remove old listeners to prevent duplicates (simple approach)
+    ipcRenderer.removeAllListeners("ai:stream-chunk");
+    ipcRenderer.on("ai:stream-chunk", (_, chunk) => callback(chunk));
+  },
+});

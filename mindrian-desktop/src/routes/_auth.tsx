@@ -11,6 +11,7 @@ import { PresenceProvider } from "../contexts/PresenceContext";
 import { WorkspacesProvider } from "../contexts/WorkspacesContext";
 import { LocalDocumentsProvider } from "../contexts/LocalDocumentsContext";
 import { EditorProvider } from "../contexts/EditorContext";
+import { AIProvider } from "../contexts/AIContext";
 import { ParticleBackground } from "../features/landing/ParticleBackground";
 import { Navbar } from "../components/common/Navbar";
 import { PreviewChatView } from "../features/landing/PreviewChatView";
@@ -27,9 +28,11 @@ function AuthLayout() {
     <PresenceProvider>
       <WorkspacesProvider>
         <LocalDocumentsProvider>
-          <EditorProvider>
-            <DashboardChrome />
-          </EditorProvider>
+          <AIProvider>
+            <EditorProvider>
+              <DashboardChrome />
+            </EditorProvider>
+          </AIProvider>
         </LocalDocumentsProvider>
       </WorkspacesProvider>
     </PresenceProvider>
