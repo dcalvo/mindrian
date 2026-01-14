@@ -1,12 +1,11 @@
- 
 import { createFileRoute } from "@tanstack/react-router";
 import { FileText } from "lucide-react";
 
 export const Route = createFileRoute("/_auth/workspace/$workspaceId/")({
-  component: WorkspaceEmptyState,
+  component: WorkspaceIndexRoute,
 });
 
-function WorkspaceEmptyState() {
+function WorkspaceIndexRoute() {
   return (
     <div className="editor-empty-state">
       <div className="empty-icon">

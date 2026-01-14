@@ -10,7 +10,6 @@ import {
 import { ChatMessage } from "./ChatMessage";
 import { ToolApproval } from "./ToolApproval";
 import { useEditorContext } from "../../contexts/EditorContext";
-import { useDocumentsContext } from "../../contexts/DocumentsContext";
 import "./ChatPane.css";
 
 interface ChatPaneProps {
@@ -85,7 +84,6 @@ export function ChatPane({
   } = useChat(conversationId, workspaceId);
 
   const { openDocument } = useEditorContext();
-  const { documents } = useDocumentsContext();
 
   const [input, setInput] = useState("");
   const [selectedAgent, setSelectedAgent] = useState<
@@ -149,13 +147,18 @@ export function ChatPane({
       const result = tool.result as { document_id?: string } | undefined;
       if (!result?.document_id) continue;
 
-      const doc = documents.find((d) => d.id === result.document_id);
-      if (doc) {
-        openedDocsRef.current.add(tool.id);
-        openDocument(doc);
-      }
+      // document_id is now the path
+      const path = result.document_id;
+      const title =
+        path
+          .split("/")
+          .pop()
+          ?.replace(/\.json$/, "") || "Untitled";
+
+      openedDocsRef.current.add(tool.id);
+      openDocument({ id: path, title, path });
     }
-  }, [messages, documents, openDocument]);
+  }, [messages, openDocument]);
 
   // Auto-resize textarea based on content
   useEffect(() => {
@@ -306,7 +309,9 @@ export function ChatPane({
             <div className="agent-mentions">
               <button
                 type="button"
-                className={`agent-mention-btn agent-mention-larry ${selectedAgent === "larry" ? "selected" : ""}`}
+                className={`agent-mention-btn agent-mention-larry ${
+                  selectedAgent === "larry" ? "selected" : ""
+                }`}
                 onClick={() => {
                   if (status === "idle") {
                     setSelectedAgent(
@@ -321,7 +326,9 @@ export function ChatPane({
               </button>
               <button
                 type="button"
-                className={`agent-mention-btn agent-mention-explore ${selectedAgent === "explore" ? "selected" : ""}`}
+                className={`agent-mention-btn agent-mention-explore ${
+                  selectedAgent === "explore" ? "selected" : ""
+                }`}
                 onClick={() => {
                   if (status === "idle") {
                     setSelectedAgent(

@@ -8,14 +8,18 @@ import React, {
   type ReactNode,
 } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import type { Document } from "../lib/api";
 import { useWorkspacesContext } from "./WorkspacesContext";
-import { useDocumentsContext } from "./DocumentsContext";
+
+export interface EditorDocument {
+  id: string; // absolute path
+  title: string;
+  path: string;
+}
 
 export interface EditorContextType {
-  openDocuments: Document[];
+  openDocuments: EditorDocument[];
   activeDocumentId: string | null;
-  openDocument: (doc: Document, shouldNavigate?: boolean) => void;
+  openDocument: (doc: EditorDocument, shouldNavigate?: boolean) => void;
   closeDocument: (docId: string) => void;
   setActiveDocument: (docId: string) => void;
 }
@@ -25,10 +29,9 @@ const EditorContext = createContext<EditorContextType | undefined>(undefined);
 export const EditorProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  const [openDocuments, setOpenDocuments] = useState<Document[]>([]);
+  const [openDocuments, setOpenDocuments] = useState<EditorDocument[]>([]);
   const [activeDocumentId, setActiveDocumentId] = useState<string | null>(null);
   const { currentWorkspaceId } = useWorkspacesContext();
-  const { documents } = useDocumentsContext();
   const navigate = useNavigate();
 
   // Reset editor state when workspace changes
@@ -37,29 +40,8 @@ export const EditorProvider: React.FC<{ children: ReactNode }> = ({
     setActiveDocumentId(null);
   }, [currentWorkspaceId]);
 
-  // Close tabs for deleted documents
-  useEffect(() => {
-    const documentIds = new Set(documents.map((d) => d.id));
-    setOpenDocuments((prev) => {
-      if (prev.length === 0) return prev;
-
-      const filtered = prev.filter((d) => documentIds.has(d.id));
-      if (filtered.length === prev.length) return prev;
-
-      // If active document was closed, switch to another
-      setActiveDocumentId((currentActive) => {
-        if (currentActive && !documentIds.has(currentActive)) {
-          return filtered.length > 0 ? filtered[filtered.length - 1].id : null;
-        }
-        return currentActive;
-      });
-
-      return filtered;
-    });
-  }, [documents]);
-
   const openDocument = useCallback(
-    (doc: Document, shouldNavigate = true) => {
+    (doc: EditorDocument, shouldNavigate = true) => {
       setOpenDocuments((prev) => {
         // Add if not already open
         if (!prev.find((d) => d.id === doc.id)) {
@@ -71,7 +53,10 @@ export const EditorProvider: React.FC<{ children: ReactNode }> = ({
       if (shouldNavigate && currentWorkspaceId) {
         navigate({
           to: "/workspace/$workspaceId/doc/$docId",
-          params: { workspaceId: currentWorkspaceId, docId: doc.id },
+          params: {
+            workspaceId: currentWorkspaceId,
+            docId: encodeURIComponent(doc.id),
+          },
         });
       }
     },

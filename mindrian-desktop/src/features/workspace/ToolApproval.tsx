@@ -1,17 +1,15 @@
 import { useState, useEffect, useRef } from "react";
 import type { ToolCallMessage } from "../../hooks/chat/useChat";
-import type { Document } from "../../lib/api";
-import { useDocumentsContext } from "../../contexts/DocumentsContext";
 
-function formatArgValue(
-  key: string,
-  value: unknown,
-  documents: Document[]
-): string {
+function formatArgValue(key: string, value: unknown): string {
   // Look up document title for document_id fields
   if (key === "document_id" && typeof value === "string") {
-    const doc = documents.find((d) => d.id === value);
-    return doc ? `"${doc.title}"` : value;
+    // Value is path, extract title
+    const title = value
+      .split("/")
+      .pop()
+      ?.replace(/\.json$/, "");
+    return title ? `"${title}"` : value;
   }
 
   if (typeof value === "string") {
@@ -36,13 +34,9 @@ function formatArgKey(key: string): string {
     .join(" ");
 }
 
-function formatArgs(
-  args: Record<string, unknown>,
-  documents: Document[]
-): string[] {
+function formatArgs(args: Record<string, unknown>): string[] {
   return Object.entries(args).map(
-    ([key, value]) =>
-      `${formatArgKey(key)}: ${formatArgValue(key, value, documents)}`
+    ([key, value]) => `${formatArgKey(key)}: ${formatArgValue(key, value)}`
   );
 }
 
@@ -53,7 +47,6 @@ interface ToolApprovalProps {
 }
 
 export function ToolApproval({ tool, onApprove, onReject }: ToolApprovalProps) {
-  const { documents } = useDocumentsContext();
   const [selected, setSelected] = useState(0);
   const [customMessage, setCustomMessage] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -94,7 +87,7 @@ export function ToolApproval({ tool, onApprove, onReject }: ToolApprovalProps) {
       <div className="tool-prompt-action">{tool.description}</div>
       {Object.keys(tool.arguments).length > 0 && (
         <div className="tool-prompt-args">
-          {formatArgs(tool.arguments, documents).map((arg, i) => (
+          {formatArgs(tool.arguments).map((arg, i) => (
             <div key={i} className="tool-prompt-arg">
               {arg}
             </div>

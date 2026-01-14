@@ -1,12 +1,9 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
-import { FileText, MessageSquare } from "lucide-react";
-import { useParams } from "@tanstack/react-router";
-import { useEditorContext } from "../../contexts/EditorContext";
-import { useDocumentsContext } from "../../contexts/DocumentsContext";
+import { MessageSquare } from "lucide-react";
+import { useParams, Outlet } from "@tanstack/react-router";
 import { useWorkspacesContext } from "../../contexts/WorkspacesContext";
 import { ChatPane } from "./ChatPane";
-import { CollaborativeEditor } from "./CollaborativeEditor";
 import { WorkspaceSidebar } from "./WorkspaceSidebar";
 import { EditorTabs } from "./EditorTabs";
 import "./workspace.css";
@@ -25,8 +22,6 @@ const MAX_CHAT_WIDTH = 600;
 const DEFAULT_CHAT_WIDTH = 360;
 
 export const WorkspaceDetailView: React.FC = () => {
-  const { activeDocumentId } = useEditorContext();
-  const { documents } = useDocumentsContext();
   const { workspaceId } = useParams({ strict: false }) as {
     workspaceId?: string;
   };
@@ -91,9 +86,7 @@ export const WorkspaceDetailView: React.FC = () => {
     };
   }, [workspaceId, setCurrentWorkspaceId]);
 
-  const activeDocument = activeDocumentId
-    ? documents.find((d) => d.id === activeDocumentId)
-    : null;
+  // No need to derive activeDocument from documents list anymore as we use Outlet
 
   return (
     <motion.div
@@ -112,26 +105,13 @@ export const WorkspaceDetailView: React.FC = () => {
         {/* Left Panel: Workspace Identity + File System */}
         {!isChatExpanded && <WorkspaceSidebar />}
 
-        {/* Middle Panel: Collaborative Editor */}
+        {/* Middle Panel: Outlet for Editor or Index */}
         {!isChatExpanded && (
           <main className="workspace-panel workspace-editor">
             <EditorTabs />
-            {activeDocument ? (
-              <div className="editor-container">
-                <CollaborativeEditor
-                  key={activeDocument.id}
-                  docId={activeDocument.id}
-                />
-              </div>
-            ) : (
-              <div className="editor-empty-state">
-                <div className="empty-icon">
-                  <FileText size={48} strokeWidth={1} />
-                </div>
-                <h3>Select a document</h3>
-                <p>Pick a document from the sidebar to start working</p>
-              </div>
-            )}
+            <div className="editor-container">
+              <Outlet />
+            </div>
           </main>
         )}
 

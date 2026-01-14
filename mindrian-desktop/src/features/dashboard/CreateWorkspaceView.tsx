@@ -47,6 +47,7 @@ export const CreateWorkspaceView: React.FC = () => {
   const [name, setName] = useState("");
   const [selectedIconId, setSelectedIconId] = useState("briefcase");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleCreate = async () => {
     if (!name.trim() || isSubmitting) return;
@@ -56,12 +57,18 @@ export const CreateWorkspaceView: React.FC = () => {
 
     try {
       setIsSubmitting(true);
-      await createWorkspace(name, selectedIconId, "#000000", "#ffffff");
+      setError(null);
+      // Colors generated or picked - using defaults for now matching previous behavior
+      // You could add a color picker here later
+      const randomColor =
+        "#" + Math.floor(Math.random() * 16777215).toString(16);
+      await createWorkspace(name, selectedIconId, randomColor, "#ffffff");
 
       // Navigate to the workspaces list
       navigate({ to: "/workspaces" });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to create workspace", error);
+      setError(error.message || "An error occurred");
     } finally {
       setIsSubmitting(false);
     }
@@ -82,6 +89,23 @@ export const CreateWorkspaceView: React.FC = () => {
         Give your workspace a name and choose an icon to get started.
       </motion.p>
 
+      {error && (
+        <motion.div
+          variants={ITEM_VARIANTS}
+          className="error-message"
+          style={{
+            color: "#e11d48",
+            backgroundColor: "#ffe4e6",
+            padding: "12px",
+            borderRadius: "6px",
+            marginBottom: "16px",
+            fontSize: "14px",
+          }}
+        >
+          {error}
+        </motion.div>
+      )}
+
       <motion.div variants={ITEM_VARIANTS} className="input-group">
         <label htmlFor="ws-name">Workspace Name</label>
         <input
@@ -100,7 +124,9 @@ export const CreateWorkspaceView: React.FC = () => {
           {AVAILABLE_ICONS.map(({ id, icon: Icon }) => (
             <motion.button
               key={id}
-              className={`icon-option ${selectedIconId === id ? "selected" : ""}`}
+              className={`icon-option ${
+                selectedIconId === id ? "selected" : ""
+              }`}
               onClick={() => setSelectedIconId(id)}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}

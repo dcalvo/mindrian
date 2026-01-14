@@ -1,4 +1,3 @@
- 
 import {
   createFileRoute,
   Outlet,
@@ -10,8 +9,7 @@ import { ArrowLeft } from "lucide-react";
 
 import { PresenceProvider } from "../contexts/PresenceContext";
 import { WorkspacesProvider } from "../contexts/WorkspacesContext";
-import { DocumentsProvider } from "../contexts/DocumentsContext";
-import { CollaborationProvider } from "../contexts/CollaborationContext";
+import { LocalDocumentsProvider } from "../contexts/LocalDocumentsContext";
 import { EditorProvider } from "../contexts/EditorContext";
 import { ParticleBackground } from "../features/landing/ParticleBackground";
 import { Navbar } from "../components/common/Navbar";
@@ -28,13 +26,11 @@ function AuthLayout() {
   return (
     <PresenceProvider>
       <WorkspacesProvider>
-        <DocumentsProvider>
-          <CollaborationProvider>
-            <EditorProvider>
-              <DashboardChrome />
-            </EditorProvider>
-          </CollaborationProvider>
-        </DocumentsProvider>
+        <LocalDocumentsProvider>
+          <EditorProvider>
+            <DashboardChrome />
+          </EditorProvider>
+        </LocalDocumentsProvider>
       </WorkspacesProvider>
     </PresenceProvider>
   );
@@ -94,7 +90,9 @@ function DashboardChrome() {
 
   return (
     <div
-      className={`preview-container ${isChatMode ? "chat-active" : ""} view-${getViewClass()}`}
+      className={`preview-container ${
+        isChatMode ? "chat-active" : ""
+      } view-${getViewClass()}`}
       style={
         isChatMode
           ? ({
@@ -123,7 +121,9 @@ function DashboardChrome() {
       />
 
       <motion.div
-        className={`preview-content ${isChatMode ? "chat-active" : ""} view-${getViewClass()}`}
+        className={`preview-content ${
+          isChatMode ? "chat-active" : ""
+        } view-${getViewClass()}`}
         variants={containerVariants}
         initial="hidden"
         animate="visible"

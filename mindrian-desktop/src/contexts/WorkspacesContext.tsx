@@ -1,4 +1,3 @@
-/* eslint-disable react-refresh/only-export-components */
 import React, {
   createContext,
   useContext,
@@ -7,12 +6,21 @@ import React, {
   type ReactNode,
   useCallback,
 } from "react";
-import {
-  type Workspace,
-  listWorkspaces,
-  createWorkspace as apiCreateWorkspace,
-  deleteWorkspace as apiDeleteWorkspace,
-} from "../lib/api";
+import { fs } from "../lib/fs";
+
+export interface WorkspaceConfig {
+  title: string;
+  icon: string;
+  bgColor: string;
+  iconColor: string;
+  createdAt: string;
+}
+
+export interface Workspace extends WorkspaceConfig {
+  id: string; // folder name
+  path: string; // full path
+  updated_at: string; // derived from fs stats
+}
 
 interface WorkspacesContextType {
   workspaces: Workspace[];
@@ -44,11 +52,58 @@ export const WorkspacesProvider: React.FC<{ children: ReactNode }> = ({
     null
   );
 
+  const getMindrianDir = async () => {
+    const dir = await fs.getMindrianDir();
+    if (!(await fs.exists(dir))) {
+      await fs.createDir(dir);
+    }
+    return dir;
+  };
+
   const refreshWorkspaces = useCallback(async () => {
     try {
       setLoading(true);
-      const data = await listWorkspaces();
-      setWorkspaces(data);
+      const rootDir = await getMindrianDir();
+      const entries = await fs.readDir(rootDir);
+
+      const workspacePromises = entries
+        .filter((e) => e.isDirectory && !e.name.startsWith("."))
+        .map(async (entry) => {
+          const wsPath = `${rootDir}/${entry.name}`;
+          const configPath = `${wsPath}/.mindrian/config.json`;
+          const stats = await fs.getStats(wsPath);
+
+          let config: WorkspaceConfig;
+          try {
+            const content = await fs.readFile(configPath);
+            config = JSON.parse(content);
+          } catch {
+            // Default config for folders without metadata
+            config = {
+              title: entry.name,
+              icon: "briefcase",
+              bgColor: "#000000",
+              iconColor: "#ffffff",
+              createdAt: stats.birthtime.toISOString(),
+            };
+          }
+
+          return {
+            ...config,
+            id: entry.name,
+            path: wsPath,
+            updated_at: stats.mtime.toISOString(),
+          } as Workspace;
+        });
+
+      const loadedWorkspaces = await Promise.all(workspacePromises);
+      // Sort by updated_at desc
+      loadedWorkspaces.sort(
+        (a, b) =>
+          new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+      );
+
+      setWorkspaces(loadedWorkspaces);
       setError(null);
     } catch (err) {
       console.error("Failed to load workspaces:", err);
@@ -66,31 +121,69 @@ export const WorkspacesProvider: React.FC<{ children: ReactNode }> = ({
   const createWorkspace = useCallback(
     async (title: string, icon: string, bgColor: string, iconColor: string) => {
       try {
-        const newWorkspace = await apiCreateWorkspace(
+        const rootDir = await getMindrianDir();
+        // Sanitize title for folder name
+        const folderName = title.replace(/[^a-z0-9]/gi, "_").toLowerCase();
+        let uniqueName = folderName;
+        let counter = 1;
+
+        while (await fs.exists(`${rootDir}/${uniqueName}`)) {
+          uniqueName = `${folderName}_${counter}`;
+          counter++;
+        }
+
+        const wsPath = `${rootDir}/${uniqueName}`;
+        const configPath = `${wsPath}/.mindrian`;
+
+        await fs.createDir(wsPath);
+        await fs.createDir(configPath);
+
+        const config: WorkspaceConfig = {
           title,
           icon,
           bgColor,
-          iconColor
+          iconColor,
+          createdAt: new Date().toISOString(),
+        };
+
+        await fs.writeFile(
+          `${configPath}/config.json`,
+          JSON.stringify(config, null, 2)
         );
-        setWorkspaces((prev) => [newWorkspace, ...prev]);
-        return newWorkspace;
+
+        // Refresh to get the full object with stats
+        await refreshWorkspaces();
+
+        return {
+          ...config,
+          id: uniqueName,
+          path: wsPath,
+          updated_at: new Date().toISOString(),
+        };
       } catch (err) {
         console.error("Failed to create workspace:", err);
         throw err;
       }
     },
-    []
+    [refreshWorkspaces]
   );
 
-  const deleteWorkspace = useCallback(async (id: string) => {
-    try {
-      await apiDeleteWorkspace(id);
-      setWorkspaces((prev) => prev.filter((w) => w.id !== id));
-    } catch (err) {
-      console.error("Failed to delete workspace:", err);
-      throw err;
-    }
-  }, []);
+  const deleteWorkspace = useCallback(
+    async (id: string) => {
+      try {
+        const rootDir = await getMindrianDir();
+        await fs.delete(`${rootDir}/${id}`);
+        setWorkspaces((prev) => prev.filter((w) => w.id !== id));
+        if (currentWorkspaceId === id) {
+          setCurrentWorkspaceId(null);
+        }
+      } catch (err) {
+        console.error("Failed to delete workspace:", err);
+        throw err;
+      }
+    },
+    [currentWorkspaceId]
+  );
 
   return (
     <WorkspacesContext.Provider

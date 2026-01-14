@@ -1,4 +1,4 @@
-import { useMemo, useCallback } from "react";
+import { useCallback } from "react";
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { Tree } from "react-arborist";
 import type {
@@ -8,10 +8,10 @@ import type {
   MoveHandler,
 } from "react-arborist";
 import { FilePlus, FolderPlus } from "lucide-react";
-import { useDocumentsContext } from "../../contexts/DocumentsContext";
-import { useEditorContext } from "../../contexts/EditorContext";
+import { useDocumentsContext } from "../../contexts/LocalDocumentsContext";
+import { fs } from "../../lib/fs";
 import { FileNode } from "./FileNode";
-import { buildTree, type TreeNode } from "../../lib/tree";
+import { type TreeNode } from "../../lib/tree";
 import "./FileTree.css";
 
 interface FileTreeProps {
@@ -19,43 +19,49 @@ interface FileTreeProps {
 }
 
 export function FileTree({ width }: FileTreeProps) {
-  const { openDocument } = useEditorContext();
   const navigate = useNavigate();
   const params = useParams({ strict: false }) as {
     workspaceId?: string;
     docId?: string;
   };
   const { workspaceId } = params;
-  const currentDocumentId = params.docId;
+
+  // Current document ID (which is now the absolute path)
+  // We need to decode it if it comes from URL
+  const currentDocumentId = params.docId
+    ? decodeURIComponent(params.docId)
+    : undefined;
+
   const {
-    folders,
-    documents,
+    treeData,
     loading,
     error,
-    addDocument,
-    addFolder,
+    createDocument,
+    createFolder,
     renameItem,
     moveItem,
-    removeItem,
+    deleteItem,
+    importFiles,
   } = useDocumentsContext();
-
-  // Transform folders + documents to tree structure
-  const treeData = useMemo(
-    () => buildTree({ folders, documents }),
-    [folders, documents]
-  );
 
   // Handle navigation when a document is activated
   const handleActivate = useCallback(
     (node: { data: TreeNode }) => {
-      if (node.data.type !== "folder") {
-        const doc = documents.find((d) => d.id === node.data.id);
-        if (doc) {
-          openDocument(doc);
+      if (node.data.type === "document") {
+        const path = node.data.id;
+        // Navigate using encoded path
+        if (workspaceId) {
+          navigate({
+            to: "/workspace/$workspaceId/doc/$docId",
+            params: { workspaceId, docId: encodeURIComponent(path) },
+          });
         }
+      } else if (node.data.type === "file") {
+        // Handle generic files (maybe open with system default?)
+        fs.openPath(node.data.id);
       }
     },
-    [documents, openDocument]
+    [navigate, workspaceId]
   );
 
   // Handle creating new items
@@ -63,61 +69,31 @@ export function FileTree({ width }: FileTreeProps) {
     async ({ parentId, type }) => {
       try {
         if (type === "leaf") {
-          const doc = await addDocument("Untitled", parentId);
+          const path = await createDocument("Untitled", parentId);
           if (workspaceId) {
             navigate({
               to: "/workspace/$workspaceId/doc/$docId",
-              params: { workspaceId, docId: doc.id },
+              params: { workspaceId, docId: encodeURIComponent(path) },
             });
           }
-          return {
-            id: doc.id,
-            name: doc.title,
-            type: "document" as const,
-            data: doc,
-          };
+          return null; // Tree auto-refreshes via context
         } else {
-          const folder = await addFolder("New Folder", parentId);
-          return {
-            id: folder.id,
-            name: folder.title,
-            type: "folder" as const,
-            children: [],
-            data: folder,
-          };
+          await createFolder("New Folder", parentId);
+          return null;
         }
       } catch (err) {
         console.error("Failed to create:", err);
         return null;
       }
     },
-    [addDocument, addFolder, navigate, workspaceId]
+    [createDocument, createFolder, navigate, workspaceId]
   );
 
   // Handle renaming
   const handleRename: RenameHandler<TreeNode> = useCallback(
-    async ({ id, name, node }) => {
-      // Prevent renaming to existing name in same folder (same type only)
-      const parent = node.parent;
-      if (parent && parent.children) {
-        const isFolder = node.data.type === "folder";
-        const hasDuplicate = parent.children.some(
-          (sibling) =>
-            sibling.id !== id &&
-            sibling.data.type === node.data.type &&
-            sibling.data.name.toLowerCase() === name.trim().toLowerCase()
-        );
-
-        if (hasDuplicate) {
-          alert(
-            `A ${isFolder ? "folder" : "page"} with the name "${name}" already exists in this location.`
-          );
-          return;
-        }
-      }
-
+    async ({ id, name }) => {
       try {
-        await renameItem(id, name, node.data.type === "folder");
+        await renameItem(id, name);
       } catch (err) {
         console.error("Failed to rename:", err);
       }
@@ -127,15 +103,9 @@ export function FileTree({ width }: FileTreeProps) {
 
   // Handle moving (drag-drop)
   const handleMove: MoveHandler<TreeNode> = useCallback(
-    async ({ dragIds, parentId, index, dragNodes }) => {
+    async ({ dragIds, parentId, index }) => {
       try {
-        await Promise.all(
-          dragIds.map((id, i) => {
-            const node = dragNodes[i];
-            const isFolder = node.data.type === "folder";
-            return moveItem(id, parentId, index + i, isFolder);
-          })
-        );
+        await moveItem(dragIds, parentId, index);
       } catch (err) {
         console.error("Failed to move:", err);
       }
@@ -147,68 +117,50 @@ export function FileTree({ width }: FileTreeProps) {
   const handleDelete: DeleteHandler<TreeNode> = useCallback(
     async ({ ids }) => {
       try {
-        // Check if currently open document is being deleted (directly or via parent)
-        if (currentDocumentId) {
-          // Build ancestry for current document
-          const currentDoc = documents.find((d) => d.id === currentDocumentId);
-          if (currentDoc) {
-            const ancestry = new Set<string>([currentDocumentId]);
-
-            // Add folder ancestry
-            let folderId = currentDoc.folder_id;
-            while (folderId) {
-              ancestry.add(folderId);
-              const folder = folders.find((f) => f.id === folderId);
-              folderId = folder?.parent_folder_id ?? null;
-            }
-
-            if (ids.some((id) => ancestry.has(id))) {
-              // Navigate back to workspace index
-              if (workspaceId) {
-                navigate({
-                  to: "/workspace/$workspaceId",
-                  params: { workspaceId },
-                });
-              }
-            }
+        if (currentDocumentId && ids.includes(currentDocumentId)) {
+          if (workspaceId) {
+            navigate({
+              to: "/workspace/$workspaceId",
+              params: { workspaceId },
+            });
           }
         }
 
         for (const id of ids) {
-          await removeItem(id);
+          await deleteItem(id);
         }
       } catch (err) {
         console.error("Failed to delete:", err);
       }
     },
-    [removeItem, currentDocumentId, documents, folders, navigate, workspaceId]
+    [deleteItem, currentDocumentId, navigate, workspaceId]
   );
 
   // Create new document at root
   const handleCreateDocument = useCallback(async () => {
     try {
-      const doc = await addDocument("Untitled", null);
+      const path = await createDocument("Untitled", null);
       if (workspaceId) {
         navigate({
           to: "/workspace/$workspaceId/doc/$docId",
-          params: { workspaceId, docId: doc.id },
+          params: { workspaceId, docId: encodeURIComponent(path) },
         });
       }
     } catch (err) {
       console.error("Failed to create document:", err);
     }
-  }, [addDocument, navigate, workspaceId]);
+  }, [createDocument, navigate, workspaceId]);
 
   // Create new folder at root
   const handleCreateFolder = useCallback(async () => {
     try {
-      await addFolder("New Folder", null);
+      await createFolder("New Folder", null);
     } catch (err) {
       console.error("Failed to create folder:", err);
     }
-  }, [addFolder]);
+  }, [createFolder]);
 
-  if (loading) {
+  if (loading && treeData.length === 0) {
     return (
       <aside
         className="file-tree"
@@ -244,6 +196,27 @@ export function FileTree({ width }: FileTreeProps) {
       <div
         className="file-tree-header"
         style={{ padding: "0 12px 8px", justifyContent: "flex-end" }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "copy";
+        }}
+        onDrop={async (e) => {
+          e.preventDefault();
+          // Check for external files
+          if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            const paths: string[] = [];
+            for (let i = 0; i < e.dataTransfer.files.length; i++) {
+              // Electron adds 'path' to the File object
+              const file = e.dataTransfer.files[i] as any;
+              if (file.path) {
+                paths.push(file.path);
+              }
+            }
+            if (paths.length > 0) {
+              await importFiles(paths, null); // Import to root for now
+            }
+          }
+        }}
       >
         <div className="file-tree-actions">
           <button
@@ -279,10 +252,11 @@ export function FileTree({ width }: FileTreeProps) {
             onMove={handleMove}
             onDelete={handleDelete}
             onActivate={handleActivate}
-            disableDrop={({ parentNode, dragNodes }) => {
-              return dragNodes.some(
-                (node) => node.parent?.id === parentNode.id
-              );
+            disableDrop={({ parentNode }) => {
+              // Prevent dropping into files
+              if (parentNode.data.type !== "folder") return true;
+              // Prevent dropping parent into child (handled by arborist usually but good to check)
+              return false;
             }}
           >
             {(props) => (
@@ -294,11 +268,14 @@ export function FileTree({ width }: FileTreeProps) {
                 }}
                 onCreateFile={async (parentId: string) => {
                   try {
-                    const doc = await addDocument("Untitled", parentId);
+                    const path = await createDocument("Untitled", parentId);
                     if (workspaceId) {
                       navigate({
                         to: "/workspace/$workspaceId/doc/$docId",
-                        params: { workspaceId, docId: doc.id },
+                        params: {
+                          workspaceId,
+                          docId: encodeURIComponent(path),
+                        },
                       });
                     }
                   } catch (e) {

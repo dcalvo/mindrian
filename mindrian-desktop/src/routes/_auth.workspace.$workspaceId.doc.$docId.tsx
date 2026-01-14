@@ -1,9 +1,7 @@
- 
+import { useEffect, useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect } from "react";
-import { CollaborativeEditor } from "../features/workspace/CollaborativeEditor";
 import { useEditorContext } from "../contexts/EditorContext";
-import { useDocumentsContext } from "../contexts/DocumentsContext";
+import { LocalEditor } from "../features/workspace/LocalEditor";
 
 export const Route = createFileRoute(
   "/_auth/workspace/$workspaceId/doc/$docId"
@@ -14,17 +12,20 @@ export const Route = createFileRoute(
 function DocumentRoute() {
   const { docId } = Route.useParams();
   const { openDocument, setActiveDocument } = useEditorContext();
-  const { documents } = useDocumentsContext();
+
+  const path = decodeURIComponent(docId);
+
+  // Extract title from path (filename without extension)
+  const title = useMemo(() => {
+    const filename = path.split("/").pop() || "Untitled";
+    return filename.replace(/\.json$/, "");
+  }, [path]);
 
   // Sync URL param to EditorContext - add doc to open tabs if not there
   useEffect(() => {
-    const doc = documents.find((d) => d.id === docId);
-    if (doc) {
-      // openDocument adds to tabs without navigating since we're already here
-      openDocument(doc, false);
-      setActiveDocument(docId);
-    }
-  }, [docId, documents, openDocument, setActiveDocument]);
+    openDocument({ id: path, title, path }, false);
+    setActiveDocument(path);
+  }, [path, title, openDocument, setActiveDocument]);
 
-  return <CollaborativeEditor key={docId} docId={docId} />;
+  return <LocalEditor path={path} key={path} />;
 }

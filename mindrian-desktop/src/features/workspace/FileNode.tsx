@@ -58,7 +58,12 @@ export function FileNode({
 
   const handleDoubleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    node.edit();
+    if (node.data.type === "document") {
+      node.edit();
+    } else if (node.data.type === "file") {
+      console.log("Use fs:open-path to open generic file");
+      // TODO: Implement open with default app
+    }
   };
 
   const handleSubmit = (name: string) => {
@@ -113,7 +118,9 @@ export function FileNode({
 
       {/* Icon */}
       <span
-        className={`file-node-icon ${node.data.type === "folder" ? "folder" : ""}`}
+        className={`file-node-icon ${
+          node.data.type === "folder" ? "folder" : ""
+        }`}
       >
         {node.data.type === "folder" ? (
           <Folder size={16} />
