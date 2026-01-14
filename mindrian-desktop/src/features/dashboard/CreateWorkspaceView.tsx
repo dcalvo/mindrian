@@ -62,10 +62,18 @@ export const CreateWorkspaceView: React.FC = () => {
       // You could add a color picker here later
       const randomColor =
         "#" + Math.floor(Math.random() * 16777215).toString(16);
-      await createWorkspace(name, selectedIconId, randomColor, "#ffffff");
+      const newWorkspace = await createWorkspace(
+        name,
+        selectedIconId,
+        randomColor,
+        "#ffffff"
+      );
 
-      // Navigate to the workspaces list
-      navigate({ to: "/workspaces" });
+      // Navigate to the new workspace
+      navigate({
+        to: "/workspace/$workspaceId",
+        params: { workspaceId: newWorkspace.id },
+      });
     } catch (error: any) {
       console.error("Failed to create workspace", error);
       setError(error.message || "An error occurred");
