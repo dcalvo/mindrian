@@ -192,31 +192,31 @@ export function FileTree({ width }: FileTreeProps) {
     <aside
       className="file-tree"
       style={{ width: width ? `${width}px` : undefined }}
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "copy";
+      }}
+      onDrop={async (e) => {
+        e.preventDefault();
+        // Check for external files
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+          const paths: string[] = [];
+          for (let i = 0; i < e.dataTransfer.files.length; i++) {
+            // Electron adds 'path' to the File object
+            const file = e.dataTransfer.files[i] as any;
+            if (file.path) {
+              paths.push(file.path);
+            }
+          }
+          if (paths.length > 0) {
+            await importFiles(paths, null); // Import to root for now
+          }
+        }
+      }}
     >
       <div
         className="file-tree-header"
         style={{ padding: "0 12px 8px", justifyContent: "flex-end" }}
-        onDragOver={(e) => {
-          e.preventDefault();
-          e.dataTransfer.dropEffect = "copy";
-        }}
-        onDrop={async (e) => {
-          e.preventDefault();
-          // Check for external files
-          if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-            const paths: string[] = [];
-            for (let i = 0; i < e.dataTransfer.files.length; i++) {
-              // Electron adds 'path' to the File object
-              const file = e.dataTransfer.files[i] as any;
-              if (file.path) {
-                paths.push(file.path);
-              }
-            }
-            if (paths.length > 0) {
-              await importFiles(paths, null); // Import to root for now
-            }
-          }
-        }}
       >
         <div className="file-tree-actions">
           <button
