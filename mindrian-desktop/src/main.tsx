@@ -1,15 +1,24 @@
-import React from 'react'
-import ReactDOM from 'react-dom/client'
-import App from './App.tsx'
-import './index.css'
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import {
+  RouterProvider,
+  createRouter,
+  createHashHistory,
+} from "@tanstack/react-router";
+import { routeTree } from "./routeTree.gen";
+import "./index.css";
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-)
+const hashHistory = createHashHistory();
+const router = createRouter({ routeTree, history: hashHistory });
 
-// Use contextBridge
-window.ipcRenderer.on('main-process-message', (_event, message) => {
-  console.log(message)
-})
+declare module "@tanstack/react-router" {
+  interface Register {
+    router: typeof router;
+  }
+}
+
+createRoot(document.getElementById("root")!).render(
+  <StrictMode>
+    <RouterProvider router={router} />
+  </StrictMode>
+);

@@ -1,0 +1,324 @@
+import React from "react";
+import { motion, type Variants } from "framer-motion";
+import { Plus, ChevronRight, FileText } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
+import { useWorkspacesContext } from "../../contexts/WorkspacesContext";
+import { type Agent } from "../../hooks/chat/usePreviewChat";
+import {
+  Briefcase,
+  TrendingUp,
+  Code,
+  BookOpen,
+  Terminal,
+  Cpu,
+  Globe,
+  Zap,
+} from "lucide-react";
+
+const DEFAULT_ITEM_VARIANTS: Variants = {
+  hidden: { opacity: 0, y: 30 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      type: "spring" as const,
+      stiffness: 100,
+      damping: 15,
+    },
+  },
+  exit: {
+    opacity: 0,
+    y: -20,
+    transition: { duration: 0.2 },
+  },
+};
+
+interface PreviewHomeViewProps {
+  itemVariants?: Variants;
+  isChatMode?: boolean;
+  isDropdownOpen?: boolean;
+  setIsDropdownOpen?: (open: boolean) => void;
+  selectedAgent?: Agent;
+  setSelectedAgent?: (agent: Agent) => void;
+  chatInput?: string;
+  setChatInput?: (input: string) => void;
+  enterChatMode?: () => void;
+  handleBlur?: (e: React.FocusEvent) => void;
+  sendMessage?: () => void;
+  agents?: Agent[];
+}
+
+export const PreviewHomeView: React.FC<PreviewHomeViewProps> = (props) => {
+  const { workspaces } = useWorkspacesContext();
+  const navigate = useNavigate();
+
+  const itemVariants = props.itemVariants ?? DEFAULT_ITEM_VARIANTS;
+
+  const getIcon = (iconId: string) => {
+    switch (iconId) {
+      case "briefcase":
+        return Briefcase;
+      case "trending-up":
+        return TrendingUp;
+      case "code":
+        return Code;
+      case "book-open":
+        return BookOpen;
+      case "terminal":
+        return Terminal;
+      case "cpu":
+        return Cpu;
+      case "globe":
+        return Globe;
+      case "zap":
+        return Zap;
+      default:
+        return Briefcase;
+    }
+  };
+
+  // Get recent workspaces (limit to 6 most recent)
+  const recentWorkspaces = workspaces.slice(0, 6);
+
+  const containerVariants: Variants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: 0.2,
+      },
+    },
+  };
+
+  return (
+    <motion.div
+      key="landing-content"
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+      variants={containerVariants}
+      style={{ width: "100%", display: "contents" }}
+    >
+      {/* Welcome text */}
+      <motion.div className="welcome-section" variants={itemVariants}>
+        <h1 className="welcome-title">
+          <motion.span
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.5, type: "spring", stiffness: 100 }}
+          >
+            Welcome
+          </motion.span>
+        </h1>
+        <motion.p
+          className="welcome-subtitle"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.9 }}
+        >
+          Your intelligent workspace for thinking, creating, and collaborating.
+        </motion.p>
+      </motion.div>
+
+      {/* Chat Action Area (Disabled/Commented out for now) */}
+      {/* 
+      <motion.div
+        className="chat-action-container home-chat"
+        variants={itemVariants}
+      >
+        <motion.div
+          layout
+          className={`chat-input-wrapper-new ${isChatMode ? "chat-active" : ""}`}
+          whileHover={{ boxShadow: `0 8px 30px rgba(0, 0, 0, 0.08)` }}
+          transition={{ type: "spring", stiffness: 200, damping: 30 }}
+        >
+          <textarea
+            className="chat-input"
+            placeholder={`How can I help you today?`}
+            value={chatInput}
+            onChange={(e) => setChatInput(e.target.value)}
+            onBlur={handleBlur}
+            rows={4}
+          />
+
+          {!isChatMode ? (
+            <div className="agent-dropdown-container">
+              <motion.button
+                className="agent-selector"
+                style={{ color: selectedAgent.color }}
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                whileHover={{ backgroundColor: "rgba(0, 0, 0, 0.04)" }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <span className="agent-name">{selectedAgent.name}</span>
+                <motion.div
+                  animate={{ rotate: isDropdownOpen ? 180 : 0 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                  style={{ color: selectedAgent.color }}
+                >
+                  <ChevronDown size={14} />
+                </motion.div>
+              </motion.button>
+
+              <AnimatePresence>
+                {isDropdownOpen && (
+                  <motion.div
+                    className="agent-dropdown"
+                    initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                    transition={{
+                      type: "spring",
+                      stiffness: 300,
+                      damping: 25,
+                    }}
+                  >
+                    {agents.map((agent) => (
+                      <motion.button
+                        key={agent.id}
+                        className={`agent-option ${selectedAgent.id === agent.id ? "selected" : ""}`}
+                        style={
+                          selectedAgent.id === agent.id
+                            ? { color: agent.color }
+                            : {}
+                        }
+                        onClick={() => {
+                          setSelectedAgent(agent);
+                          setIsDropdownOpen(false);
+                        }}
+                        whileHover={{
+                          backgroundColor: "rgba(0, 0, 0, 0.04)",
+                        }}
+                      >
+                        <span className="agent-option-name">{agent.name}</span>
+                        <span className="agent-option-desc">
+                          {agent.description}
+                        </span>
+                      </motion.button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          ) : null}
+
+          <div className={isChatMode ? "chat-footer" : ""}>
+            <motion.button
+              className="send-button-inline"
+              style={{ backgroundColor: selectedAgent.color }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              disabled={!chatInput.trim()}
+              onClick={() => {
+                enterChatMode();
+                setTimeout(sendMessage, 0);
+              }}
+            >
+              <ChevronRight size={18} />
+            </motion.button>
+          </div>
+        </motion.div>
+      </motion.div>
+      */}
+
+      {/* Workspaces Grid */}
+      <motion.div
+        key="workspaces"
+        className="workspaces-section"
+        variants={itemVariants}
+      >
+        <div
+          className="section-header"
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "20px",
+          }}
+        >
+          <h2 className="workspaces-title" style={{ margin: 0 }}>
+            Recent Workspaces
+          </h2>
+          <motion.button
+            className="see-all-btn"
+            onClick={() => navigate({ to: "/workspaces" })}
+            whileHover={{ x: 3 }}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+              background: "none",
+              border: "none",
+              color: "var(--preview-text-primary)",
+              fontWeight: 600,
+              fontSize: "0.9rem",
+              cursor: "pointer",
+              opacity: 0.8,
+            }}
+          >
+            See all <ChevronRight size={16} />
+          </motion.button>
+        </div>
+        <div className="workspaces-grid">
+          <motion.div
+            className="workspace-card create-card"
+            onClick={() => navigate({ to: "/workspaces/new" })}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{
+              delay: 0.2,
+              duration: 0.5,
+            }}
+          >
+            <div className="workspace-icon">
+              <Plus size={24} />
+            </div>
+            <div className="workspace-info">
+              <h3 className="workspace-name">Create New</h3>
+            </div>
+          </motion.div>
+
+          {recentWorkspaces.map((workspace, index) => {
+            const IconComponent = getIcon(workspace.icon);
+            return (
+              <motion.div
+                key={workspace.id}
+                className="workspace-card"
+                onClick={() =>
+                  navigate({
+                    to: "/workspace/$workspaceId",
+                    params: { workspaceId: String(workspace.id) },
+                  })
+                }
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{
+                  delay: 0.2 + index * 0.1,
+                  duration: 0.5,
+                }}
+              >
+                <div
+                  className="workspace-icon"
+                  style={{
+                    backgroundColor: workspace.bg_color,
+                    boxShadow: `0 8px 20px ${workspace.bg_color}33`,
+                  }}
+                >
+                  <IconComponent size={28} color={workspace.icon_color} />
+                </div>
+                <div className="workspace-info">
+                  <h3 className="workspace-name">{workspace.title}</h3>
+                  <p className="workspace-meta">
+                    <FileText size={12} />
+                    Recent
+                  </p>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
