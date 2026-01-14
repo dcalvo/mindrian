@@ -6,6 +6,7 @@ import {
   Blocks,
   LogOut,
   ChevronDown,
+  Settings,
   type LucideIcon,
 } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
@@ -217,6 +218,17 @@ export const Navbar: React.FC<NavbarProps> = ({
                     {user.email && (
                       <div className="user-dropdown-email">{user.email}</div>
                     )}
+                    <motion.button
+                      className="user-dropdown-item"
+                      onClick={() => {
+                        setIsDropdownOpen(false);
+                        navigate({ to: "/settings" });
+                      }}
+                      whileHover={{ backgroundColor: "rgba(0, 0, 0, 0.04)" }}
+                    >
+                      <Settings size={16} />
+                      <span>Settings</span>
+                    </motion.button>
                     <motion.button
                       className="user-dropdown-item"
                       onClick={logout}

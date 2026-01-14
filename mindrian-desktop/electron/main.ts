@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell } from "electron";
+import { app, BrowserWindow, ipcMain, shell, safeStorage } from "electron";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import fs from "node:fs/promises";
@@ -20,6 +20,12 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
   : RENDERER_DIST;
 
 let win: BrowserWindow | null;
+
+// ============================================================================
+// Constants & Paths
+// ============================================================================
+const MINDRIAN_ROOT = path.join(os.homedir(), "Documents", "Mindrian");
+const CONFIG_PATH = path.join(MINDRIAN_ROOT, ".mindrian", "config.json");
 
 function createWindow() {
   win = new BrowserWindow({
@@ -43,8 +49,6 @@ function createWindow() {
 // ============================================================================
 // File System IPC Handlers
 // ============================================================================
-
-const MINDRIAN_ROOT = path.join(os.homedir(), "Documents", "Mindrian");
 
 function ensureSafePath(targetPath: string) {
   const resolvedPath = path.resolve(targetPath);
@@ -160,12 +164,59 @@ ipcMain.handle("fs:open-path", async (_, targetPath: string) => {
 });
 
 // ============================================================================
-// AI Agent Handlers
+// AI Agent Handlers & Persisted Settings
 // ============================================================================
 import { aiService } from "./services/ai";
 
-ipcMain.handle("ai:set-key", (_, key: string) => {
+async function saveApiKey(key: string) {
+  try {
+    await fs.mkdir(path.dirname(CONFIG_PATH), { recursive: true });
+    let config = {};
+    try {
+      const content = await fs.readFile(CONFIG_PATH, "utf-8");
+      config = JSON.parse(content);
+    } catch {
+      // Config doesn't exist yet
+    }
+
+    if (safeStorage.isEncryptionAvailable()) {
+      const encrypted = safeStorage.encryptString(key);
+      (config as any).api_key = encrypted.toString("base64");
+    } else {
+      // Fallback (not recommended for secrets but better than failing)
+      (config as any).api_key_unencrypted = key;
+    }
+
+    await fs.writeFile(CONFIG_PATH, JSON.stringify(config, null, 2), "utf-8");
+  } catch (err) {
+    console.error("Failed to save API key:", err);
+  }
+}
+
+async function loadSettings() {
+  try {
+    const content = await fs.readFile(CONFIG_PATH, "utf-8");
+    const config = JSON.parse(content);
+
+    let key = "";
+    if (config.api_key && safeStorage.isEncryptionAvailable()) {
+      const buffer = Buffer.from(config.api_key, "base64");
+      key = safeStorage.decryptString(buffer);
+    } else if (config.api_key_unencrypted) {
+      key = config.api_key_unencrypted;
+    }
+
+    if (key) {
+      aiService.setApiKey(key);
+    }
+  } catch {
+    // No config or failed to load
+  }
+}
+
+ipcMain.handle("ai:set-key", async (_, key: string) => {
   aiService.setApiKey(key);
+  await saveApiKey(key);
 });
 
 ipcMain.handle("ai:check-key", () => {
@@ -203,4 +254,7 @@ app.on("activate", () => {
   }
 });
 
-app.whenReady().then(createWindow);
+app.whenReady().then(async () => {
+  await loadSettings();
+  createWindow();
+});

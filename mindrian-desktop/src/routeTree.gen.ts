@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as AuthIndexRouteImport } from './routes/_auth.index'
 import { Route as AuthWorkspacesRouteImport } from './routes/_auth.workspaces'
+import { Route as AuthSettingsRouteImport } from './routes/_auth.settings'
 import { Route as AuthExtensionsRouteImport } from './routes/_auth.extensions'
 import { Route as AuthWorkspacesIndexRouteImport } from './routes/_auth.workspaces.index'
 import { Route as AuthWorkspacesNewRouteImport } from './routes/_auth.workspaces.new'
@@ -32,6 +33,11 @@ const AuthIndexRoute = AuthIndexRouteImport.update({
 const AuthWorkspacesRoute = AuthWorkspacesRouteImport.update({
   id: '/workspaces',
   path: '/workspaces',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthSettingsRoute = AuthSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => AuthRoute,
 } as any)
 const AuthExtensionsRoute = AuthExtensionsRouteImport.update({
@@ -76,6 +82,7 @@ const AuthWorkspaceWorkspaceIdDocDocIdRoute =
 
 export interface FileRoutesByFullPath {
   '/extensions': typeof AuthExtensionsRoute
+  '/settings': typeof AuthSettingsRoute
   '/workspaces': typeof AuthWorkspacesRouteWithChildren
   '/': typeof AuthIndexRoute
   '/workspace/$workspaceId': typeof AuthWorkspaceWorkspaceIdRouteWithChildren
@@ -87,6 +94,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/extensions': typeof AuthExtensionsRoute
+  '/settings': typeof AuthSettingsRoute
   '/': typeof AuthIndexRoute
   '/workspaces/new': typeof AuthWorkspacesNewRoute
   '/workspaces': typeof AuthWorkspacesIndexRoute
@@ -98,6 +106,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_auth': typeof AuthRouteWithChildren
   '/_auth/extensions': typeof AuthExtensionsRoute
+  '/_auth/settings': typeof AuthSettingsRoute
   '/_auth/workspaces': typeof AuthWorkspacesRouteWithChildren
   '/_auth/': typeof AuthIndexRoute
   '/_auth/workspace/$workspaceId': typeof AuthWorkspaceWorkspaceIdRouteWithChildren
@@ -111,6 +120,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/extensions'
+    | '/settings'
     | '/workspaces'
     | '/'
     | '/workspace/$workspaceId'
@@ -122,6 +132,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/extensions'
+    | '/settings'
     | '/'
     | '/workspaces/new'
     | '/workspaces'
@@ -132,6 +143,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_auth'
     | '/_auth/extensions'
+    | '/_auth/settings'
     | '/_auth/workspaces'
     | '/_auth/'
     | '/_auth/workspace/$workspaceId'
@@ -167,6 +179,13 @@ declare module '@tanstack/react-router' {
       path: '/workspaces'
       fullPath: '/workspaces'
       preLoaderRoute: typeof AuthWorkspacesRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/settings': {
+      id: '/_auth/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AuthSettingsRouteImport
       parentRoute: typeof AuthRoute
     }
     '/_auth/extensions': {
@@ -257,6 +276,7 @@ const AuthWorkspaceWorkspaceIdRouteWithChildren =
 
 interface AuthRouteChildren {
   AuthExtensionsRoute: typeof AuthExtensionsRoute
+  AuthSettingsRoute: typeof AuthSettingsRoute
   AuthWorkspacesRoute: typeof AuthWorkspacesRouteWithChildren
   AuthIndexRoute: typeof AuthIndexRoute
   AuthWorkspaceWorkspaceIdRoute: typeof AuthWorkspaceWorkspaceIdRouteWithChildren
@@ -264,6 +284,7 @@ interface AuthRouteChildren {
 
 const AuthRouteChildren: AuthRouteChildren = {
   AuthExtensionsRoute: AuthExtensionsRoute,
+  AuthSettingsRoute: AuthSettingsRoute,
   AuthWorkspacesRoute: AuthWorkspacesRouteWithChildren,
   AuthIndexRoute: AuthIndexRoute,
   AuthWorkspaceWorkspaceIdRoute: AuthWorkspaceWorkspaceIdRouteWithChildren,

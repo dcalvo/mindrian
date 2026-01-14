@@ -1,10 +1,15 @@
 import {
+  FunctionCall,
   GenerativeModel,
   GoogleGenerativeAI,
   SchemaType,
 } from "@google/generative-ai";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
+const pdf = require("pdf-parse");
 
 export class AIService {
   private genAI: GoogleGenerativeAI | null = null;
@@ -112,7 +117,25 @@ export class AIService {
     }
 
     const chatSession = this.model.startChat({
-      history: this.conversationHistory,
+      history: [
+        {
+          role: "user",
+          parts: [
+            {
+              text: `WORKSPACE_INFO: You are currently working in the workspace located at: ${workspacePath}. When listing or reading files, use absolute paths starting with this workspace path.`,
+            },
+          ],
+        },
+        {
+          role: "model",
+          parts: [
+            {
+              text: `Understood. I will work within the workspace at ${workspacePath} and use absolute paths when accessing files and directories.`,
+            },
+          ],
+        },
+        ...this.conversationHistory,
+      ],
     });
 
     try {
@@ -123,7 +146,7 @@ export class AIService {
       // Note: A true robust loop would handle multiple back-and-forths.
       // Here we handle at least one round of tool use.
 
-      let toolCalls: any[] = [];
+      const toolCalls: FunctionCall[] = [];
 
       for await (const chunk of result.stream) {
         const text = chunk.text();
@@ -182,17 +205,79 @@ export class AIService {
     const { name, args } = call;
     console.log(`[AI] Executing ${name} with`, args);
 
+    const IGNORED_FILES = [".DS_Store", ".mindrian", ".git", "node_modules"];
+
     try {
       if (name === "read_file") {
         if (!this.isSafePath(args.path, workspacePath))
           return "Access Denied: Path outside workspace.";
-        return await fs.readFile(args.path, "utf-8");
+
+        // Handle PDF files
+        if (args.path.toLowerCase().endsWith(".pdf")) {
+          try {
+            const dataBuffer = await fs.readFile(args.path);
+            const data = await pdf(dataBuffer);
+            return `[PDF Content for ${path.basename(args.path)}]\n${data.text}`;
+          } catch (error: any) {
+            return `Error reading PDF: ${error.message}`;
+          }
+        }
+
+        const content = await fs.readFile(args.path, "utf-8");
+
+        // Handle BlockNote JSON files (heuristic: ends with .json)
+        if (args.path.toLowerCase().endsWith(".json")) {
+          try {
+            const parsed = JSON.parse(content);
+            // Simple heuristic to check if it's a BlockNote doc (array of blocks)
+            if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].type) {
+              let markdown = `[BlockNote Document: ${path.basename(args.path)}]\n\n`;
+              for (const block of parsed) {
+                if (block.content) {
+                  if (Array.isArray(block.content)) {
+                    // BlockNote content is an array of styled text objects
+                    const text = block.content.map((c: any) => c.text).join("");
+
+                    if (block.type === "heading") {
+                      markdown += `# ${text}\n\n`;
+                    } else if (block.type === "bulletListItem") {
+                      markdown += `- ${text}\n`;
+                    } else if (block.type === "numberedListItem") {
+                      markdown += `1. ${text}\n`;
+                    } else {
+                      markdown += `${text}\n\n`;
+                    }
+                  } else if (typeof block.content === "string") {
+                    // Fallback if content is string (older versions?)
+                    markdown += `${block.content}\n\n`;
+                  }
+                }
+              }
+              return markdown;
+            }
+          } catch (e) {
+            // Not JSON or check failed, treat as text
+          }
+        }
+
+        return content;
       }
       if (name === "list_dir") {
         if (!this.isSafePath(args.path, workspacePath))
           return "Access Denied: Path outside workspace.";
-        const entries = await fs.readdir(args.path);
-        return entries.join("\n");
+
+        const entries = await fs.readdir(args.path, { withFileTypes: true });
+
+        const filteredEntries = entries.filter(
+          (entry) => !IGNORED_FILES.includes(entry.name)
+        );
+
+        const formattedEntries = filteredEntries.map((entry) => {
+          const type = entry.isDirectory() ? "[DIR]" : "[FILE]";
+          return `${type} ${entry.name}`;
+        });
+
+        return formattedEntries.join("\n");
       }
     } catch (e: any) {
       return `Error: ${e.message}`;
