@@ -215,6 +215,7 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
       }
 
       let counter = 1;
+      // eslint-disable-next-line no-constant-condition
       while (true) {
         const newName = `${baseName} (${counter})`;
         if (!siblingNames.has(newName.toLowerCase())) {
@@ -236,6 +237,7 @@ export function DocumentsProvider({ children }: { children: ReactNode }) {
       }
 
       let counter = 1;
+      // eslint-disable-next-line no-constant-condition
       while (true) {
         const newName = `${baseName} (${counter})`;
         if (!siblingNames.has(newName.toLowerCase())) {

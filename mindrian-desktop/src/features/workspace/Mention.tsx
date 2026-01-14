@@ -1,4 +1,4 @@
-/* eslint-disable react-refresh/only-export-components */
+ 
 import { createReactInlineContentSpec } from "@blocknote/react";
 import { useEffect, useRef } from "react";
 
