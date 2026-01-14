@@ -110,16 +110,7 @@ export function ChatPane({
   // Derive computed values from conversation or AI context
   const messages = useMemo(() => {
     if (provider === "gemini") {
-      return aiMessages.map(
-        (m, i) =>
-          ({
-            id: i.toString(),
-            role: m.role === "user" ? "user" : "agent", // Map assistant -> agent
-            content: m.content,
-            created_at: new Date().toISOString(),
-            status: "success",
-          }) as Message
-      );
+      return aiMessages;
     } else {
       return conversation?.messages ?? [];
     }
@@ -131,9 +122,8 @@ export function ChatPane({
   // For Gemini, we handle streaming differently (isStreaming flag), but let's try to map it
   const streamingMessage = useMemo(() => {
     if (provider === "gemini" && isStreaming) {
-      // Return the last message if it's from assistant and we are streaming
-      // Actually, AIContext updates the message in real-time.
-      // So we don't need a separate "streaming" object, just the last message.
+      // Return the last message if it's from agent and we are streaming
+      // AIContext updates the message in real-time now.
       return null;
     }
     return messages.find(
@@ -238,7 +228,7 @@ export function ChatPane({
 
   const getStatusText = () => {
     if (provider === "gemini") {
-      return isStreaming ? "Gemini is thinking..." : null;
+      return isStreaming ? "Mindrian is thinking..." : null;
     }
     switch (status) {
       case "running":
@@ -337,7 +327,6 @@ export function ChatPane({
           )}
 
         {displayMessages.map((message: Message) => {
-          // Detect which agent sent this message (if it's an agent message)
           const agentType =
             message.role === "agent" && provider === "claude"
               ? detectMessageAgent(messages, message)
@@ -364,12 +353,7 @@ export function ChatPane({
           </div>
         )}
 
-        {/* Simple streaming indicator for Gemini if not using Message object stream */}
-        {provider === "gemini" && isStreaming && (
-          <div className="chat-message assistant streaming">
-            <span className="streaming-cursor">Thinking...</span>
-          </div>
-        )}
+        {/* Standard streaming indicator is now handled by message status */}
 
         <div ref={messagesEndRef} />
       </div>

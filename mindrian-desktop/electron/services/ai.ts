@@ -11,6 +11,12 @@ import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const pdf = require("pdf-parse");
 
+// Define the event types for the stream
+export type StreamEvent =
+  | { type: "text_delta"; content: string }
+  | { type: "tool_call"; toolCall: FunctionCall }
+  | { type: "tool_result"; toolCallId: string; result: any };
+
 export class AIService {
   private genAI: GoogleGenerativeAI | null = null;
   private model: GenerativeModel | null = null;
@@ -105,7 +111,7 @@ export class AIService {
   public async chat(
     message: string,
     workspacePath: string,
-    onStream?: (chunk: string) => void
+    onStream?: (event: StreamEvent) => void
   ) {
     if (!this.model) {
       this.initModel(); // Try once more with env
@@ -152,7 +158,7 @@ export class AIService {
         const text = chunk.text();
         if (text) {
           fullResponse += text;
-          if (onStream) onStream(text);
+          if (onStream) onStream({ type: "text_delta", content: text });
         }
 
         const calls = chunk.functionCalls();
@@ -165,11 +171,26 @@ export class AIService {
       if (toolCalls.length > 0) {
         const functionResponses = await Promise.all(
           toolCalls.map(async (call) => {
+            // Notify frontend of the tool call
+            if (onStream) {
+              onStream({ type: "tool_call", toolCall: call });
+            }
+
             const response = await this.executeTool(call, workspacePath);
-            if (onStream)
-              onStream(
-                `\n\n*Tool (${call.name}):* \`${JSON.stringify(call.args)}\`\n\n`
-              );
+
+            // Notify frontend of the result
+            // Note: FunctionCall doesn't have an ID in Gemini's simple API usually,
+            // but for UI matching we might need one. For now we use the name as proxy if single.
+            // But `call` object might not have a unique ID property exposed easily in this SDK version.
+            // We'll rely on order or just send the result correlated by name/context.
+            if (onStream) {
+              onStream({
+                type: "tool_result",
+                toolCallId: call.name,
+                result: response,
+              });
+            }
+
             return {
               functionResponse: {
                 name: call.name,
@@ -186,7 +207,7 @@ export class AIService {
           const text = chunk.text();
           if (text) {
             fullResponse += text;
-            if (onStream) onStream(text);
+            if (onStream) onStream({ type: "text_delta", content: text });
           }
         }
       }

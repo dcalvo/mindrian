@@ -1,10 +1,17 @@
+import {
+  Message,
+  AgentMessage,
+  ToolCallMessage,
+  UserMessage,
+} from "../hooks/chat/useChat";
+
 export interface AIContextValue {
   provider: "claude" | "gemini";
   setProvider: (p: "claude" | "gemini") => void;
   apiKey: string | null;
   setApiKey: (key: string) => void;
   sendMessage: (msg: string) => Promise<void>;
-  messages: Array<{ role: "user" | "assistant"; content: string }>;
+  messages: Message[];
   isStreaming: boolean;
 }
 
@@ -32,9 +39,7 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
   const [apiKey, setApiKeyState] = useState<string | null>(
     localStorage.getItem("gemini_api_key")
   );
-  const [messages, setMessages] = useState<
-    Array<{ role: "user" | "assistant"; content: string }>
-  >([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
 
   const { workspaces, currentWorkspaceId } = useWorkspacesContext();
@@ -58,17 +63,82 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     if (!window.ai) return;
 
-    window.ai.onStream((chunk) => {
+    window.ai.onStream((event: any) => {
       setMessages((prev) => {
         const last = prev[prev.length - 1];
-        if (last && last.role === "assistant") {
+
+        if (typeof event === "string" || event.type === "text_delta") {
+          const content = typeof event === "string" ? event : event.content;
+
+          if (last && last.role === "agent" && last.status === "streaming") {
+            const agentMsg = last as AgentMessage;
+            // Update existing streaming message
+            return [
+              ...prev.slice(0, -1),
+              { ...agentMsg, content: agentMsg.content + content },
+            ];
+          } else {
+            // New streaming chunk but no active agent message? Create one.
+            // This happens if tool call finished and agent starts speaking again.
+            return [
+              ...prev,
+              {
+                id: crypto.randomUUID(),
+                role: "agent",
+                content: content,
+                status: "streaming",
+              } as AgentMessage,
+            ];
+          }
+        } else if (event.type === "tool_call") {
+          const { toolCall } = event;
+          // Finish previous agent text message if it was streaming
+          const messages = [...prev];
+          if (last && last.role === "agent" && last.status === "streaming") {
+            messages[messages.length - 1] = {
+              ...last,
+              status: "complete",
+            } as AgentMessage;
+          }
+
           return [
-            ...prev.slice(0, -1),
-            { ...last, content: last.content + chunk },
+            ...messages,
+            {
+              id: crypto.randomUUID(),
+              role: "tool_call",
+              name: toolCall.name,
+              arguments: toolCall.args,
+              description: `Calling ${toolCall.name}...`,
+              status: "executing", // Show as running immediately
+            } as ToolCallMessage,
           ];
-        } else {
-          return [...prev, { role: "assistant", content: chunk }];
+        } else if (event.type === "tool_result") {
+          const { result } = event;
+          // Find the running tool call and mark it complete
+          // Since we don't have IDs from backend easily yet, we assume the last tool call
+          // or we search backwards.
+          // For now, robustly, look for the last tool call that is executing.
+          const toolIndex = [...prev]
+            .reverse()
+            .findIndex(
+              (m) => m.role === "tool_call" && m.status === "executing"
+            );
+
+          if (toolIndex !== -1) {
+            const realIndex = prev.length - 1 - toolIndex;
+            const toolMsg = prev[realIndex] as ToolCallMessage;
+            const updated = [...prev];
+            updated[realIndex] = {
+              ...toolMsg,
+              status: "completed",
+              result: result,
+            };
+            return updated;
+          }
+          return prev;
         }
+
+        return prev;
       });
     });
   }, []);
@@ -99,20 +169,54 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       // Optimistic UI
-      setMessages((prev) => [...prev, { role: "user", content: msg }]);
+      const userMsgId = crypto.randomUUID();
+      const userMsg: UserMessage = {
+        id: userMsgId,
+        role: "user",
+        content: msg,
+        inserted_at: new Date().toISOString(),
+      };
+
+      // Add user message AND an initial empty agent message to receive the stream immediately
+      const agentMsgId = crypto.randomUUID();
+      const agentMsg: AgentMessage = {
+        id: agentMsgId,
+        role: "agent",
+        content: "",
+        status: "streaming",
+        inserted_at: new Date().toISOString(),
+      };
+
+      setMessages((prev) => [...prev, userMsg, agentMsg]);
       setIsStreaming(true);
 
       try {
         if (!window.ai) throw new Error("AI Agent is not initialized");
         await window.ai.chat(msg, currentWorkspace.path);
-      } catch (err) {
+      } catch (err: any) {
         console.error(err);
         setMessages((prev) => [
           ...prev,
-          { role: "assistant", content: "Error: " + err },
+          {
+            id: crypto.randomUUID(),
+            role: "agent",
+            content: "Error: " + err.message,
+            status: "complete", // Mark as error/complete
+          } as AgentMessage,
         ]);
       } finally {
         setIsStreaming(false);
+        // Ensure last message is marked complete if it was streaming
+        setMessages((prev) => {
+          const last = prev[prev.length - 1];
+          if (last && last.role === "agent" && last.status === "streaming") {
+            return [
+              ...prev.slice(0, -1),
+              { ...last, status: "complete" } as AgentMessage,
+            ];
+          }
+          return prev;
+        });
       }
     },
     [provider, currentWorkspace]
