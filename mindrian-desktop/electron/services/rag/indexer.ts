@@ -1,4 +1,4 @@
-import chokidar from "chokidar";
+import * as chokidar from "chokidar";
 import fs from "fs/promises";
 import path from "path";
 import crypto from "crypto";
@@ -29,7 +29,7 @@ export class FileIndexer {
 
     // Watch for changes
     this.watcher = chokidar.watch(this.workspacePath, {
-      ignored: (filePath: string, stats?: any) => {
+      ignored: (filePath: string) => {
         const basename = path.basename(filePath);
         return IGNORED_DIRS.includes(basename) || basename.startsWith(".");
       },
@@ -110,9 +110,12 @@ export class FileIndexer {
 
     while (this.indexingQueue.size > 0) {
       const filePath = this.indexingQueue.values().next().value;
-      this.indexingQueue.delete(filePath);
-
-      await this.indexFile(filePath);
+      if (filePath) {
+        this.indexingQueue.delete(filePath);
+        await this.indexFile(filePath);
+      } else {
+        break;
+      }
     }
 
     this.isIndexing = false;
@@ -161,6 +164,7 @@ export class FileIndexer {
           return blocks
             .map((b) => {
               if (b.content && Array.isArray(b.content)) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 return b.content.map((c: any) => c.text || "").join("");
               }
               return "";

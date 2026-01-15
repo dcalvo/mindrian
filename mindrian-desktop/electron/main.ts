@@ -59,10 +59,13 @@ function ensureSafePath(targetPath: string) {
     resolvedPath !== resolvedRoot &&
     !resolvedPath.startsWith(resolvedRoot + path.sep)
   ) {
-    console.error(`Blocked access to unsafe path: ${targetPath}`);
-    throw new Error(
-      `Security Error: Cannot access files outside the Mindrian directory.`
+    console.warn(
+      `[Security] Accessing path outside Mindrian root: ${targetPath}`
     );
+    // Relaxed security for external workspaces (User requested)
+    // throw new Error(
+    //   `Security Error: Cannot access files outside the Mindrian directory.`
+    // );
   }
 }
 
@@ -94,6 +97,7 @@ ipcMain.handle(
   "fs:write-file",
   async (_, filePath: string, content: string) => {
     ensureSafePath(filePath);
+    console.log(`[Main] Writing file: ${filePath}`);
     // Ensure directory exists
     await fs.mkdir(path.dirname(filePath), { recursive: true });
     return fs.writeFile(filePath, content, "utf-8");
@@ -169,10 +173,15 @@ ipcMain.handle("fs:open-path", async (_, targetPath: string) => {
 import { aiService } from "./services/ai";
 import { aiOrchestrator } from "./services/ai/orchestrator";
 
+interface MindrianConfig {
+  api_key?: string;
+  api_key_unencrypted?: string;
+}
+
 async function saveApiKey(key: string) {
   try {
     await fs.mkdir(path.dirname(CONFIG_PATH), { recursive: true });
-    let config = {};
+    let config: MindrianConfig = {};
     try {
       const content = await fs.readFile(CONFIG_PATH, "utf-8");
       config = JSON.parse(content);
@@ -182,10 +191,10 @@ async function saveApiKey(key: string) {
 
     if (safeStorage.isEncryptionAvailable()) {
       const encrypted = safeStorage.encryptString(key);
-      (config as any).api_key = encrypted.toString("base64");
+      config.api_key = encrypted.toString("base64");
     } else {
       // Fallback (not recommended for secrets but better than failing)
-      (config as any).api_key_unencrypted = key;
+      config.api_key_unencrypted = key;
     }
 
     await fs.writeFile(CONFIG_PATH, JSON.stringify(config, null, 2), "utf-8");
@@ -197,7 +206,7 @@ async function saveApiKey(key: string) {
 async function loadSettings() {
   try {
     const content = await fs.readFile(CONFIG_PATH, "utf-8");
-    const config = JSON.parse(content);
+    const config: MindrianConfig = JSON.parse(content);
 
     let key = "";
     if (config.api_key && safeStorage.isEncryptionAvailable()) {
@@ -231,13 +240,16 @@ ipcMain.handle("ai:chat", async (event, { message, workspacePath }) => {
     const reply = await aiOrchestrator.chat(
       message,
       workspacePath,
-      (chunk: any) => {
-        event.sender.send("ai:stream-chunk", chunk);
+      (chunk: unknown) => {
+        // Check if the sender is still valid before trying to send
+        if (!event.sender.isDestroyed()) {
+          event.sender.send("ai:stream-chunk", chunk);
+        }
       }
     );
     return reply;
-  } catch (err: any) {
-    throw new Error(err.message);
+  } catch (err: unknown) {
+    throw new Error((err as Error).message);
   }
 });
 

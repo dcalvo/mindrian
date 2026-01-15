@@ -11,7 +11,7 @@ import path from "node:path";
 export type StreamEvent =
   | { type: "text_delta"; content: string }
   | { type: "tool_call"; toolCall: FunctionCall }
-  | { type: "tool_result"; toolCallId: string; result: any };
+  | { type: "tool_result"; toolCallId: string; result: unknown };
 
 export class AIService {
   private genAI: GoogleGenerativeAI | null = null;
@@ -116,14 +116,19 @@ export class AIService {
     fn: () => Promise<T>,
     maxRetries = 3
   ): Promise<T> {
-    let lastError: any;
+    let lastError: unknown;
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         return await fn();
-      } catch (error: any) {
+      } catch (error: unknown) {
         lastError = error;
         // Check if it's a rate limit error (429)
-        if (error.status === 429 || error.message?.includes("429")) {
+        if (
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (error as any).status === 429 ||
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (error as any).message?.includes("429")
+        ) {
           if (attempt < maxRetries) {
             // Exponential backoff: 2^attempt seconds
             const waitTime = Math.pow(2, attempt) * 1000;
@@ -145,7 +150,7 @@ export class AIService {
     message: string,
     workspacePath: string,
     modelType: "gemini-2.5-flash" | "gemini-2.5-pro" = "gemini-2.5-flash",
-    conversationHistory: any[] = [],
+    conversationHistory: { role: string; parts: { text: string }[] }[] = [],
     ragContext?: string,
     onStream?: (event: StreamEvent) => void,
     systemPrompt?: string
@@ -272,15 +277,17 @@ export class AIService {
     }
   }
 
-  private async executeTool(call: any, workspacePath: string) {
+  private async executeTool(call: FunctionCall, workspacePath: string) {
     const { name, args } = call;
-    console.log(`[AI] Executing ${name} with`, args);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const toolArgs = args as any; // Cast to any to allow access to dynamic properties
+    console.log(`[AI] Executing ${name} with`, toolArgs);
 
     const IGNORED_FILES = [".DS_Store", ".mindrian", ".git", "node_modules"];
 
     try {
       if (name === "read_file") {
-        let targetPath = args.path;
+        let targetPath = toolArgs.path;
 
         // Ensure we have an absolute path if a relative one was provided
         if (!path.isAbsolute(targetPath)) {
@@ -290,7 +297,7 @@ export class AIService {
         if (!this.isSafePath(targetPath, workspacePath))
           return "Access Denied: Path outside workspace.";
 
-        const safeArgs = { ...args, path: targetPath };
+        const safeArgs = { ...toolArgs, path: targetPath };
 
         // Handle PDF files - Use native multimodal support
         if (safeArgs.path.toLowerCase().endsWith(".pdf")) {
@@ -304,8 +311,8 @@ export class AIService {
               data: base64Data,
               path: safeArgs.path,
             };
-          } catch (error: any) {
-            return `Error reading PDF: ${error.message}`;
+          } catch (error: unknown) {
+            return `Error reading PDF: ${(error as Error).message}`;
           }
         }
 
@@ -333,8 +340,8 @@ export class AIService {
               data: base64Data,
               path: safeArgs.path,
             };
-          } catch (error: any) {
-            return `Error reading image: ${error.message}`;
+          } catch (error: unknown) {
+            return `Error reading image: ${(error as Error).message}`;
           }
         }
 
@@ -351,6 +358,7 @@ export class AIService {
                 if (block.content) {
                   if (Array.isArray(block.content)) {
                     // BlockNote content is an array of styled text objects
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     const text = block.content.map((c: any) => c.text).join("");
 
                     if (block.type === "heading") {
@@ -378,7 +386,7 @@ export class AIService {
         return content;
       }
       if (name === "list_dir") {
-        let targetPath = args.path;
+        let targetPath = toolArgs.path;
 
         // Handle root/workspace aliases
         if (
@@ -417,8 +425,8 @@ export class AIService {
 
         return formattedEntries.join("\n");
       }
-    } catch (e: any) {
-      return `Error: ${e.message}`;
+    } catch (e: unknown) {
+      return `Error: ${(e as Error).message}`;
     }
     return "Unknown tool";
   }

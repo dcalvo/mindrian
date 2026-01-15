@@ -49,9 +49,23 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
     if (window.ai) window.ai.setKey(key);
   };
 
-  // Init key on load
+  // Check backend for existing key on mount
   useEffect(() => {
-    if (apiKey && window.ai) {
+    const checkBackendKey = async () => {
+      if (window.ai) {
+        const hasKey = await window.ai.checkKey();
+        if (hasKey && !apiKey) {
+          // Backend has a key but localStorage doesn't - sync them
+          setApiKeyState("configured"); // Placeholder to indicate key exists
+        }
+      }
+    };
+    checkBackendKey();
+  }, [apiKey]);
+
+  // Init key on load (if stored in localStorage)
+  useEffect(() => {
+    if (apiKey && apiKey !== "configured" && window.ai) {
       window.ai.setKey(apiKey);
     }
   }, [apiKey]);
@@ -60,7 +74,11 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     if (!window.ai) return;
 
-    window.ai.onStream((event: any) => {
+    window.ai.onStream((chunk: unknown) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const event = chunk as any; // Temporary cast until we share types better or validate
+      // Ideally import StreamEvent from shared types
+
       setMessages((prev) => {
         const last = prev[prev.length - 1];
 
@@ -185,14 +203,15 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
       try {
         if (!window.ai) throw new Error("AI Agent is not initialized");
         await window.ai.chat(msg, currentWorkspace.path);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error(err);
         setMessages((prev) => [
           ...prev,
           {
             id: crypto.randomUUID(),
             role: "agent",
-            content: "Error: " + err.message,
+            content:
+              "Error: " + (err instanceof Error ? err.message : String(err)),
             status: "complete", // Mark as error/complete
           } as AgentMessage,
         ]);
@@ -211,7 +230,7 @@ export const AIProvider: React.FC<{ children: React.ReactNode }> = ({
         });
       }
     },
-    [currentWorkspace]
+    [currentWorkspace, currentWorkspaceId, workspaces.length]
   );
 
   return (

@@ -74,8 +74,10 @@ export function LocalEditor({ path }: LocalEditorProps) {
 
     const save = async () => {
       try {
+        console.log("[LocalEditor] Auto-saving to:", path);
         const blocks = editor.document;
         await fs.writeFile(path, JSON.stringify(blocks, null, 2));
+        console.log("[LocalEditor] Save complete");
       } catch (err) {
         console.error("Failed to save:", err);
       }
@@ -85,13 +87,18 @@ export function LocalEditor({ path }: LocalEditorProps) {
     let timeoutId: NodeJS.Timeout;
     const handleChange = () => {
       clearTimeout(timeoutId);
-      timeoutId = setTimeout(save, 1000);
+      // Faster auto-save (500ms) to reduce data loss risk
+      timeoutId = setTimeout(save, 500);
     };
 
     const unsubscribe = editor.onChange(handleChange);
     return () => {
       unsubscribe();
       clearTimeout(timeoutId);
+      // We do NOT auto-save on unmount here because if the file was renamed,
+      // 'path' still points to the OLD location, and writing to it would
+      // recreate the old file, duplicating data.
+      // A shorter debounce is the safer trade-off.
     };
   }, [editor, path, isLoading, error]);
 

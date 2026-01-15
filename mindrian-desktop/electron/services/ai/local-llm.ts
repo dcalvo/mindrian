@@ -8,7 +8,7 @@ import path from "path";
 import type { LocalLLMOptions } from "./types";
 
 export class LocalLLMService {
-  private llama: any = null;
+  private llama: unknown = null; // Type difficult to import directly, treating as unknown
   private model: LlamaModel | null = null;
   private context: LlamaContext | null = null;
   private isInitializing = false;
@@ -40,8 +40,9 @@ export class LocalLLMService {
     );
 
     this.llama = await getLlama();
-    this.model = await this.llama.loadModel({ modelPath });
-    this.context = await this.model.createContext({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    this.model = await (this.llama as any).loadModel({ modelPath });
+    this.context = await this.model!.createContext({
       contextSize: 4096, // Small context for speed
     });
 

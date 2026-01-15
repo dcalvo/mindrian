@@ -47,7 +47,7 @@ contextBridge.exposeInMainWorld("ai", {
   checkKey: () => ipcRenderer.invoke("ai:check-key"),
   chat: (message: string, workspacePath: string) =>
     ipcRenderer.invoke("ai:chat", { message, workspacePath }),
-  onStream: (callback: (chunk: any) => void) => {
+  onStream: (callback: (chunk: unknown) => void) => {
     // Remove old listeners to prevent duplicates (simple approach)
     ipcRenderer.removeAllListeners("ai:stream-chunk");
     ipcRenderer.on("ai:stream-chunk", (_, chunk) => callback(chunk));

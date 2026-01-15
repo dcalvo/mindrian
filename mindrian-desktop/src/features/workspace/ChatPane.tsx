@@ -40,12 +40,9 @@ export function ChatPane({
     sendMessage: sendAiMessage,
     messages: aiMessages,
     isStreaming,
-    apiKey,
-    setApiKey,
   } = useAIContext();
 
   const [input, setInput] = useState("");
-  const [showKeyInput, setShowKeyInput] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -89,10 +86,7 @@ export function ChatPane({
     e.preventDefault();
     if (!input.trim()) return;
 
-    if (!apiKey) {
-      setShowKeyInput(true);
-      return;
-    }
+    // Backend will handle key validation, no need to check here
     sendAiMessage(input.trim());
     setInput("");
   };
@@ -128,35 +122,6 @@ export function ChatPane({
       </div>
 
       <div className="chat-messages">
-        {showKeyInput && !apiKey && (
-          <div
-            className="api-key-modal"
-            style={{
-              padding: 20,
-              background: "var(--bg-secondary)",
-              borderRadius: 8,
-              margin: 20,
-            }}
-          >
-            <h4 style={{ marginTop: 0 }}>Enter Gemini API Key</h4>
-            <p style={{ fontSize: 12, opacity: 0.7, marginBottom: 10 }}>
-              required for local agent mode.
-            </p>
-            <input
-              type="password"
-              placeholder="AIza..."
-              className="chat-input"
-              style={{ width: "100%" }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  setApiKey(e.currentTarget.value);
-                  setShowKeyInput(false);
-                }
-              }}
-            />
-          </div>
-        )}
-
         {displayMessages.length === 0 && !isStreaming && (
           <div className="chat-empty">
             <div className="chat-empty-text">

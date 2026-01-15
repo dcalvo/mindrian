@@ -7,7 +7,7 @@ env.allowRemoteModels = true; // Allow download on first use
 env.useBrowserCache = false; // Use electron's app data
 
 export class EmbeddingService {
-  private embedder: any = null;
+  private embedder: unknown = null;
   private readonly modelId = "Xenova/bge-small-en-v1.5";
   private isInitializing = false;
   private initPromise: Promise<void> | null = null;
@@ -43,7 +43,8 @@ export class EmbeddingService {
   async embed(text: string): Promise<EmbeddingResult> {
     if (!this.embedder) await this.initialize();
 
-    const result = await this.embedder(text, {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = await (this.embedder as any)(text, {
       pooling: "mean",
       normalize: true,
     });

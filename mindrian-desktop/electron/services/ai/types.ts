@@ -27,7 +27,7 @@ export interface SearchResult {
   path: string;
   content: string;
   similarity: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface LocalLLMOptions {
@@ -49,8 +49,8 @@ export interface AgentState {
     | "synthesizing"
     | "complete"
     | "idle";
-  history: any[]; // Conversation history
-  context: Record<string, any>; // Arbitrary context for specific agents (e.g. innovation phase)
+  history: Record<string, unknown>[]; // Conversation history
+  context: Record<string, unknown>; // Arbitrary context for specific agents (e.g. innovation phase)
 }
 
 export interface ThinkingState {

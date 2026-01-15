@@ -26,8 +26,10 @@ export const SettingsView: React.FC = () => {
   useEffect(() => {
     // Check if key already exists on mount
     const checkKey = async () => {
-      const exists = await (window as any).ai.checkKey();
-      setHasStoredKey(exists);
+      if (window.ai) {
+        const exists = await window.ai.checkKey();
+        setHasStoredKey(exists);
+      }
     };
     checkKey();
   }, []);
@@ -37,11 +39,15 @@ export const SettingsView: React.FC = () => {
 
     try {
       setIsSaving(true);
-      await (window as any).ai.setKey(apiKey);
-      setHasStoredKey(true);
-      setApiKey(""); // Clear input after save for security
-      toast.success("Gemini API Key saved securely.");
-    } catch (error) {
+      if (window.ai) {
+        await window.ai.setKey(apiKey);
+        setHasStoredKey(true);
+        setApiKey(""); // Clear input after save for security
+        toast.success("Gemini API Key saved securely.");
+      } else {
+        throw new Error("AI interface not available");
+      }
+    } catch (error: unknown) {
       console.error("Failed to save API key", error);
       toast.error("Failed to save API key.");
     } finally {
