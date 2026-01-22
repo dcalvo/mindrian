@@ -9,7 +9,7 @@ from larry.diagnosis_consolidator import diagnosis_consolidator_team  # noqa: E4
 from testing import TESTING  # noqa: E402
 from tools import document_tools, mckinsey_tools, testing_tools  # noqa: E402
 from db.db import DB  # noqa: E402
-from agent_settings.agent_settings import mindrian_agent_model, complex_model, simple_model
+from agent_settings.agent_settings import mindrian_model, complex_model, simple_model
 
 
 # Chat agent memory (required for tool approval continuations)
@@ -90,7 +90,7 @@ tools = document_tools + mckinsey_tools + [delegate_task] + (testing_tools if TE
 mindrian_agent = Agent(
     id="mindrian-agent",
     name="Mindrian Supervisor",
-    model=mindrian_agent_model,
+    model=mindrian_model,
     db=db,
     instructions=LEADER_INSTRUCTIONS,
     tools=tools,

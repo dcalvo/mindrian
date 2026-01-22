@@ -9,7 +9,6 @@ anthropic_key = os.getenv("ANTHROPIC_API_KEY")
 
 # Agent settings
 from agno.models.anthropic import Claude
-from agno.models.openai import OpenAI
 
 larry_helpers_model = Claude(id="claude-haiku-4-5", api_key=anthropic_key)
 larry_team_model = Claude(id="claude-sonnet-4-5", api_key=anthropic_key)

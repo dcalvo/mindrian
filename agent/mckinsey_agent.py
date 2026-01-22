@@ -10,7 +10,7 @@ Run with:
 
 from agno.agent import Agent  # noqa: E402
 from agno.db.sqlite import SqliteDb  # noqa: E402
-from agent_settings.agent_settings import mckinsey_agent_model
+from agent_settings.agent_settings import mckinsey_model
 
 # McKinsey agent memory
 db = SqliteDb(db_file="tmp/mckinsey_agent.db")
@@ -55,7 +55,7 @@ IMPORTANT:
 mckinsey_agent = Agent(
     id="mckinsey-agent",
     name="McKinsey 7 Steps Strategist",
-    model=mckinsey_agent_model,
+    model=mckinsey_model,
     db=db,
     instructions=SYSTEM_PROMPT,
     add_history_to_context=True,
