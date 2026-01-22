@@ -1,0 +1,9 @@
+{
+    "name": "latex_agent",
+    "version": "1.0.0",
+    "timeout": 60,
+    "description": "An agent specialized in converting mathematical expressions into LaTeX format.",
+    "example_conversation_history": "User: Convert x^2 + 2x to LaTeX\nAgent: $x^2 + 2x$",
+    "dependencies": [],
+    "tools": []
+}

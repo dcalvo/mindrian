@@ -7,15 +7,9 @@ Run with:
     uv run uvicorn mindrian_agent:app --port 8000 --reload
 """
 
-import os
-
-from dotenv import load_dotenv
-
-load_dotenv()
-
 from agno.agent import Agent  # noqa: E402
 from agno.db.sqlite import SqliteDb  # noqa: E402
-from agno.models.anthropic import Claude  # noqa: E402
+from agent_settings.agent_settings import document_model
 
 from testing import TESTING  # noqa: E402
 # document agent memory
@@ -39,14 +33,11 @@ When working with documents:
 - Output the tool call schema clearly for the Leader to see (e.g., `Recommended Tool: create_document(title="New Doc")`).
 """
 
-# Get API key from environment
-api_key = os.getenv("ANTHROPIC_API_KEY")
-
 # Create the agent - NO TOOLS attached
 document_agent = Agent(
     id="document-agent",
     name="Document Strategist",
-    model=Claude(id="claude-haiku-4-5", api_key=api_key),
+    model=document_model,
     db=db,
     instructions=SYSTEM_PROMPT,
     add_history_to_context=True,

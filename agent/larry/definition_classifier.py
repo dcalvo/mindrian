@@ -8,7 +8,7 @@ from agno.agent import Agent
 from agno.models.anthropic import Claude
 from pydantic import BaseModel, Field
 from .prompts import DEFINITION_CLASSIFIER_PROMPT
-import os
+from agent_settings.agent_settings import larry_helpers_model 
 
 class ProblemDefinition(BaseModel):
     classification: Literal["undefined", "ill-defined", "well-defined"] = Field(
@@ -25,7 +25,7 @@ class ProblemDefinition(BaseModel):
     )
 
 definition_classifier_agent = Agent(
-    model=Claude(id="claude-haiku-4-5"),
+    model=larry_helpers_model,
     description="You are the Definition Classifier agent for Larry Navigator.",
     instructions=DEFINITION_CLASSIFIER_PROMPT,
     output_schema=ProblemDefinition,

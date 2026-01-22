@@ -10,6 +10,7 @@ from agno.agent import Agent
 from agno.models.anthropic import Claude
 from pydantic import BaseModel, Field
 from .prompts import RESEARCH_AGENT_PROMPT
+from agent_settings.agent_settings import larry_helpers_model
 
 class ResearchDecision(BaseModel):
     should_research: bool = Field(
@@ -26,7 +27,7 @@ class ResearchDecision(BaseModel):
     )
 
 research_agent = Agent(
-    model=Claude(id="claude-haiku-4-5"),
+    model=larry_helpers_model,
     description="You are the Research Agent. Decide if web research is valuable.",
     instructions=RESEARCH_AGENT_PROMPT,
     output_schema=ResearchDecision,

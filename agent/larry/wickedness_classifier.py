@@ -8,6 +8,7 @@ from agno.agent import Agent
 from agno.models.anthropic import Claude
 from pydantic import BaseModel, Field
 from .prompts import WICKEDNESS_CLASSIFIER_PROMPT
+from agent_settings.agent_settings import larry_helpers_model
 
 class WickednessClassification(BaseModel):
     wickedness: Literal["tame", "messy", "complex", "wicked"] = Field(
@@ -27,7 +28,7 @@ class WickednessClassification(BaseModel):
     )
 
 wickedness_classifier_agent = Agent(
-    model=Claude(id="claude-haiku-4-5"),
+    model=larry_helpers_model,
     description="You are the Wickedness Classifier agent.",
     instructions=WICKEDNESS_CLASSIFIER_PROMPT,
     output_schema=WickednessClassification,

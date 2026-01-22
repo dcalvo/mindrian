@@ -2,7 +2,7 @@
 Diagnosis Consolidator Agent - Larry Navigator v2.0
 Synthesizes all diagnostic agent outputs into coherent assessment
 """
-
+# CURRENTLY NOT IN USE
 from agno.models.anthropic import Claude
 from pydantic import BaseModel, Field
 from .prompts import DIAGNOSIS_CONSOLIDATOR_PROMPT

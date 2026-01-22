@@ -8,6 +8,7 @@ from agno.agent import Agent
 from agno.models.anthropic import Claude
 from pydantic import BaseModel, Field
 from .prompts import COMPLEXITY_ASSESSOR_PROMPT
+from agent_settings.agent_settings import larry_helpers_model 
 
 class ComplexityAssessment(BaseModel):
     complexity: Literal["simple", "complicated", "complex", "chaotic"] = Field(
@@ -24,7 +25,7 @@ class ComplexityAssessment(BaseModel):
     )
 
 complexity_assessor_agent = Agent(
-    model=Claude(id="claude-haiku-4-5"),
+    model=larry_helpers_model,
     description="You are the Complexity Assessor agent using the Cynefin framework.",
     instructions=COMPLEXITY_ASSESSOR_PROMPT,
     output_schema=ComplexityAssessment,

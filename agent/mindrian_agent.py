@@ -1,12 +1,5 @@
-import os
-
-from dotenv import load_dotenv
-
-load_dotenv()
-
 from agno.agent import Agent  # noqa: E402
 from agno.db.sqlite import SqliteDb  # noqa: E402
-from agno.models.anthropic import Claude  # noqa: E402
 from agno.os import AgentOS  # noqa: E402
 
 from document_agent import document_agent  # noqa: E402
@@ -16,9 +9,7 @@ from larry.diagnosis_consolidator import diagnosis_consolidator_team  # noqa: E4
 from testing import TESTING  # noqa: E402
 from tools import document_tools, mckinsey_tools, testing_tools  # noqa: E402
 from db.db import DB  # noqa: E402
-
-# Get API key from environment
-api_key = os.getenv("ANTHROPIC_API_KEY")
+from agent_settings.agent_settings import mindrian_agent_model
 
 # Chat agent memory (required for tool approval continuations)
 db = DB
@@ -92,7 +83,7 @@ tools = document_tools + mckinsey_tools + [delegate_task] + (testing_tools if TE
 mindrian_agent = Agent(
     id="mindrian-agent",
     name="Mindrian Supervisor",
-    model=Claude(id="claude-sonnet-4-5", api_key=api_key),
+    model=mindrian_agent_model,
     db=db,
     instructions=LEADER_INSTRUCTIONS,
     tools=tools,

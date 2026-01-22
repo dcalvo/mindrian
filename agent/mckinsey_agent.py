@@ -8,15 +8,9 @@ Run with:
     uv run uvicorn mindrian_agent:app --port 8000 --reload
 """
 
-import os
-
-from dotenv import load_dotenv
-
-load_dotenv()
-
 from agno.agent import Agent  # noqa: E402
 from agno.db.sqlite import SqliteDb  # noqa: E402
-from agno.models.anthropic import Claude  # noqa: E402
+from agent_settings.agent_settings import mckinsey_agent_model
 
 # McKinsey agent memory
 db = SqliteDb(db_file="tmp/mckinsey_agent.db")
@@ -56,15 +50,12 @@ IMPORTANT:
 - Be thorough but concise.
 - Provide clear tool recommendations to the Leader."""
 
-# Get API key from environment
-api_key = os.getenv("ANTHROPIC_API_KEY")
-
 # Create the agent using Claude Opus 4.5
 # Pure reasoning agent - NO TOOLS attached
 mckinsey_agent = Agent(
     id="mckinsey-agent",
     name="McKinsey 7 Steps Strategist",
-    model=Claude(id="claude-opus-4-5", api_key=api_key),
+    model=mckinsey_agent_model,
     db=db,
     instructions=SYSTEM_PROMPT,
     add_history_to_context=True,

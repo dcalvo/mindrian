@@ -6,9 +6,10 @@ from .risk_uncertainty_evaluator import risk_uncertainty_evaluator_agent
 from .wickedness_classifier import wickedness_classifier_agent
 from agno.models.anthropic import Claude
 from db.db import DB
+from agent_settings.agent_settings import larry_team_model
 
 larry_team = Team(
-    model=Claude(id="claude-sonnet-4-5"),
+    model=larry_team_model,
     members=[wickedness_classifier_agent, complexity_assessor_agent, definition_classifier_agent, risk_uncertainty_evaluator_agent],
     instructions=LARRY_SYSTEM_PROMPT,
     name="Larry Navigator",

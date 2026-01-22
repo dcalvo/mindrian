@@ -1,0 +1,33 @@
+{
+    "name": "math_agent",
+    "version": "1.0.0",
+    "timeout": 60,
+    "description": "An agent specialized in mathematics, capable of solving various mathematical problems including quadratic equations.",
+    "example_conversation_history": "User: Solve x^2 - 5x + 6 = 0\nAgent: The roots are x = 2 and x = 3.",
+    "dependencies": [
+        "latex_agent"
+    ],
+    "tools": [
+        {
+            "name": "solve_quadratic",
+            "description": "Calculates the roots of a quadratic equation ax^2 + bx + c = 0.",
+            "arguments": [
+                {
+                    "name": "a",
+                    "type": "float",
+                    "description": "The coefficient of x^2."
+                },
+                {
+                    "name": "b",
+                    "type": "float",
+                    "description": "The coefficient of x."
+                },
+                {
+                    "name": "c",
+                    "type": "float",
+                    "description": "The constant term."
+                }
+            ]
+        }
+    ]
+}
