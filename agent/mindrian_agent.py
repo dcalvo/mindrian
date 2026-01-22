@@ -9,17 +9,19 @@ from larry.diagnosis_consolidator import diagnosis_consolidator_team  # noqa: E4
 from testing import TESTING  # noqa: E402
 from tools import document_tools, mckinsey_tools, testing_tools  # noqa: E402
 from db.db import DB  # noqa: E402
-from agent_settings.agent_settings import mindrian_agent_model
+from agent_settings.agent_settings import mindrian_agent_model, complex_model, simple_model
+
 
 # Chat agent memory (required for tool approval continuations)
 db = DB
 
-def delegate_task(agent_name: str, task: str) -> str:
+def delegate_task(agent_name: str, task: str, complex: bool) -> str:
     """Consult a specialist agent for a recommendation.
 
     Args:
         agent_name: The specialist to consult ('document-agent' or 'larry-team').
         task: The task or question for the specialist.
+        complexity: The complexity of the task (1 or 0) if the task is complex this value is True else False
 
     Returns:
         The specialist's recommended course of action (e.g., specific tool calls).
@@ -29,6 +31,11 @@ def delegate_task(agent_name: str, task: str) -> str:
         target_agent = document_agent
     elif agent_name == "larry-team":
         target_agent = larry_team
+    
+    if complex:
+        target_agent.model = complex_model
+    else:
+        target_agent.model = simple_model
 
     if target_agent:
         try:
