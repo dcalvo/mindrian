@@ -41,6 +41,7 @@ def delegate_task(agent_name: str, task: str, complex: bool) -> str:
         try:
             # We just want the recommendation text
             response = target_agent.run(task)
+            print(response.model)
             if agent_name == "larry-team":
                 if response.content:
                     content = response.content if isinstance(response.content, str) else str(response.content)
